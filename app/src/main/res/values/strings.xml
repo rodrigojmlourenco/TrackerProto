@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">TrackerProto</string>
+    <string name="walking">Walking</string>
+    <string name="unknown">Unknown</string>
+    <string name="tilting">Tilting</string>
+    <string name="still">Stationary</string>
+    <string name="running">Running</string>
+    <string name="on_foot">On foot</string>
+    <string name="on_bicycle">Cycling</string>
+    <string name="in_vehicle">Vehicular transportation</string>
+    <string name="unidentifiable_activity">Unable to identify</string>
+</resources>
