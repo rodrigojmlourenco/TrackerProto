@@ -2,10 +2,6 @@ package org.trace.trackerproto.tracking.utils;
 
 import android.location.Location;
 
-import org.alternativevision.gpx.GPXParser;
-import org.alternativevision.gpx.beans.GPX;
-import org.alternativevision.gpx.beans.Track;
-import org.alternativevision.gpx.beans.Waypoint;
 import org.trace.trackerproto.tracking.exceptions.UnableToParseTraceException;
 
 import java.io.ByteArrayOutputStream;
@@ -31,7 +27,7 @@ public class LocationUtils {
      * @param track Collection of the tracked locations.
      *
      * @return The traced track as a GPS Exchange Format string.
-     */
+     *
     public static String generateGPXTrack(List<Location> track) throws UnableToParseTraceException {
 
         GPX gpx = new GPX();
@@ -64,4 +60,5 @@ public class LocationUtils {
 
 
     }
+    */
 }

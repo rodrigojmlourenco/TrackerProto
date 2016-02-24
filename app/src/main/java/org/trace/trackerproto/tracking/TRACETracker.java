@@ -35,12 +35,16 @@ public class TRACETracker extends BroadcastReceiver implements CollectorManager{
 
     private Track track = null;
 
+    //Async
+    private Object mLock = new Object();
+
     //Location Modules
     private LinkedList<Location> mLocationTrace;
     private FusedLocationModule fusedLocationModule = null;
     private HeuristicBasedFilter mOutlierDetector;
 
     //Activity Modules
+    private DetectedActivity mCurrentActivity = null;
     private  LinkedList<DetectedActivity> mActivityTrace;
     private ActivityRecognitionModule activityRecognitionModule = null;
 
@@ -129,11 +133,31 @@ public class TRACETracker extends BroadcastReceiver implements CollectorManager{
         if(mOutlierDetector.isValidLocation(location)){
             mLocationTrace.add(location);
             storeLocation(location);
+
+            DetectedActivity activity = null;
+            synchronized (mLock){
+                if(mCurrentActivity != null)
+                    activity = mCurrentActivity;
+            }
+
+            TRACEStoreApiClient.uploadTrackingInfo(location, activity);
         }
     }
 
     private void onHandleDetectedActivity(ArrayList<DetectedActivity> detectedActivities){
         Log.e("onHandle", detectedActivities.toString());
+
+        if(detectedActivities.isEmpty()) return;
+
+        DetectedActivity aux = detectedActivities.get(0);
+
+        for(DetectedActivity activity : detectedActivities)
+            if (aux.getConfidence() > activity.getConfidence())
+                aux = activity;
+
+        synchronized (mLock) {
+            mCurrentActivity = aux;
+        }
     }
 
     @Override

@@ -30,7 +30,5 @@ dependencies {
 
     compile 'pub.devrel:easypermissions:0.1.5'
 
-    compile files('C:/Users/rodri_000/development/TrackerProto/libs/resty-0.3.2.jar')
-    compile files('C:/Users/rodri_000/development/TrackerProto/libs/gpxparser-20130603.jar')
-    compile files('C:/Users/rodri_000/development/TrackerProto/libs/log4j-1.2.17.jar')
+    compile 'us.monoid.web:resty:0.3.2'
 }

@@ -2,6 +2,10 @@ package org.trace.trackerproto.store;
 
 import android.content.Context;
 import android.content.Intent;
+import android.location.Location;
+import android.util.Log;
+
+import com.google.android.gms.location.DetectedActivity;
 
 import org.trace.trackerproto.Constants;
 import org.trace.trackerproto.store.api.TRACEStoreOperations;
@@ -11,6 +15,8 @@ import org.trace.trackerproto.store.auth.AuthenticationManager;
  * Created by Rodrigo Lourenço on 19/02/2016.
  */
 public class TRACEStoreApiClient {
+
+    private static final String LOG_TAG = "TRACEStore";
 
     private static String sessionId;
 
@@ -38,5 +44,9 @@ public class TRACEStoreApiClient {
 
     public static boolean isFirstTime(Context context){
         return AuthenticationManager.isFirstTime(context);
+    }
+
+    public static void uploadTrackingInfo(Location location, DetectedActivity activity){
+        Log.d(LOG_TAG, "[TODO] uploading { location:"+location+", activity: "+activity+"}");
     }
 }
