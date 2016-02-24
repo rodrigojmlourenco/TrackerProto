@@ -10,8 +10,4 @@ public interface ModuleInterface {
     public void startTracking(long millis);
 
     public void stopTracking();
-
-    public void dump();
-
-    public Location getLastLocation();
 }

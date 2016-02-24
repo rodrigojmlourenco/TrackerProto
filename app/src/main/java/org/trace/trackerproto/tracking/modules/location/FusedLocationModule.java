@@ -1,7 +1,9 @@
 package org.trace.trackerproto.tracking.modules.location;
 
 import android.content.Context;
+import android.content.Intent;
 import android.location.Location;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -9,6 +11,7 @@ import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 
+import org.trace.trackerproto.Constants;
 import org.trace.trackerproto.tracking.CollectorManager;
 import org.trace.trackerproto.tracking.exceptions.UnableToParseTraceException;
 import org.trace.trackerproto.tracking.filter.HeuristicBasedFilter;
@@ -27,9 +30,9 @@ public class FusedLocationModule implements LocationListener, ModuleInterface{
 
     protected final static String LOG_TAG = "FusedLocation";
 
-    private final Context context;
+    private final Context mContext;
     private final GoogleApiClient mGoogleApiClient;
-    private final LinkedList<Location> mLocations;
+
 
     private boolean isTracking = false;
 
@@ -38,19 +41,13 @@ public class FusedLocationModule implements LocationListener, ModuleInterface{
 
     private int mPriority = LocationRequest.PRIORITY_HIGH_ACCURACY;
 
-    private float mMinimumDisplacement = 5f; //meters
+    private float mMinimumDisplacement = 0f;//5f; //meters
 
-    private HeuristicBasedFilter outlierFilter;
+
 
     public FusedLocationModule(Context ctx, GoogleApiClient client){
-        this.context = ctx;
+        this.mContext = ctx;
         this.mGoogleApiClient = client;
-        this.mLocations = new LinkedList<>();
-
-        this.outlierFilter = new HeuristicBasedFilter();
-        outlierFilter.addNewHeuristic(new HeuristicBasedFilter.AccuracyBasedHeuristicRule(30));
-        outlierFilter.addNewHeuristic(new SatelliteBasedHeuristicRule(4));
-        outlierFilter.addNewHeuristic(new SpeedBasedHeuristicRule(16.67f));
     }
 
     public long getInterval() {
@@ -101,13 +98,12 @@ public class FusedLocationModule implements LocationListener, ModuleInterface{
 
     @Override
     public void onLocationChanged(Location location) {
-        Log.i("FL", location.toString());
 
-        if(outlierFilter.isValidLocation(location)) {
-            this.mLocations.add(location);
-            ((CollectorManager) context).storeLocation(location);
-        }else
-            Log.e(LOG_TAG, "Location was discarded as an outlier.");
+        // Broadcast the location
+        Intent localIntent = new Intent(Constants.COLLECT_ACTION);
+        localIntent.putExtra(Constants.LOCATION_EXTRA, location);
+        LocalBroadcastManager.getInstance(mContext).sendBroadcast(localIntent);
+
     }
 
     public void startLocationUpdates(){
@@ -131,32 +127,16 @@ public class FusedLocationModule implements LocationListener, ModuleInterface{
         }
     }
 
-    public Location getLastLocation(){
-        return this.mLocations.getLast();
-    }
+
 
     @Override
     public void startTracking(long millis) {
-
-        //TODO: update the interval values
-
+        setInterval(millis);
         startLocationUpdates();
-
-
     }
 
     @Override
     public void stopTracking() {
         stopLocationUpdates();
-        dump();
-    }
-
-    @Override
-    public void dump() {
-        try {
-            Log.i(LOG_TAG, LocationUtils.generateGPXTrack(mLocations));
-        } catch (UnableToParseTraceException e) {
-            e.printStackTrace();
-        }
     }
 }

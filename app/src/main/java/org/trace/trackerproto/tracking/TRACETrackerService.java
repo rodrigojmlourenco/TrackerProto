@@ -2,23 +2,18 @@ package org.trace.trackerproto.tracking;
 
 import android.app.Service;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.location.Location;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.support.annotation.Nullable;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.widget.Toast;
 
-import org.trace.trackerproto.store.TRACEStore;
-import org.trace.trackerproto.store.TRACEStoreApiClient;
-import org.trace.trackerproto.tracking.data.Track;
-import org.trace.trackerproto.tracking.modules.location.FusedLocationModule;
-import org.trace.trackerproto.tracking.storage.TrackInternalStorage;
-import org.trace.trackerproto.tracking.storage.exceptions.UnableToStoreTrackException;
-
-import java.util.List;
+import org.trace.trackerproto.Constants;
 
 
 /**
@@ -28,13 +23,8 @@ public class TRACETrackerService extends Service implements CollectorManager{
 
     private final String LOG_TAG = "TRACETrackerService";
 
-    final Messenger mMessenger = new Messenger(new ClientHandler());
-
-
-    //Location Tracking
-    private FusedLocationModule locationModule;
-
     private TRACETracker mTracker;
+    final Messenger mMessenger = new Messenger(new ClientHandler());
 
     @Override
     public void onCreate() {
@@ -46,8 +36,28 @@ public class TRACETrackerService extends Service implements CollectorManager{
     @Override
     public IBinder onBind(Intent intent) {
 
+        Log.d(LOG_TAG, "onBind");
         Toast.makeText(getApplicationContext(), "binding", Toast.LENGTH_SHORT).show();
+
+        LocalBroadcastManager.getInstance(this)
+                .registerReceiver(mTracker, new IntentFilter(Constants.COLLECT_ACTION));
+
+        registerReceiver(mTracker, new IntentFilter(Constants.COLLECT_ACTION));
+
         return mMessenger.getBinder();
+    }
+
+
+
+    @Override
+    public boolean onUnbind(Intent intent) {
+        Log.d(LOG_TAG, "onUnbind");
+
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(mTracker);
+
+        unregisterReceiver(mTracker);
+
+        return super.onUnbind(intent);
     }
 
     @Override
@@ -59,11 +69,9 @@ public class TRACETrackerService extends Service implements CollectorManager{
 
     }
 
-    @Override
-    public boolean onUnbind(Intent intent) {
-        Log.d(LOG_TAG, "onUnbind");
-        return super.onUnbind(intent);
-    }
+
+
+
 
 
     @Override
@@ -89,9 +97,11 @@ public class TRACETrackerService extends Service implements CollectorManager{
                     break;
                 case TRACETrackerOperations.TRACK_LOCATION_ACTION:
                     mTracker.startLocationUpdates();
+                    mTracker.startActivityUpdates();
                     break;
                 case TRACETrackerOperations.UNTRACK_LOCATION_ACTION:
                     mTracker.stopLocationUpdates();
+                    mTracker.stopActivityUpdates();
                     break;
                 case TRACETrackerOperations.TRACK_ACTIVITY_ACTION:
                     Toast.makeText(getApplicationContext(), "Start Tracking activity! (TODO)", Toast.LENGTH_SHORT).show();

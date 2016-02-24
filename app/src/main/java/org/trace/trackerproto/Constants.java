@@ -18,6 +18,11 @@ public final class Constants {
     public final static String TRACKER_SERVICE_BOUND_KEY = "BOUND_TRACKER_SERVICE";
     public final static String TRACKER_SERVICE_TRACKING_KEY = "TRACKING_TRACKER_SERVICE";
 
+    //TRACETracker
+    public static final String COLLECT_ACTION = "org.trace.tracker.COLLECT";
+    public static final String ACTIVITY_EXTRA = "org.trace.tracker.ACTIVITY_EXTRA";
+    public static final String LOCATION_EXTRA = "org.trace.tracker.LOCATION_EXTRA";
+
 
     //IntentService and BroadcastReceiver
     public static final String BROADCAST_ACTION = "org.trace.intent.BROADCAST";

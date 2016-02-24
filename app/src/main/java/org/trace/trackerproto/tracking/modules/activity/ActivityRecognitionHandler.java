@@ -8,6 +8,8 @@ import android.util.Log;
 import com.google.android.gms.location.ActivityRecognitionResult;
 import com.google.android.gms.location.DetectedActivity;
 
+import org.trace.trackerproto.Constants;
+
 import java.util.ArrayList;
 
 /**
@@ -30,8 +32,11 @@ public class ActivityRecognitionHandler extends IntentService {
 
     @Override
     protected void onHandleIntent(Intent intent) {
+
+        Log.d(TAG, "onHandleIntent");
+
         ActivityRecognitionResult result = ActivityRecognitionResult.extractResult(intent);
-        Intent localIntent = new Intent(Constants.BROADCAST_ACTION);
+
 
         // Get the list of the probable activities associated with the current state of the
         // device. Each activity is associated with a confidence level, which is an int between
@@ -42,13 +47,14 @@ public class ActivityRecognitionHandler extends IntentService {
         Log.i(TAG, "activities detected");
         for (DetectedActivity da: detectedActivities) {
 
-            Log.i(TAG, Constants.getActivityString(
+            Log.i(TAG, ActivityConstants.getActivityString(
                             getApplicationContext(),
                             da.getType()) + " " + da.getConfidence() + "%"
             );
         }
 
         // Broadcast the list of detected activities.
+        Intent localIntent = new Intent(Constants.COLLECT_ACTION);
         localIntent.putExtra(Constants.ACTIVITY_EXTRA, detectedActivities);
         LocalBroadcastManager.getInstance(this).sendBroadcast(localIntent);
     }
