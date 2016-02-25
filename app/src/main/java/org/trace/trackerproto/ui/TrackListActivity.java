@@ -3,25 +3,35 @@ package org.trace.trackerproto.ui;
 import android.app.ListActivity;
 import android.content.Context;
 import android.content.Intent;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import org.trace.trackerproto.Constants;
 import org.trace.trackerproto.R;
+import org.trace.trackerproto.store.TRACEStoreApiClient;
 import org.trace.trackerproto.tracking.data.Track;
 import org.trace.trackerproto.tracking.storage.TrackInternalStorage;
 import org.trace.trackerproto.tracking.storage.exceptions.UnableToLoadStoredTrackException;
 
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
-public class TrackListActivity extends ListActivity {
+import pub.devrel.easypermissions.EasyPermissions;
+
+public class TrackListActivity extends ListActivity implements EasyPermissions.PermissionCallbacks {
+
+    TrackItemAdapter mAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,15 +46,42 @@ public class TrackListActivity extends ListActivity {
 
 
 
-        TrackItemAdapter adapter = new TrackItemAdapter(this, tracks);
-        setListAdapter(adapter);
+        mAdapter = new TrackItemAdapter(this, tracks);
+        setListAdapter(mAdapter);
+
+    }
+
+    private String[] fetchTracks(){
+        List<String> trackFiles = TrackInternalStorage.listStoredTracks(this);
+        String[] tracks = new String[trackFiles.size()];
+
+        for(int i=0; i < trackFiles.size(); i++) //Remove the file prefix
+            tracks[i] = trackFiles.get(i).replace("track_", "");
+
+        return tracks;
+    }
+
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        EasyPermissions.onRequestPermissionsResult(requestCode, permissions, grantResults, this);
+    }
+
+    @Override
+    public void onPermissionsGranted(int requestCode, List<String> perms) {
+
+    }
+
+    @Override
+    public void onPermissionsDenied(int requestCode, List<String> perms) {
 
     }
 
     private class TrackItemAdapter extends ArrayAdapter<String>{
 
         private Context context;
-        private String[] values;
+        private ArrayList<String> values;
         private HashMap<Integer, Track> tracks;
 
         public TrackItemAdapter(Context context, String[] values) {
@@ -53,7 +90,7 @@ public class TrackListActivity extends ListActivity {
             tracks = new HashMap<>();
 
             this.context = context;
-            this.values = values;
+            this.values = new ArrayList<>(Arrays.asList(values));
 
             int i;
             for(i=0; i < values.length; i++){
@@ -64,6 +101,25 @@ public class TrackListActivity extends ListActivity {
                 }
             }
 
+            setNotifyOnChange(true);
+        }
+
+        @Override
+        public int getCount() {
+            if(values != null)
+                return values.size();
+            else
+                return 0;
+        }
+
+        @Override
+        public void remove(String object) {
+            if(values != null && !values.isEmpty()){
+                values.remove(object);
+                notifyDataSetChanged();
+            }
+
+
         }
 
         @Override
@@ -73,18 +129,22 @@ public class TrackListActivity extends ListActivity {
 
             View rowView = inflater.inflate(R.layout.track_item, parent, false);
             TextView sessionView, timeView, distanceView;
+            ImageButton deleteBtn, uploadBtn, exportBtn;
+
 
             sessionView = (TextView) rowView.findViewById(R.id.sessionIdView);
             timeView    = (TextView) rowView.findViewById(R.id.elapsedTimeView);
             distanceView= (TextView) rowView.findViewById(R.id.travelledDistanceView);
 
+            deleteBtn = (ImageButton) rowView.findViewById(R.id.trackDeleteBtn);
+            uploadBtn = (ImageButton) rowView.findViewById(R.id.trackUploadBtn);
+            exportBtn = (ImageButton) rowView.findViewById(R.id.trackExportBtn);
 
+            DecimalFormat df = new DecimalFormat("#.0");
             Track t = tracks.get(position);
             sessionView.setText(t.getSessionId());
-            timeView.setText(String.valueOf(t.getElapsedTime())+"ms");
-            distanceView.setText(String.valueOf(t.getTravelledDistance())+"m");
-
-
+            timeView.setText(df.format(t.getElapsedTime())+"ms");
+            distanceView.setText(df.format(t.getTravelledDistance())+"m");
 
             rowView.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -98,9 +158,56 @@ public class TrackListActivity extends ListActivity {
                 }
             });
 
+            deleteBtn.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    String sessionId = tracks.get(position).getSessionId();
+                    Log.d("LIST", "removing " + sessionId);
+                    TrackInternalStorage.removeStoreTrack(context, sessionId);
+                    remove(sessionId);
+                }
+            });
+
+            uploadBtn.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+
+                    Track track;
+                    String sessionId = tracks.get(position).getSessionId();
+
+                    try {
+                        track = TrackInternalStorage.loadTracedTrack(context, sessionId);
+                        TRACEStoreApiClient.uploadWholeTrack(context, track);
+                    } catch (UnableToLoadStoredTrackException e) {
+                        e.printStackTrace();
+                        Toast.makeText(context, e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                }
+            });
+
+            exportBtn.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+
+                    Track track;
+                    String sessionId = tracks.get(position).getSessionId();
+
+                    String feedback;
+
+                    try {
+                        track = TrackInternalStorage.loadTracedTrack(context, sessionId);
+                        feedback = TrackInternalStorage.exportAsGPX(context, track);
+                    } catch (UnableToLoadStoredTrackException e) {
+                        e.printStackTrace();
+                        feedback = "Unable to find the track";
+                    }
+
+                    Toast.makeText(context, feedback, Toast.LENGTH_SHORT).show();
+
+                }
+            });
+
             return rowView;
         }
-
-
     }
 }

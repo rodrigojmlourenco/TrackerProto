@@ -10,10 +10,9 @@ import com.google.android.gms.location.DetectedActivity;
 import org.trace.trackerproto.Constants;
 import org.trace.trackerproto.store.api.TRACEStoreOperations;
 import org.trace.trackerproto.store.auth.AuthenticationManager;
+import org.trace.trackerproto.tracking.data.Track;
 
-/**
- * Created by Rodrigo Lourenço on 19/02/2016.
- */
+
 public class TRACEStoreApiClient {
 
     private static final String LOG_TAG = "TRACEStore";
@@ -48,5 +47,12 @@ public class TRACEStoreApiClient {
 
     public static void uploadTrackingInfo(Location location, DetectedActivity activity){
         Log.d(LOG_TAG, "[TODO] uploading { location:"+location+", activity: "+activity+"}");
+    }
+
+    public static void uploadWholeTrack(Context context, Track t){
+        Intent mI = new Intent(context, TRACEStore.class);
+        mI.putExtra(Constants.TRACK_EXTRA, t);
+
+        Log.d(LOG_TAG, "[TODO] uploading track with sessionId "+t.getSessionId());
     }
 }

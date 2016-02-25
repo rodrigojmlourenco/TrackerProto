@@ -1,11 +1,8 @@
 package org.trace.trackerproto;
 
-/**
- * Created by Rodrigo Lourenço on 15/02/2016.
- */
 public final class Constants {
 
-    public final static int TRACE_LOC_PERMISSIONS = 01;
+    public final static int TRACE_LOC_PERMISSIONS = 1;
 
     public final static String OPERATION_KEY = "action";
     public final static String USERNAME_KEY = "username";
@@ -18,6 +15,8 @@ public final class Constants {
     public final static String TRACKER_SERVICE_BOUND_KEY = "BOUND_TRACKER_SERVICE";
     public final static String TRACKER_SERVICE_TRACKING_KEY = "TRACKING_TRACKER_SERVICE";
 
+    //TRACEStore Extras
+    public static final String TRACK_EXTRA = "org.trace.store.extras.TRACK";
     //TRACETracker
     public static final String COLLECT_ACTION = "org.trace.tracker.COLLECT";
     public static final String ACTIVITY_EXTRA = "org.trace.tracker.ACTIVITY_EXTRA";
