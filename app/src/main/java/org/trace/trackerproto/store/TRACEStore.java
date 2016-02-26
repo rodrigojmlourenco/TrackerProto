@@ -86,6 +86,8 @@ public class TRACEStore extends IntentService{
         try {
             t = TrackInternalStorage.loadTracedTrack(this, sessionId);
 
+
+
             for(SerializableLocation location : t.getTracedTrack()){
                 String data = getGeoJsonLocation(location);
                 resty.text(url, content(new us.monoid.json.JSONObject(data)));

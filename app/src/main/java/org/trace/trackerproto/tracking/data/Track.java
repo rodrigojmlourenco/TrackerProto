@@ -31,6 +31,8 @@ public class Track implements Serializable{
         elapsedDistance = 0;
 
         tracedTrack.add(new SerializableLocation(location));
+
+        isLocalOnly = true;
     }
 
     public void addTracedLocation(Location location){

@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -79,7 +78,7 @@ public class TrackListActivity extends ListActivity implements EasyPermissions.P
 
         private Context context;
         private ArrayList<String> values;
-        private HashMap<Integer, Track> tracks;
+        private HashMap<String, Track> tracks;
 
         public TrackItemAdapter(Context context, String[] values) {
             super(context, R.layout.track_item, values);
@@ -92,7 +91,8 @@ public class TrackListActivity extends ListActivity implements EasyPermissions.P
             int i;
             for(i=0; i < values.length; i++){
                 try {
-                    tracks.put(i, TrackInternalStorage.loadTracedTrack(context, values[i]));
+                    Track t = TrackInternalStorage.loadTracedTrack(context, values[i]);
+                    tracks.put(t.getSessionId(), t);
                 } catch (UnableToLoadStoredTrackException e) {
                     e.printStackTrace();
                 }
@@ -115,9 +115,8 @@ public class TrackListActivity extends ListActivity implements EasyPermissions.P
                 values.remove(object);
                 notifyDataSetChanged();
             }
-
-
         }
+
 
         @Override
         public View getView(final int position, View convertView, ViewGroup parent) {
@@ -138,7 +137,7 @@ public class TrackListActivity extends ListActivity implements EasyPermissions.P
             exportBtn = (ImageButton) rowView.findViewById(R.id.trackExportBtn);
 
             DecimalFormat df = new DecimalFormat("#.0");
-            Track t = tracks.get(position);
+            Track t = tracks.get(values.get(position));
             sessionView.setText(t.getSessionId());
             timeView.setText(df.format(t.getElapsedTime())+"ms");
             distanceView.setText(df.format(t.getTravelledDistance())+"m");
@@ -146,10 +145,10 @@ public class TrackListActivity extends ListActivity implements EasyPermissions.P
             rowView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    Toast.makeText(context, tracks.get(position).getSessionId(), Toast.LENGTH_LONG).show();
+                    Toast.makeText(context, tracks.get(values.get(position)).getSessionId(), Toast.LENGTH_LONG).show();
 
                     Intent maps = new Intent(context, MapActivity.class);
-                    maps.putExtra(Constants.TRACK_KEY, tracks.get(position).getSessionId());
+                    maps.putExtra(Constants.TRACK_KEY, tracks.get(values.get(position)).getSessionId());
                     context.startActivity(maps);
 
                 }
@@ -158,8 +157,7 @@ public class TrackListActivity extends ListActivity implements EasyPermissions.P
             deleteBtn.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    String sessionId = tracks.get(position).getSessionId();
-                    Log.d("LIST", "removing " + sessionId);
+                    String sessionId = tracks.get(values.get(position)).getSessionId();
                     TrackInternalStorage.removeStoreTrack(context, sessionId);
                     remove(sessionId);
                 }
@@ -168,10 +166,7 @@ public class TrackListActivity extends ListActivity implements EasyPermissions.P
             uploadBtn.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-
-                    Track track;
-                    String sessionId = tracks.get(position).getSessionId();
-
+                    String sessionId = tracks.get(values.get(position)).getSessionId();
                     TRACEStoreApiClient.uploadWholeTrack(context, sessionId);
                 }
             });
@@ -181,7 +176,7 @@ public class TrackListActivity extends ListActivity implements EasyPermissions.P
                 public void onClick(View v) {
 
                     Track track;
-                    String sessionId = tracks.get(position).getSessionId();
+                    String sessionId = tracks.get(values.get(position)).getSessionId();
 
                     String feedback;
 
