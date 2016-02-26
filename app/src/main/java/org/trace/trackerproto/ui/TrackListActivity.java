@@ -43,9 +43,6 @@ public class TrackListActivity extends ListActivity implements EasyPermissions.P
         for(int i=0; i < trackFiles.size(); i++) //Remove the file prefix
             tracks[i] = trackFiles.get(i).replace("track_", "");
 
-
-
-
         mAdapter = new TrackItemAdapter(this, tracks);
         setListAdapter(mAdapter);
 
@@ -175,13 +172,7 @@ public class TrackListActivity extends ListActivity implements EasyPermissions.P
                     Track track;
                     String sessionId = tracks.get(position).getSessionId();
 
-                    try {
-                        track = TrackInternalStorage.loadTracedTrack(context, sessionId);
-                        TRACEStoreApiClient.uploadWholeTrack(context, track);
-                    } catch (UnableToLoadStoredTrackException e) {
-                        e.printStackTrace();
-                        Toast.makeText(context, e.getMessage(), Toast.LENGTH_SHORT).show();
-                    }
+                    TRACEStoreApiClient.uploadWholeTrack(context, sessionId);
                 }
             });
 

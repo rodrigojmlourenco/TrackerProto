@@ -49,10 +49,10 @@ public class TRACEStoreApiClient {
         Log.d(LOG_TAG, "[TODO] uploading { location:"+location+", activity: "+activity+"}");
     }
 
-    public static void uploadWholeTrack(Context context, Track t){
+    public static void uploadWholeTrack(Context context, String sessionId){
         Intent mI = new Intent(context, TRACEStore.class);
-        mI.putExtra(Constants.TRACK_EXTRA, t);
-
-        Log.d(LOG_TAG, "[TODO] uploading track with sessionId "+t.getSessionId());
+        mI.putExtra(Constants.OPERATION_KEY, TRACEStoreOperations.submitTrack.toString());
+        mI.putExtra(Constants.TRACK_EXTRA, sessionId);
+        context.startService(mI);
     }
 }

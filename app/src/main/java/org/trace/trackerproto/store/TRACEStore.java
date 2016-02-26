@@ -8,10 +8,17 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+
 import org.trace.trackerproto.Constants;
 import org.trace.trackerproto.store.api.TRACEStoreOperations;
 import org.trace.trackerproto.store.auth.AuthenticationManager;
 import org.trace.trackerproto.store.exceptions.InvalidAuthCredentialsException;
+import org.trace.trackerproto.tracking.data.SerializableLocation;
+import org.trace.trackerproto.tracking.data.Track;
+import org.trace.trackerproto.tracking.storage.TrackInternalStorage;
+import org.trace.trackerproto.tracking.storage.exceptions.UnableToLoadStoredTrackException;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -23,9 +30,6 @@ import us.monoid.web.Resty;
 import static us.monoid.web.Resty.content;
 import static us.monoid.web.Resty.form;
 
-/**
- * Created by Rodrigo Lourenço on 15/02/2016.
- */
 public class TRACEStore extends IntentService{
 
     private final String LOG_TAG = this.getClass().getSimpleName();
@@ -49,47 +53,49 @@ public class TRACEStore extends IntentService{
         String url = BASE_URI+"/tracker/put/geo/"+sessionId;
 
         try {
-            resty.text(url, content(new us.monoid.json.JSONObject(data))).toString();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (JSONException e) {
+            resty.text(url, content(new us.monoid.json.JSONObject(data)));
+        } catch (IOException | JSONException e) {
             e.printStackTrace();
         }
     }
 
 
-    @Override
-    protected void onHandleIntent(Intent intent) {
+    private String getGeoJsonLocation(SerializableLocation location){
+        Gson gson = new Gson();
+        JsonObject geoJson = new JsonObject();
+        geoJson.addProperty("latitude", location.getLatitude());
+        geoJson.addProperty("longitude", location.getLongitude());
+        geoJson.addProperty("timestamp", location.getTimestamp());
+        return gson.toJson(geoJson);
+    }
 
-        intent.hasExtra(Constants.OPERATION_KEY);
+    private void performSubmitTrack(Intent intent) {
 
-        TRACEStoreOperations op = null;
-        try {
-            op = TRACEStoreOperations.valueOf(intent.getStringExtra(Constants.OPERATION_KEY));
-        }catch (NullPointerException e){
-            Log.e(LOG_TAG, "Un-parseable operation");
+        String url = BASE_URI+"/tracker/put/geo/";
+        Track t;
+        String sessionId;
+        if(intent.hasExtra(Constants.TRACK_EXTRA))
+            sessionId = intent.getStringExtra(Constants.TRACK_EXTRA);
+        else
             return;
+
+        url+=sessionId;
+
+        Log.d(LOG_TAG, "performSubmitTrack with session "+sessionId);
+
+        try {
+            t = TrackInternalStorage.loadTracedTrack(this, sessionId);
+
+            for(SerializableLocation location : t.getTracedTrack()){
+                String data = getGeoJsonLocation(location);
+                resty.text(url, content(new us.monoid.json.JSONObject(data)));
+            }
+
+        } catch (UnableToLoadStoredTrackException | JSONException | IOException e) {
+            e.printStackTrace();
         }
 
-        switch (op){
 
-
-            case login:
-                performLogin(intent);
-                break;
-            case submitLocation:
-                performSubmitLocation(intent);
-                break;
-            case initiateSession:
-                performInitiateSession(intent);
-                break;
-            case terminateSession:
-                performTerminateSession(intent);
-                break;
-            default:
-                Log.e(LOG_TAG, "Unknown operation "+op);
-                return;
-        }
     }
 
 
@@ -189,7 +195,7 @@ public class TRACEStore extends IntentService{
 
         if(isFirst) {
             Intent localIntent = new Intent(Constants.BROADCAST_ACTION)
-                    .putExtra(Constants.FIRST_TIME_BROADCAST, isFirst);
+                    .putExtra(Constants.FIRST_TIME_BROADCAST, true);
 
             LocalBroadcastManager.getInstance(this).sendBroadcast(localIntent);
         }else
@@ -208,4 +214,39 @@ public class TRACEStore extends IntentService{
     }
 
 
+    @Override
+    protected void onHandleIntent(Intent intent) {
+
+        intent.hasExtra(Constants.OPERATION_KEY);
+
+        TRACEStoreOperations op;
+        try {
+            op = TRACEStoreOperations.valueOf(intent.getStringExtra(Constants.OPERATION_KEY));
+        }catch (NullPointerException e){
+            Log.e(LOG_TAG, "Un-parseable operation");
+            return;
+        }
+
+        switch (op){
+
+
+            case login:
+                performLogin(intent);
+                break;
+            case submitLocation:
+                performSubmitLocation(intent);
+                break;
+            case submitTrack:
+                performSubmitTrack(intent);
+                break;
+            case initiateSession:
+                performInitiateSession(intent);
+                break;
+            case terminateSession:
+                performTerminateSession(intent);
+                break;
+            default:
+                Log.e(LOG_TAG, "Unknown operation "+op);
+        }
+    }
 }

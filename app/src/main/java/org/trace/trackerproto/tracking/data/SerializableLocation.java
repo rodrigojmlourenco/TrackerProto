@@ -4,9 +4,7 @@ import android.location.Location;
 
 import java.io.Serializable;
 
-/**
- * Created by Rodrigo Lourenço on 22/02/2016.
- */
+
 public class SerializableLocation implements Serializable{
 
     private double latitude, longitude, altitude;
@@ -26,6 +24,9 @@ public class SerializableLocation implements Serializable{
         this.bearing  = location.getBearing();
 
         this.provider = location.getProvider();
+
+        this.timestamp = location.getTime();
+        this.elapsedNanos = location.getElapsedRealtimeNanos();
     }
 
     public double getLatitude() {
