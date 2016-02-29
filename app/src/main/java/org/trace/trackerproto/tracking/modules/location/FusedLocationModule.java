@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.location.Location;
 import android.support.v4.content.LocalBroadcastManager;
-import android.util.Log;
 
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
@@ -12,21 +11,13 @@ import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 
 import org.trace.trackerproto.Constants;
-import org.trace.trackerproto.tracking.CollectorManager;
-import org.trace.trackerproto.tracking.exceptions.UnableToParseTraceException;
-import org.trace.trackerproto.tracking.filter.HeuristicBasedFilter;
 import org.trace.trackerproto.tracking.modules.ModuleInterface;
-import org.trace.trackerproto.tracking.utils.LocationUtils;
-
-import java.util.LinkedList;
-
-import static org.trace.trackerproto.tracking.filter.HeuristicBasedFilter.*;
 
 
 /**
  * Created by Rodrigo Lourenço on 12/02/2016.
  */
-public class FusedLocationModule implements LocationListener, ModuleInterface{
+public class FusedLocationModule implements LocationListener, ModuleInterface {
 
     protected final static String LOG_TAG = "FusedLocation";
 
@@ -36,16 +27,15 @@ public class FusedLocationModule implements LocationListener, ModuleInterface{
 
     private boolean isTracking = false;
 
-    private long mInterval      = 10000,
-                 mFastInterval  = 5000;
+    private long mInterval = 10000,
+            mFastInterval = 5000;
 
     private int mPriority = LocationRequest.PRIORITY_HIGH_ACCURACY;
 
-    private float mMinimumDisplacement = 0f;//5f; //meters
+    private float mMinimumDisplacement = 5f; //meters
 
 
-
-    public FusedLocationModule(Context ctx, GoogleApiClient client){
+    public FusedLocationModule(Context ctx, GoogleApiClient client) {
         this.mContext = ctx;
         this.mGoogleApiClient = client;
     }
@@ -86,7 +76,7 @@ public class FusedLocationModule implements LocationListener, ModuleInterface{
         return isTracking;
     }
 
-    private LocationRequest createLocationRequest(){
+    private LocationRequest createLocationRequest() {
         LocationRequest mLocationRequest = new LocationRequest();
         mLocationRequest.setInterval(mInterval);
         mLocationRequest.setFastestInterval(mFastInterval);
@@ -106,9 +96,9 @@ public class FusedLocationModule implements LocationListener, ModuleInterface{
 
     }
 
-    public void startLocationUpdates(){
+    public void startLocationUpdates() {
 
-        if(!isTracking) {
+        if (!isTracking) {
 
             LocationServices.FusedLocationApi.requestLocationUpdates(
                     this.mGoogleApiClient,

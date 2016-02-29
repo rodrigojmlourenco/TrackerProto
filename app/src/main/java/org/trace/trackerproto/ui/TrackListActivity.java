@@ -137,7 +137,7 @@ public class TrackListActivity extends ListActivity implements EasyPermissions.P
             exportBtn = (ImageButton) rowView.findViewById(R.id.trackExportBtn);
 
             DecimalFormat df = new DecimalFormat("#.0");
-            Track t = tracks.get(values.get(position));
+            final Track t = tracks.get(values.get(position));
             sessionView.setText(t.getSessionId());
             timeView.setText(df.format(t.getElapsedTime())+"ms");
             distanceView.setText(df.format(t.getTravelledDistance())+"m");
@@ -167,7 +167,20 @@ public class TrackListActivity extends ListActivity implements EasyPermissions.P
                 @Override
                 public void onClick(View v) {
                     String sessionId = tracks.get(values.get(position)).getSessionId();
-                    TRACEStoreApiClient.uploadWholeTrack(context, sessionId);
+
+
+                    Track track;
+
+                    try {
+
+                        track = TrackInternalStorage.loadTracedTrack(context, sessionId);
+                        TRACEStoreApiClient.uploadWholeTrack(context, track);
+
+                    } catch (UnableToLoadStoredTrackException e) {
+                        e.printStackTrace();
+                        Toast.makeText(context, e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+
                 }
             });
 

@@ -74,29 +74,29 @@ public class TRACEStore extends IntentService{
         String url = BASE_URI+"/tracker/put/geo/";
         Track t;
         String sessionId;
-        if(intent.hasExtra(Constants.TRACK_EXTRA))
-            sessionId = intent.getStringExtra(Constants.TRACK_EXTRA);
-        else
-            return;
 
+        if(!intent.hasExtra(Constants.TRACK_EXTRA)) return;
+
+        t = intent.getParcelableExtra(Constants.TRACK_EXTRA);
+        sessionId = t.getSessionId();
         url+=sessionId;
 
         Log.d(LOG_TAG, "performSubmitTrack with session "+sessionId);
 
         try {
-            t = TrackInternalStorage.loadTracedTrack(this, sessionId);
-
-
 
             for(SerializableLocation location : t.getTracedTrack()){
                 String data = getGeoJsonLocation(location);
                 resty.text(url, content(new us.monoid.json.JSONObject(data)));
             }
 
-        } catch (UnableToLoadStoredTrackException | JSONException | IOException e) {
-            e.printStackTrace();
-        }
+            //Toast.makeText(this, sessionId+" session uploaded.", Toast.LENGTH_SHORT).show();
 
+        } catch (JSONException | IOException e) {
+            e.printStackTrace();
+            //Toast.makeText(this, "Unable to upload "+sessionId+".", Toast.LENGTH_SHORT).show();
+
+        }
 
     }
 
@@ -119,11 +119,8 @@ public class TRACEStore extends IntentService{
 
             tmp = resty.text(url, form()).toString();
 
-            if(tmp.equals("Failed to login")) {
-                //throw new InvalidAuthCredentialsException(); TODO: descomentar
-                Log.e("LOGIN", "Unable to login... Generating local session");
-                sessionId = String.valueOf(Math.random()); //TODO: for testing purposes only!!!
-
+            if(tmp.equals(Constants.TRACEService.FAILED_LOGIN_KEY)) {
+                throw new InvalidAuthCredentialsException();
             }else
                 sessionId = tmp;
 
@@ -185,7 +182,7 @@ public class TRACEStore extends IntentService{
 
 
         if (sessionId != null && !sessionId.isEmpty() && isFirst)
-            manager.storeCredentials(username, password);
+            ;//manager.storeCredentials(username, password);
 
     }
 

@@ -36,4 +36,7 @@ public final class Constants {
     public static final String GPX_FILE_KEY = "org.trace.intent.GPX_FILE";
     public static final String TRACK_KEY = "org.trace.intent.TRACK";
 
+    public static interface TRACEService {
+        public static final String FAILED_LOGIN_KEY = "-1";
+    }
 }

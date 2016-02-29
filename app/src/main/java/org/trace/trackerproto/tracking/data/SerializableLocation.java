@@ -1,16 +1,20 @@
 package org.trace.trackerproto.tracking.data;
 
 import android.location.Location;
+import android.os.Parcel;
+import android.os.Parcelable;
 
 import java.io.Serializable;
 
 
-public class SerializableLocation implements Serializable{
+public class SerializableLocation implements Serializable, Parcelable{
 
     private double latitude, longitude, altitude;
     private long timestamp, elapsedNanos;
     private float accuracy, speed, bearing;
     private String provider;
+
+    private String activityMode;
 
     public SerializableLocation(){}
 
@@ -28,6 +32,31 @@ public class SerializableLocation implements Serializable{
         this.timestamp = location.getTime();
         this.elapsedNanos = location.getElapsedRealtimeNanos();
     }
+
+    protected SerializableLocation(Parcel in) {
+        latitude = in.readDouble();
+        longitude = in.readDouble();
+        altitude = in.readDouble();
+        timestamp = in.readLong();
+        elapsedNanos = in.readLong();
+        accuracy = in.readFloat();
+        speed = in.readFloat();
+        bearing = in.readFloat();
+        provider = in.readString();
+        activityMode = in.readString();
+    }
+
+    public static final Creator<SerializableLocation> CREATOR = new Creator<SerializableLocation>() {
+        @Override
+        public SerializableLocation createFromParcel(Parcel in) {
+            return new SerializableLocation(in);
+        }
+
+        @Override
+        public SerializableLocation[] newArray(int size) {
+            return new SerializableLocation[size];
+        }
+    };
 
     public double getLatitude() {
         return latitude;
@@ -99,5 +128,33 @@ public class SerializableLocation implements Serializable{
 
     public void setProvider(String provider) {
         this.provider = provider;
+    }
+
+
+    public String getActivityMode() {
+        return activityMode;
+    }
+
+    public void setActivityMode(String activityMode) {
+        this.activityMode = activityMode;
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeDouble(latitude);
+        dest.writeDouble(longitude);
+        dest.writeDouble(altitude);
+        dest.writeLong(timestamp);
+        dest.writeLong(elapsedNanos);
+        dest.writeFloat(accuracy);
+        dest.writeFloat(speed);
+        dest.writeFloat(bearing);
+        dest.writeString(provider);
+        dest.writeString(activityMode);
     }
 }

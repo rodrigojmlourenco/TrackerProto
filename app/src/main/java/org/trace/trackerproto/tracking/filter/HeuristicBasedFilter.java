@@ -4,11 +4,12 @@ import android.location.Location;
 import android.os.Bundle;
 import android.util.Log;
 
-import java.util.LinkedList;
+import org.trace.trackerproto.tracking.utils.LocationUtils;
 
-/**
- * Created by Rodrigo Lourenço on 23/02/2016.
- */
+import java.util.LinkedList;
+import java.util.concurrent.TimeUnit;
+
+
 public class HeuristicBasedFilter {
 
 
@@ -34,11 +35,11 @@ public class HeuristicBasedFilter {
 
     public interface HeuristicRule {
 
-        final String LOG_TAG = "Outlier";
+        String LOG_TAG = "Outlier";
 
-        public boolean isOutlier(Location location);
+        boolean isOutlier(Location location);
 
-        public boolean isOutlier(Location location, Location previous);
+        boolean isOutlier(Location location, Location previous);
     }
 
     /**
@@ -128,6 +129,53 @@ public class HeuristicBasedFilter {
         @Override
         public boolean isOutlier(Location location, Location previous) {
             return  isOutlier(location);
+        }
+    }
+
+    /**
+     * Similar to the SpeedBasedHeuristicRule, however, the speed in m/s is calculated
+     * given the time it took to get from the current location, to the previously
+     * registered one.
+     */
+    public static class CalculatedSpeedBasedHeuristicRule implements HeuristicRule {
+
+        private final float speedThreshold;
+
+        public CalculatedSpeedBasedHeuristicRule(float threshold){
+            this.speedThreshold = threshold;
+        }
+
+        @Override
+        public boolean isOutlier(Location location) {
+            return false;
+        }
+
+        @Override
+        public boolean isOutlier(Location location, Location previous) {
+            long timeDeltaNanos = location.getElapsedRealtimeNanos() - previous.getElapsedRealtimeNanos();
+            float travelledDistance = previous.distanceTo(location);
+
+            float speedMS = travelledDistance / (TimeUnit.SECONDS.convert(timeDeltaNanos, TimeUnit.DAYS.NANOSECONDS));
+
+            return speedMS > speedThreshold;
+        }
+    }
+
+    /**
+     * A location is considered to be an outlier if its accuracy, or error margin
+     * overlaps the accuracy of the previously registered location, and the first presents
+     * a lower accuracy.
+     */
+    public static class OverlappingLocationHeuristicRule implements HeuristicRule {
+
+        @Override
+        public boolean isOutlier(Location location) {
+            return false;
+        }
+
+        @Override
+        public boolean isOutlier(Location location, Location previous) {
+            return LocationUtils.areOverlappingLocations(previous,location);
         }
     }
 }

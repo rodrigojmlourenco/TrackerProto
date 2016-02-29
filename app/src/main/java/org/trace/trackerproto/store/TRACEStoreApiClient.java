@@ -3,6 +3,7 @@ package org.trace.trackerproto.store;
 import android.content.Context;
 import android.content.Intent;
 import android.location.Location;
+import android.os.Parcelable;
 import android.util.Log;
 
 import com.google.android.gms.location.DetectedActivity;
@@ -49,10 +50,10 @@ public class TRACEStoreApiClient {
         Log.d(LOG_TAG, "[TODO] uploading { location:"+location+", activity: "+activity+"}");
     }
 
-    public static void uploadWholeTrack(Context context, String sessionId){
+    public static void uploadWholeTrack(Context context, Track track){
         Intent mI = new Intent(context, TRACEStore.class);
         mI.putExtra(Constants.OPERATION_KEY, TRACEStoreOperations.submitTrack.toString());
-        mI.putExtra(Constants.TRACK_EXTRA, sessionId);
+        mI.putExtra(Constants.TRACK_EXTRA, ((Parcelable)track));
         context.startService(mI);
     }
 }
