@@ -91,7 +91,7 @@ public class TRACETracker extends BroadcastReceiver implements CollectorManager{
         if(track == null){
             track = new Track(TRACEStoreApiClient.getSessionId(), location);
         }else
-            track.addTracedLocation(location);
+            track.addTracedLocation(location, mCurrentActivity.toString());
     }
 
 

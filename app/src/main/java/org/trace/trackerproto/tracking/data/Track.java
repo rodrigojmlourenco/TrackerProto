@@ -6,6 +6,8 @@ import android.os.Parcelable;
 
 import com.google.android.gms.location.DetectedActivity;
 
+import org.trace.trackerproto.tracking.modules.activity.ActivityConstants;
+
 import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.List;

@@ -182,7 +182,7 @@ public class TRACEStore extends IntentService{
 
 
         if (sessionId != null && !sessionId.isEmpty() && isFirst)
-            ;//manager.storeCredentials(username, password);
+            manager.storeCredentials(username, password);
 
     }
 

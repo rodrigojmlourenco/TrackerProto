@@ -128,9 +128,9 @@ public class MapActivity extends AppCompatActivity implements EasyPermissions.Pe
     }
 
 
-    public static final int EXTERNAL_STORAGE = 2;
 
-    @AfterPermissionGranted(EXTERNAL_STORAGE)
+
+    @AfterPermissionGranted(Constants.Permissions.EXTERNAL_STORAGE)
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -141,7 +141,7 @@ public class MapActivity extends AppCompatActivity implements EasyPermissions.Pe
         String[] perms = {Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE};
 
         if(!EasyPermissions.hasPermissions(this, perms)){
-            EasyPermissions.requestPermissions(this, "Some some", EXTERNAL_STORAGE, perms);
+            EasyPermissions.requestPermissions(this, "Some some", Constants.Permissions.EXTERNAL_STORAGE, perms);
             finish();
         }else {
 

@@ -1,5 +1,6 @@
 package org.trace.trackerproto.ui;
 
+import android.Manifest;
 import android.app.ListActivity;
 import android.content.Context;
 import android.content.Intent;
@@ -31,6 +32,8 @@ import pub.devrel.easypermissions.EasyPermissions;
 public class TrackListActivity extends ListActivity implements EasyPermissions.PermissionCallbacks {
 
     TrackItemAdapter mAdapter;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,7 +74,33 @@ public class TrackListActivity extends ListActivity implements EasyPermissions.P
 
     @Override
     public void onPermissionsDenied(int requestCode, List<String> perms) {
+        finish();
+    }
 
+
+    private void exportTrack(String sessionId){
+
+        String feedback = "";
+        String[] perms = {Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE};
+
+        if(!EasyPermissions.hasPermissions(TrackListActivity.this, perms)) {
+            EasyPermissions.requestPermissions(this, "Some some", Constants.Permissions.EXTERNAL_STORAGE, perms);
+            feedback = "Try again.";
+        }else {
+
+            Track track;
+
+
+            try {
+                track = TrackInternalStorage.loadTracedTrack(this, sessionId);
+                feedback = TrackInternalStorage.exportAsGPX(this, track);
+            } catch (UnableToLoadStoredTrackException e) {
+                e.printStackTrace();
+                feedback = "Unable to find the track";
+            }
+        }
+
+        Toast.makeText(this, feedback, Toast.LENGTH_SHORT).show();
     }
 
     private class TrackItemAdapter extends ArrayAdapter<String>{
@@ -140,7 +169,7 @@ public class TrackListActivity extends ListActivity implements EasyPermissions.P
             final Track t = tracks.get(values.get(position));
             sessionView.setText(t.getSessionId());
             timeView.setText(df.format(t.getElapsedTime())+"ms");
-            distanceView.setText(df.format(t.getTravelledDistance())+"m");
+            distanceView.setText(df.format(t.getTravelledDistance()) + "m");
 
             rowView.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -187,21 +216,8 @@ public class TrackListActivity extends ListActivity implements EasyPermissions.P
             exportBtn.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-
-                    Track track;
                     String sessionId = tracks.get(values.get(position)).getSessionId();
-
-                    String feedback;
-
-                    try {
-                        track = TrackInternalStorage.loadTracedTrack(context, sessionId);
-                        feedback = TrackInternalStorage.exportAsGPX(context, track);
-                    } catch (UnableToLoadStoredTrackException e) {
-                        e.printStackTrace();
-                        feedback = "Unable to find the track";
-                    }
-
-                    Toast.makeText(context, feedback, Toast.LENGTH_SHORT).show();
+                    exportTrack(sessionId);
 
                 }
             });
