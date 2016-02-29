@@ -104,15 +104,17 @@ public class TRACEStore extends IntentService{
     private boolean login(String username, String password) throws InvalidAuthCredentialsException {
 
         String url;
+        String encodedPass;
 
         try {
             username = URLEncoder.encode(username,"UTF-8");
-            password = URLEncoder.encode(password,"UTF-8");
+            encodedPass = URLEncoder.encode(password,"UTF-8");
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
+            return false;
         }
 
-        url = BASE_URI+"/auth/login?username="+username+"&password="+password;
+        url = BASE_URI+"/auth/login?username="+username+"&password="+encodedPass;
 
         String tmp;
         try {
@@ -125,6 +127,9 @@ public class TRACEStore extends IntentService{
                 sessionId = tmp;
 
             TRACEStoreApiClient.setSessionId(sessionId);
+
+            if(manager.isFirstTime())
+                manager.storeCredentials(username, password);
 
             Log.i(LOG_TAG, "Starting session "+sessionId);
             return  true;
@@ -179,10 +184,6 @@ public class TRACEStore extends IntentService{
                 .putExtra(Constants.LOGIN_ERROR_MSG_KEY, error);
 
         sendBroadcast(loginI);
-
-
-        if (sessionId != null && !sessionId.isEmpty() && isFirst)
-            manager.storeCredentials(username, password);
 
     }
 

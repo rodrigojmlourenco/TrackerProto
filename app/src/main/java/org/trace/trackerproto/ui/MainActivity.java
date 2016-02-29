@@ -56,11 +56,7 @@ public class MainActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        //Force Login if it's the first time
-        if(TRACEStoreApiClient.isFirstTime(this)){
-            Intent forceLogin = new Intent(this, LoginActivity.class);
-            startActivity(forceLogin);
-        }
+
 
         //Registering the BroadcastReceiver for the TRACEStore intent service
         registerBroadcastReceiver(mSupportedBroadcastActions);
@@ -138,9 +134,15 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
-
-
-
+    @Override
+    protected void onResume() {
+        super.onResume();
+        //Force Login if it's the first time
+        if(TRACEStoreApiClient.isFirstTime(this)){
+            Intent forceLogin = new Intent(this, LoginActivity.class);
+            startActivity(forceLogin);
+        }
+    }
 
     @Override
     protected void onStart() {
