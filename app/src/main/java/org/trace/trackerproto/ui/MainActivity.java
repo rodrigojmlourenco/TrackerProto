@@ -3,7 +3,6 @@ package org.trace.trackerproto.ui;
 import android.Manifest;
 import android.annotation.TargetApi;
 import android.app.AlertDialog;
-import android.app.Application;
 import android.app.Service;
 import android.content.ComponentName;
 import android.content.Context;
@@ -17,6 +16,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Messenger;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
@@ -31,8 +31,8 @@ import org.trace.trackerproto.Constants;
 import org.trace.trackerproto.R;
 import org.trace.trackerproto.store.TRACEStoreApiClient;
 import org.trace.trackerproto.store.TRACEStoreReceiver;
-import org.trace.trackerproto.tracking.TRACETrackerService;
 import org.trace.trackerproto.tracking.TRACETrackerClient;
+import org.trace.trackerproto.tracking.TRACETrackerService;
 
 public class MainActivity extends AppCompatActivity
         implements  PermissionChecker {
@@ -56,8 +56,6 @@ public class MainActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-
-
         //Registering the BroadcastReceiver for the TRACEStore intent service
         registerBroadcastReceiver(mSupportedBroadcastActions);
 
@@ -80,7 +78,7 @@ public class MainActivity extends AppCompatActivity
 
                     client.startTrackingLocation(0, 0);
                     isTracking = true;
-                    toggleButtons(isBound, isTracking);
+                    toggleButtons(isBound, true);
                 }
             }
         });
@@ -91,7 +89,7 @@ public class MainActivity extends AppCompatActivity
                 if (client != null) {
                     client.stopTrackingLocation();
                     isTracking = false;
-                    toggleButtons(isBound, isTracking);
+                    toggleButtons(isBound, false);
 
                     Toast.makeText(MainActivity.this, TRACEStoreApiClient.getSessionId(), Toast.LENGTH_SHORT).show();
                 }
@@ -118,9 +116,6 @@ public class MainActivity extends AppCompatActivity
                 startActivity(i);
             }
         });
-
-
-
     }
 
 
@@ -141,6 +136,8 @@ public class MainActivity extends AppCompatActivity
         if(TRACEStoreApiClient.isFirstTime(this)){
             Intent forceLogin = new Intent(this, LoginActivity.class);
             startActivity(forceLogin);
+        }else{
+            TRACEStoreApiClient.requestLogin(this, "", "");
         }
     }
 
@@ -152,7 +149,7 @@ public class MainActivity extends AppCompatActivity
         trackerService.setFlags(Service. START_STICKY);
         bindService(trackerService, mConnection, Context.BIND_AUTO_CREATE);
         isBound = true;
-        toggleButtons(isBound, isTracking);
+        toggleButtons(true, isTracking);
 
     }
 
@@ -163,12 +160,20 @@ public class MainActivity extends AppCompatActivity
             unbindService(mConnection);
         }
 
+        if(isFinishing()){
+            TRACEStoreApiClient.requestLogout(this);
+
+            if(isTracking) {
+                client.stopTrackingLocation();
+                isTracking = false;
+            }
+        }
 
         super.onDestroy();
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 
@@ -257,7 +262,6 @@ public class MainActivity extends AppCompatActivity
                     new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION},
                     Constants.TRACE_LOC_PERMISSIONS);
 
-            return;
         }
     }
 

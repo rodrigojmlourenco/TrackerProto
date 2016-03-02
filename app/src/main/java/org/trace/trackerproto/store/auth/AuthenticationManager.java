@@ -21,6 +21,7 @@ public class AuthenticationManager {
         this.context = context;
     }
 
+    /*
     public void login(){
         String username, password;
         SharedPreferences prefs =
@@ -29,9 +30,11 @@ public class AuthenticationManager {
         username = prefs.getString(Constants.USERNAME_KEY, "");
         password = prefs.getString(Constants.PASSWORD_KEY, "");
 
-        if(username.isEmpty() || password.isEmpty()) return;
+        if(username.isEmpty() || password.isEmpty())
+            return;
 
     }
+    */
 
     public String getUsername(){
         SharedPreferences prefs =
@@ -58,14 +61,13 @@ public class AuthenticationManager {
 
     }
 
-    public boolean isFirstTime(){
+    public boolean isFirstTime() {
 
         SharedPreferences prefs =
                 context.getSharedPreferences(AUTH_SETTINGS_KEY, Context.MODE_PRIVATE);
 
-        if(prefs == null) return true;
+        return prefs == null || !(prefs.contains(Constants.USERNAME_KEY) && prefs.contains(Constants.PASSWORD_KEY));
 
-        return !(prefs.contains(Constants.USERNAME_KEY) && prefs.contains(Constants.PASSWORD_KEY));
     }
 
     public static boolean isFirstTime(Context context){
@@ -75,5 +77,27 @@ public class AuthenticationManager {
         if(prefs == null) return true;
 
         return !(prefs.contains(Constants.USERNAME_KEY) && prefs.contains(Constants.PASSWORD_KEY));
+    }
+
+
+    public void storeAuthenticationToken(String token){
+        SharedPreferences.Editor editor =
+                context.getSharedPreferences(AUTH_SETTINGS_KEY, Context.MODE_PRIVATE).edit();
+
+        editor.putString(Constants.AUTH_TOKEN, token);
+        editor.commit();
+    }
+
+    public String getAuthenticationToken(){
+        return context.getSharedPreferences(AUTH_SETTINGS_KEY, Context.MODE_PRIVATE)
+                .getString(Constants.AUTH_TOKEN, "");
+    }
+
+    public void clearAuthenticationToken(){
+        SharedPreferences.Editor editor =
+                context.getSharedPreferences(AUTH_SETTINGS_KEY, Context.MODE_PRIVATE).edit();
+
+        editor.remove(Constants.AUTH_TOKEN);
+        editor.commit();
     }
 }

@@ -37,7 +37,7 @@ public final class Constants {
     public static final String TRACK_KEY = "org.trace.intent.TRACK";
 
     public interface TRACEService {
-        public static final String FAILED_LOGIN_KEY = "-1";
+        static final String FAILED_LOGIN_KEY = "-1";
     }
 
     public interface Permissions {
@@ -45,4 +45,5 @@ public final class Constants {
     }
 
 
+    public static final String AUTH_TOKEN = "auth_token";
 }

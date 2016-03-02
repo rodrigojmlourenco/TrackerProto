@@ -80,7 +80,7 @@ public class TrackListActivity extends ListActivity implements EasyPermissions.P
 
     private void exportTrack(String sessionId){
 
-        String feedback = "";
+        String feedback;
         String[] perms = {Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE};
 
         if(!EasyPermissions.hasPermissions(TrackListActivity.this, perms)) {
@@ -121,7 +121,7 @@ public class TrackListActivity extends ListActivity implements EasyPermissions.P
             for(i=0; i < values.length; i++){
                 try {
                     Track t = TrackInternalStorage.loadTracedTrack(context, values[i]);
-                    tracks.put(t.getSessionId(), t);
+                    tracks.put(values[i], t);
                 } catch (UnableToLoadStoredTrackException e) {
                     e.printStackTrace();
                 }
@@ -177,7 +177,7 @@ public class TrackListActivity extends ListActivity implements EasyPermissions.P
                     Toast.makeText(context, tracks.get(values.get(position)).getSessionId(), Toast.LENGTH_LONG).show();
 
                     Intent maps = new Intent(context, MapActivity.class);
-                    maps.putExtra(Constants.TRACK_KEY, tracks.get(values.get(position)).getSessionId());
+                    maps.putExtra(Constants.TRACK_KEY, values.get(position));
                     context.startActivity(maps);
 
                 }
@@ -186,9 +186,10 @@ public class TrackListActivity extends ListActivity implements EasyPermissions.P
             deleteBtn.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
+                    String handle = values.get(position);
                     String sessionId = tracks.get(values.get(position)).getSessionId();
-                    TrackInternalStorage.removeStoreTrack(context, sessionId);
-                    remove(sessionId);
+                    TrackInternalStorage.removeStoreTrack(context, handle);
+                    remove(handle);
                 }
             });
 
@@ -202,7 +203,7 @@ public class TrackListActivity extends ListActivity implements EasyPermissions.P
 
                     try {
 
-                        track = TrackInternalStorage.loadTracedTrack(context, sessionId);
+                        track = TrackInternalStorage.loadTracedTrack(context, values.get(position));
                         TRACEStoreApiClient.uploadWholeTrack(context, track);
 
                     } catch (UnableToLoadStoredTrackException e) {
@@ -216,9 +217,7 @@ public class TrackListActivity extends ListActivity implements EasyPermissions.P
             exportBtn.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    String sessionId = tracks.get(values.get(position)).getSessionId();
-                    exportTrack(sessionId);
-
+                exportTrack(values.get(position));
                 }
             });
 

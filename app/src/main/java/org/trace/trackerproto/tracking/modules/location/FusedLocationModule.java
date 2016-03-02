@@ -14,9 +14,6 @@ import org.trace.trackerproto.Constants;
 import org.trace.trackerproto.tracking.modules.ModuleInterface;
 
 
-/**
- * Created by Rodrigo Lourenço on 12/02/2016.
- */
 public class FusedLocationModule implements LocationListener, ModuleInterface {
 
     protected final static String LOG_TAG = "FusedLocation";
@@ -32,7 +29,7 @@ public class FusedLocationModule implements LocationListener, ModuleInterface {
 
     private int mPriority = LocationRequest.PRIORITY_HIGH_ACCURACY;
 
-    private float mMinimumDisplacement = 5f; //meters
+    private float mMinimumDisplacement = 2f; //meters
 
 
     public FusedLocationModule(Context ctx, GoogleApiClient client) {

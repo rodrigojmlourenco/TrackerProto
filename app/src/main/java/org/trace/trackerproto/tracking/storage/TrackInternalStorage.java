@@ -47,14 +47,13 @@ public class TrackInternalStorage {
 
     public static void storeTracedTrack(Context context, String sessionId, Track track) throws UnableToStoreTrackException {
 
-        //TODO: this should not be necessary
-        if(sessionId == null || sessionId.isEmpty())
-            sessionId = "local_"+String.valueOf(Math.random());
 
         FileOutputStream fos = null;
         ObjectOutputStream oos = null;
+        String filename = String.valueOf(System.currentTimeMillis());
+
         try {
-            fos = context.openFileOutput(PREFIX + sessionId, Context.MODE_PRIVATE);
+            fos = context.openFileOutput(PREFIX + filename, Context.MODE_PRIVATE);
             oos = new ObjectOutputStream(fos);
 
             oos.writeObject(track);
@@ -121,6 +120,7 @@ public class TrackInternalStorage {
         jsonObject.addProperty("accuracy", location.getAccuracy());
         jsonObject.addProperty("provider", location.getProvider());
         jsonObject.addProperty("bearing", location.getBearing());
+        jsonObject.addProperty("activity", location.getActivityMode());
         return gson.toJson(jsonObject);
     }
 

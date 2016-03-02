@@ -36,6 +36,12 @@ public class TRACEStoreApiClient {
         context.startService(mI);
     }
 
+    public static void requestLogout(Context context){
+        Intent mI = new Intent(context, TRACEStore.class);
+        mI.putExtra(Constants.OPERATION_KEY, TRACEStoreOperations.logout.toString());
+        context.startService(mI);
+    }
+
     public static void requestInitiateSession(Context context){
         Intent mI = new Intent(context, TRACEStore.class);
         mI.putExtra(Constants.OPERATION_KEY, TRACEStoreOperations.initiateSession.toString());
