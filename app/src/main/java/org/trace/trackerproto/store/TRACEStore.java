@@ -11,6 +11,7 @@ import com.google.gson.JsonObject;
 import org.trace.trackerproto.Constants;
 import org.trace.trackerproto.store.api.TRACEStoreOperations;
 import org.trace.trackerproto.store.auth.AuthenticationManager;
+import org.trace.trackerproto.store.exceptions.AuthTokenIsExpiredException;
 import org.trace.trackerproto.store.exceptions.InvalidAuthCredentialsException;
 import org.trace.trackerproto.store.exceptions.LoginFailedException;
 import org.trace.trackerproto.store.exceptions.RemoteTraceException;
@@ -32,10 +33,9 @@ public class TRACEStore extends IntentService{
 
     private final String BASE_URI = "http://146.193.41.50:8080/trace";
 
-    private final Resty resty = new Resty();
+
     private final AuthenticationManager authManager;
 
-    private String authToken = "";
 
     private final HttpClient mHttpClient;
 
@@ -44,20 +44,6 @@ public class TRACEStore extends IntentService{
         this.authManager = new AuthenticationManager(this);
         this.mHttpClient = new HttpClient();
     }
-
-
-    public void submitLocation(String sessionId, String data){
-
-        String url = BASE_URI+"/tracker/put/geo/"+sessionId;
-
-        try {
-            resty.text(url, content(new us.monoid.json.JSONObject(data)));
-        } catch (IOException | JSONException e) {
-            e.printStackTrace();
-        }
-    }
-
-
 
 
     private void performSubmitTrack(Intent intent) {
@@ -78,6 +64,7 @@ public class TRACEStore extends IntentService{
     private boolean login(String username, String password) throws InvalidAuthCredentialsException {
 
         String authToken;
+
         try {
 
             authToken = mHttpClient.login(username, password);
@@ -102,8 +89,13 @@ public class TRACEStore extends IntentService{
 
     private void performLogin(Intent intent){
 
-        Log.d(LOG_TAG, "performLogin");
+        String authToken = authManager.getAuthenticationToken();
 
+        //Check if already logged in
+        if(authToken!=null && !authToken.isEmpty()){
+            Log.i(LOG_TAG, "AuthToken still holds, proceeding without requesting for a new one.");
+            return;
+        }
 
         String username, password, error ="";
         boolean isFirst = authManager.isFirstTime(), success = false;
@@ -151,6 +143,9 @@ public class TRACEStore extends IntentService{
             authManager.clearAuthenticationToken();
         } catch (RemoteTraceException e) {
             e.printStackTrace();
+        } catch (AuthTokenIsExpiredException e){
+            Log.e(LOG_TAG, "Authentication token is expired, removing it...");
+            authManager.clearAuthenticationToken();
         }
     }
 

@@ -6,6 +6,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import org.trace.trackerproto.store.exceptions.AuthTokenIsExpiredException;
 import org.trace.trackerproto.store.exceptions.InvalidAuthCredentialsException;
 import org.trace.trackerproto.store.exceptions.LoginFailedException;
 import org.trace.trackerproto.store.exceptions.RemoteTraceException;
@@ -105,7 +106,7 @@ public class HttpClient {
         }
     }
 
-    public void logout(String authToken) throws RemoteTraceException {
+    public void logout(String authToken) throws RemoteTraceException, AuthTokenIsExpiredException {
 
         URL url;
         HttpURLConnection connection = null;
@@ -129,7 +130,12 @@ public class HttpClient {
             wr.close();
 
             // Get Response
-            connection.getResponseCode();
+            int code = connection.getResponseCode();
+            Log.d(LOG_TAG, "{ op: 'logout, code:"+code+"}");
+
+            if(code == 401)
+                throw new AuthTokenIsExpiredException();
+
             InputStream is = connection.getInputStream();
             BufferedReader rd = new BufferedReader(new InputStreamReader(is));
             String line;
