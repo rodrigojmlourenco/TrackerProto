@@ -7,7 +7,7 @@ Prototype for the TRACE Tracker App
 
 Permite iniciar e parar o processo de tracking, bem como acesso às restantes actividades.
 
-<img src='./resources/img/MainActivity.png'/>
+<img src='./resources/img/MainActivity.png' width='300px'/>
 
 ### TrackListActivity
 
