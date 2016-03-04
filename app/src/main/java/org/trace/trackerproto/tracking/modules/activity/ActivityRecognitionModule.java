@@ -31,6 +31,8 @@ public class ActivityRecognitionModule implements ModuleInterface, ResultCallbac
 
     private boolean isTracking = false;
 
+    private long interval = 1000;
+
     private Queue<SimpleDetectedActivity> activities;
 
     public ActivityRecognitionModule(Context ctx, GoogleApiClient googleApiClient){
@@ -73,7 +75,7 @@ public class ActivityRecognitionModule implements ModuleInterface, ResultCallbac
     }
 
     @Override
-    public void startTracking(long interval){
+    public void startTracking(){
 
         if(!mGoogleApiClient.isConnected()) {
             Log.e(LOG_TAG, "ERROR, the google api client is not connected.");
@@ -127,4 +129,11 @@ public class ActivityRecognitionModule implements ModuleInterface, ResultCallbac
     }
 
 
+    public long getInterval() {
+        return interval;
+    }
+
+    public void setInterval(long interval) {
+        this.interval = interval;
+    }
 }

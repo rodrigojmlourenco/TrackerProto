@@ -36,14 +36,16 @@
             android:name=".store.TRACEStore"
             android:exported="false" />
         <service android:name=".tracking.TRACETrackerService" />
-
         <service
             android:name=".tracking.modules.activity.ActivityRecognitionHandler"
-            android:exported="false"/>
+            android:exported="false" />
 
-        <activity android:name=".ui.LoginActivity" android:screenOrientation="portrait" />
+        <activity
+            android:name=".ui.LoginActivity"
+            android:screenOrientation="portrait" />
         <activity android:name=".ui.MapActivity" />
-        <activity android:name=".ui.TrackListActivity"></activity>
+        <activity android:name=".ui.TrackListActivity" />
+        <activity android:name=".ui.SettingsActivity" android:screenOrientation="portrait"></activity>
     </application>
 
 </manifest>

@@ -27,6 +27,7 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.javacc.jjtree.Main;
 import org.trace.trackerproto.Constants;
 import org.trace.trackerproto.R;
 import org.trace.trackerproto.store.TRACEStoreApiClient;
@@ -44,7 +45,7 @@ public class MainActivity extends AppCompatActivity
                             Constants.FIRST_TIME_BROADCAST};
 
     //UI Elements
-    private Button startBtn, stopBtn, mapsBtn, tracksBtn;
+    private Button startBtn, stopBtn, mapsBtn, tracksBtn, settingsBtn;
     private TextView locationTxtView;
 
 
@@ -64,7 +65,9 @@ public class MainActivity extends AppCompatActivity
         //Setup UI and respective OnClickListeners
         this.startBtn   = (Button) findViewById(R.id.startBtn);
         this.stopBtn    = (Button) findViewById(R.id.stopBtn);
+        this.settingsBtn= (Button) findViewById(R.id.settingsBtn);
         this.locationTxtView = (TextView) findViewById(R.id.locationIn);
+
 
         startBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -93,6 +96,15 @@ public class MainActivity extends AppCompatActivity
 
                     Toast.makeText(MainActivity.this, TRACEStoreApiClient.getSessionId(), Toast.LENGTH_SHORT).show();
                 }
+            }
+        });
+
+        settingsBtn.setOnClickListener(new View.OnClickListener(){
+
+            @Override
+            public void onClick(View v) {
+                Intent settingsActivity = new Intent(MainActivity.this, SettingsActivity.class);
+                startActivity(settingsActivity);
             }
         });
 

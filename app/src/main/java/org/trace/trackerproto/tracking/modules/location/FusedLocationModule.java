@@ -117,8 +117,7 @@ public class FusedLocationModule implements LocationListener, ModuleInterface {
 
 
     @Override
-    public void startTracking(long millis) {
-        setInterval(millis);
+    public void startTracking() {
         startLocationUpdates();
     }
 

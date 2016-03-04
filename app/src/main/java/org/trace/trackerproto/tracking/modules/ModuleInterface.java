@@ -7,7 +7,7 @@ import android.location.Location;
  */
 public interface ModuleInterface {
 
-    public void startTracking(long millis);
+    public void startTracking();
 
     public void stopTracking();
 }

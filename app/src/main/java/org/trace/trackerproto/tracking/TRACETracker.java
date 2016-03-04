@@ -10,6 +10,8 @@ import android.widget.Toast;
 import com.google.android.gms.location.DetectedActivity;
 
 import org.trace.trackerproto.Constants;
+import org.trace.trackerproto.settings.SettingsManager;
+import org.trace.trackerproto.settings.TrackingProfile;
 import org.trace.trackerproto.store.TRACEStoreApiClient;
 import org.trace.trackerproto.tracking.data.Track;
 import org.trace.trackerproto.tracking.filter.HeuristicBasedFilter;
@@ -48,11 +50,17 @@ public class TRACETracker extends BroadcastReceiver implements CollectorManager{
     private  LinkedList<DetectedActivity> mActivityTrace;
     private ActivityRecognitionModule activityRecognitionModule = null;
 
+    //Settings
+    private SettingsManager mSettingsManager;
+
     private TRACETracker(Context context){
         mContext = context;
 
         mGoogleMan = new GoogleClientManager(mContext);
         mGoogleMan.connect();
+
+        //Settings
+        mSettingsManager = SettingsManager.getInstance(context);
 
         //Location
         mLocationTrace = new LinkedList<>();
@@ -98,7 +106,15 @@ public class TRACETracker extends BroadcastReceiver implements CollectorManager{
     public void startLocationUpdates(){
         if(fusedLocationModule==null) init();
 
+        TrackingProfile profile = mSettingsManager.getTrackingProfile();
+
         track = null;
+
+        fusedLocationModule.setInterval(profile.getLocationInterval());
+        fusedLocationModule.setFastInterval(profile.getLocationFastInterval());
+        fusedLocationModule.setPriority(profile.getLocationTrackingPriority());
+        fusedLocationModule.setMinimumDisplacement(profile.getLocationDisplacementThreshold());
+
         fusedLocationModule.startLocationUpdates();
 
     }
@@ -120,7 +136,7 @@ public class TRACETracker extends BroadcastReceiver implements CollectorManager{
     public void startActivityUpdates(){
         if(activityRecognitionModule==null) init();
 
-        activityRecognitionModule.startTracking(1000);
+        activityRecognitionModule.startTracking();
     }
 
     public void stopActivityUpdates(){

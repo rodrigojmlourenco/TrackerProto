@@ -16,11 +16,11 @@ import org.trace.trackerproto.tracking.filter.HeuristicBasedFilter;
 public class TrackingProfile {
 
     //Fused Location Module
-    private boolean locationDisplacementFilterEnabled = false;
-    private float locationDisplacementThreshold = 2.5f; //meters
+    private int locationDisplacementThreshold = 2; //meters
     private long locationInterval = 10000;
     private long locationFastInterval = 5000;
     private int locationTrackingPriority = LocationRequest.PRIORITY_HIGH_ACCURACY;
+    private float locationMinimumAccuracy = 40;
     private HeuristicBasedFilter[] locationEnabledOutlierFilters = new HeuristicBasedFilter[]{};
 
     //Activity Recognition
@@ -36,8 +36,8 @@ public class TrackingProfile {
         JsonObject uploadingProfile = (JsonObject) jsonProfile.get(Constants.UPLOADING);
 
         //Setup Location Profile
-        setLocationDisplacementFilterEnabled(locationProfile.get(Constants.LOCATION_DISPLACEMENT_ENABLED).getAsBoolean());
-        setLocationDisplacementThreshold(locationProfile.get(Constants.LOCATION_DISPLACEMENT_THRESHOLD).getAsFloat());
+        //setLocationDisplacementFilterEnabled(locationProfile.get(Constants.LOCATION_DISPLACEMENT_ENABLED).getAsBoolean());
+        setLocationDisplacementThreshold(locationProfile.get(Constants.LOCATION_DISPLACEMENT_THRESHOLD).getAsInt());
         setLocationInterval(locationProfile.get(Constants.LOCATION_INTERVAL).getAsLong());
         setLocationFastInterval(locationProfile.get(Constants.LOCATION_FAST_INTERVAL).getAsLong());
         setLocationTrackingPriority(locationProfile.get(Constants.LOCATION_PRIORITIES).getAsInt());
@@ -51,19 +51,11 @@ public class TrackingProfile {
 
     }
 
-    public boolean isLocationDisplacementFilterEnabled() {
-        return locationDisplacementFilterEnabled;
-    }
-
-    public void setLocationDisplacementFilterEnabled(boolean locationDisplacementFilterEnabled) {
-        this.locationDisplacementFilterEnabled = locationDisplacementFilterEnabled;
-    }
-
-    public float getLocationDisplacementThreshold() {
+    public int getLocationDisplacementThreshold() {
         return locationDisplacementThreshold;
     }
 
-    public void setLocationDisplacementThreshold(float locationDisplacementThreshold) {
+    public void setLocationDisplacementThreshold(int locationDisplacementThreshold) {
         this.locationDisplacementThreshold = locationDisplacementThreshold;
     }
 
@@ -119,11 +111,9 @@ public class TrackingProfile {
         JsonObject locationTrackingProfile = new JsonObject();
         JsonArray outlierFilters = new JsonArray();
 
-
         locationTrackingProfile.addProperty(Constants.LOCATION_INTERVAL, locationInterval);
         locationTrackingProfile.addProperty(Constants.LOCATION_FAST_INTERVAL, locationFastInterval);
         locationTrackingProfile.addProperty(Constants.LOCATION_PRIORITIES, locationTrackingPriority);
-        locationTrackingProfile.addProperty(Constants.LOCATION_DISPLACEMENT_ENABLED, locationDisplacementFilterEnabled);
         locationTrackingProfile.addProperty(Constants.LOCATION_DISPLACEMENT_THRESHOLD, locationDisplacementThreshold);
 
         for(int i=0; i < locationEnabledOutlierFilters.length; i++)
@@ -149,11 +139,16 @@ public class TrackingProfile {
     public JsonObject getJsonTrackingProfile(){
         JsonObject trackingProfile = new JsonObject();
 
-        trackingProfile.add(Constants.LOCATION, getJsonTrackingProfile());
+        trackingProfile.add(Constants.LOCATION, getJsonLocationTrackingProfile());
         trackingProfile.add(Constants.ACTIVITY_RECOGNITION, getJsonActivityRecognitionProfile());
         trackingProfile.add(Constants.UPLOADING, getJsonUploadingProfile());
 
         return trackingProfile;
+    }
+
+    @Override
+    public String toString() {
+        return getJsonTrackingProfile().toString();
     }
 
     public interface Constants {
