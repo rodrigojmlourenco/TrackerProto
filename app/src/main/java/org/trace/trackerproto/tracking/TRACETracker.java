@@ -58,8 +58,8 @@ public class TRACETracker extends BroadcastReceiver implements CollectorManager{
         mLocationTrace = new LinkedList<>();
         mOutlierDetector = new HeuristicBasedFilter();
         mOutlierDetector.addNewHeuristic(new HeuristicBasedFilter.AccuracyBasedHeuristicRule(30));
-        mOutlierDetector.addNewHeuristic(new HeuristicBasedFilter.SatelliteBasedHeuristicRule(4));
-        mOutlierDetector.addNewHeuristic(new HeuristicBasedFilter.SpeedBasedHeuristicRule(16.67f));
+        //mOutlierDetector.addNewHeuristic(new HeuristicBasedFilter.SatelliteBasedHeuristicRule(4));
+        mOutlierDetector.addNewHeuristic(new HeuristicBasedFilter.SpeedBasedHeuristicRule(55.56f));
 
         //Activity Recognition
         mActivityTrace = new LinkedList<>();

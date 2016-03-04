@@ -5,9 +5,6 @@ import android.app.IntentService;
 import android.content.Intent;
 import android.util.Log;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-
 import org.trace.trackerproto.Constants;
 import org.trace.trackerproto.store.api.TRACEStoreOperations;
 import org.trace.trackerproto.store.auth.AuthenticationManager;
@@ -16,14 +13,7 @@ import org.trace.trackerproto.store.exceptions.InvalidAuthCredentialsException;
 import org.trace.trackerproto.store.exceptions.LoginFailedException;
 import org.trace.trackerproto.store.exceptions.RemoteTraceException;
 import org.trace.trackerproto.store.exceptions.UnableToPerformLogin;
-import org.trace.trackerproto.store.exceptions.UserMustBeLoggedInException;
-import org.trace.trackerproto.tracking.data.SerializableLocation;
 import org.trace.trackerproto.tracking.data.Track;
-
-import java.io.IOException;
-
-import us.monoid.json.JSONException;
-import us.monoid.web.Resty;
 
 import static us.monoid.web.Resty.content;
 
@@ -54,7 +44,7 @@ public class TRACEStore extends IntentService{
         track = intent.getParcelableExtra(Constants.TRACK_EXTRA);
 
         try {
-            mHttpClient.submitAndCloseSession(authManager.getAuthenticationToken(), track);
+            mHttpClient.submitTrackAndCloseSession(authManager.getAuthenticationToken(), track);
         } catch (RemoteTraceException e) {
             e.printStackTrace();
         }
