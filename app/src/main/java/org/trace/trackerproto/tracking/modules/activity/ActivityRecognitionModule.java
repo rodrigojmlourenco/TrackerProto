@@ -4,6 +4,7 @@ import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.support.annotation.NonNull;
 import android.util.Log;
 
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -17,9 +18,6 @@ import org.trace.trackerproto.tracking.modules.ModuleInterface;
 import java.util.LinkedList;
 import java.util.Queue;
 
-/**
- * Created by Rodrigo Lourenço on 17/02/2016.
- */
 public class ActivityRecognitionModule implements ModuleInterface, ResultCallback<Status> {
 
     protected final static String LOG_TAG = "ActivityRecogModule";
@@ -31,7 +29,9 @@ public class ActivityRecognitionModule implements ModuleInterface, ResultCallbac
 
     private boolean isTracking = false;
 
+    //Tracking Parameters
     private long interval = 1000;
+    private int minimumConfidence = 75;
 
     private Queue<SimpleDetectedActivity> activities;
 
@@ -44,34 +44,6 @@ public class ActivityRecognitionModule implements ModuleInterface, ResultCallbac
         this.mGoogleApiClient = googleApiClient;
 
         this.activities = new LinkedList<>();
-
-        /*
-        this.mActivityReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                //Add current time
-                Calendar rightNow = Calendar.getInstance();
-                SimpleDateFormat sdf = new SimpleDateFormat("h:mm:ss a");
-                String strDate = sdf.format(rightNow.getTime());;
-
-                String activity = intent.getStringExtra("activity");
-                int confidence  = intent.getExtras().getInt("confidence");
-
-                String v =  strDate + " " +
-                        activity + " " +
-                        "Confidence : " + confidence + "\n";
-
-                Log.i(LOG_TAG, v);
-
-                activities.add(new SimpleDetectedActivity(activity, confidence));
-            }
-        };
-
-        /*
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(ActivityConstants.BROADCAST_ACTION);
-        mContext.registerReceiver(mActivityReceiver, filter);
-        */
     }
 
     @Override
@@ -120,7 +92,7 @@ public class ActivityRecognitionModule implements ModuleInterface, ResultCallbac
 
 
     @Override
-    public void onResult(Status status) {
+    public void onResult(@NonNull Status status) {
         if (status.isSuccess()) {
             Log.i(LOG_TAG, "Success adding or removing activity detection: " + status.getStatusMessage());
         } else {
@@ -129,11 +101,11 @@ public class ActivityRecognitionModule implements ModuleInterface, ResultCallbac
     }
 
 
-    public long getInterval() {
-        return interval;
-    }
-
     public void setInterval(long interval) {
         this.interval = interval;
+    }
+
+    public void setMinimumConfidence(int minimumConfidence) {
+        this.minimumConfidence = minimumConfidence;
     }
 }

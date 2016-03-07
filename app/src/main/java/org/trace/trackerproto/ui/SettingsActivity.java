@@ -29,12 +29,14 @@ public class SettingsActivity extends AppCompatActivity {
     private Button saveSettingsBtn;
 
     //Location Inputs
-    private EditText locationIntervalInput, locationFastIntervalInput, locationMinAccuracyInput;
+    private EditText locationIntervalInput, locationFastIntervalInput, locationMinAccuracyInput, locationSpeedInput;
     private SeekBar locationDisplacementSeekbar, locationPrioSeekBar;
     private TextView locationDisplacementLabel, locationPriorityLabel;
 
     //Activity Recognition Inputs
     private EditText activityIntervalInput;
+    private SeekBar activityConfidenceSeekbar;
+    private TextView activityConfidenceLabel;
 
     //Uploading Inputs
     private CheckBox wifiOnlyBox, onDemandUploadOnlyBox;
@@ -64,8 +66,11 @@ public class SettingsActivity extends AppCompatActivity {
         locationDisplacementLabel   = (TextView)    findViewById(R.id.displacementLabel);
         locationPrioSeekBar         = (SeekBar)     findViewById(R.id.prioritySeekBar);
         locationPriorityLabel       = (TextView)    findViewById(R.id.priorityLabel);
+        locationSpeedInput          = (EditText)    findViewById(R.id.locationSpeedInput);
         ////// Activity Recognition Inputs
         activityIntervalInput       = (EditText)    findViewById(R.id.activityRecogIntervalInput);
+        activityConfidenceSeekbar   = (SeekBar)     findViewById(R.id.activityConfidenceSeekBar);
+        activityConfidenceLabel     = (TextView)    findViewById(R.id.activityConfidenceLabel);
         ////// Uploading Inputs
         wifiOnlyBox                 = (CheckBox)    findViewById(R.id.wifiOnlyCheckBox);
         onDemandUploadOnlyBox       = (CheckBox)    findViewById(R.id.onDemandOnlyCheckBox);
@@ -79,8 +84,11 @@ public class SettingsActivity extends AppCompatActivity {
         locationDisplacementLabel.setText(mTrackingProfile.getLocationDisplacementThreshold() + "m");
         locationPrioSeekBar.setProgress(priorityToValue(mTrackingProfile.getLocationTrackingPriority()));
         locationPriorityLabel.setText(priorityToLabel(mTrackingProfile.getLocationTrackingPriority()));
+        locationSpeedInput.setText(String.format("%.2f", ms2kmh(mTrackingProfile.getLocationMaximumSpeed())));
         ////// Activity Recognition Inputs
         activityIntervalInput.setText(String.valueOf(mTrackingProfile.getArInterval()));
+        activityConfidenceSeekbar.setProgress(mTrackingProfile.getActivityMinimumConfidence());
+        activityConfidenceLabel.setText(mTrackingProfile.getActivityMinimumConfidence()+"%");
         ///// Uploading Inputs
         wifiOnlyBox.setChecked(mTrackingProfile.isWifiOnly());
         onDemandUploadOnlyBox.setChecked(false);
@@ -123,6 +131,23 @@ public class SettingsActivity extends AppCompatActivity {
             }
         });
 
+        activityConfidenceSeekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                activityConfidenceLabel.setText(progress+"%");
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                activityConfidenceLabel.setText(seekBar.getProgress()+"%");
+            }
+        });
+
         saveSettingsBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -132,12 +157,16 @@ public class SettingsActivity extends AppCompatActivity {
                     activityInterval = Long.valueOf(activityIntervalInput.getText().toString());
 
                 int displacementThreshold = locationDisplacementSeekbar.getProgress(),
-                    priority = valueToPriority(locationPrioSeekBar.getProgress());
+                    priority = valueToPriority(locationPrioSeekBar.getProgress()),
+                    activityConfidence = activityConfidenceSeekbar.getProgress();
 
-                float minAcc = Float.valueOf(locationMinAccuracyInput.getText().toString());
+                float minAcc = Float.valueOf(locationMinAccuracyInput.getText().toString()),
+                        maxSpeed = Float.valueOf(locationSpeedInput.getText().toString());
+
 
                 boolean wifiOnly = wifiOnlyBox.isChecked(),
                         onDemandOnly = onDemandUploadOnlyBox.isChecked();
+
 
                 ////// Location
                 mTrackingProfile.setLocationInterval(locationInterval);
@@ -145,8 +174,10 @@ public class SettingsActivity extends AppCompatActivity {
                 mTrackingProfile.setLocationDisplacementThreshold(displacementThreshold);
                 mTrackingProfile.setLocationMinimumAccuracy(minAcc);
                 mTrackingProfile.setLocationTrackingPriority(priority);
+                mTrackingProfile.setLocationMaximumSpeed(kmh2ms(maxSpeed));
                 ////// Activity Recognition
                 mTrackingProfile.setActivityRecognitionInterval(activityInterval);
+                mTrackingProfile.setActivityMinimumConfidence(activityConfidence);
                 ////// Uploading
                 mTrackingProfile.setWifiOnly(wifiOnly);
                 mTrackingProfile.setOnDemandOnly(onDemandOnly);
@@ -203,5 +234,13 @@ public class SettingsActivity extends AppCompatActivity {
             default:
                 return "High Accuracy";
         }
+    }
+
+    private float kmh2ms(float kmh){
+        return (kmh * 1000) / 3600;
+    }
+
+    private float ms2kmh(float ms){
+        return (ms / 1000) * 3600;
     }
 }

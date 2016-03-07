@@ -1,197 +1,186 @@
 package org.trace.trackerproto.tracking;
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
+import android.app.Service;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.location.Location;
+import android.os.Handler;
+import android.os.IBinder;
+import android.os.Message;
+import android.os.Messenger;
+import android.os.RemoteException;
+import android.support.annotation.Nullable;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.google.android.gms.location.DetectedActivity;
-
 import org.trace.trackerproto.Constants;
-import org.trace.trackerproto.settings.SettingsManager;
-import org.trace.trackerproto.settings.TrackingProfile;
-import org.trace.trackerproto.store.TRACEStoreApiClient;
-import org.trace.trackerproto.tracking.data.Track;
-import org.trace.trackerproto.tracking.filter.HeuristicBasedFilter;
-import org.trace.trackerproto.tracking.modules.activity.ActivityRecognitionModule;
-import org.trace.trackerproto.tracking.modules.location.FusedLocationModule;
-import org.trace.trackerproto.tracking.storage.TrackInternalStorage;
-import org.trace.trackerproto.tracking.storage.exceptions.UnableToStoreTrackException;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
+public class TRACETracker extends Service implements CollectorManager{
 
-/**
- * Created by Rodrigo Lourenço on 23/02/2016.
- */
-public class TRACETracker extends BroadcastReceiver implements CollectorManager{
+    private final String LOG_TAG = "TRACETracker";
 
-    private static final String LOG_TAG = "TRACETracker";
+    private Tracker mTracker;
+    final Messenger mMessenger = new Messenger(new ClientHandler());
 
-    private static TRACETracker TRACKER = null;
-
-    private Context mContext;
-    private GoogleClientManager mGoogleMan;
-
-    private Track track = null;
-
-    //Async
-    private Object mLock = new Object();
-
-    //Location Modules
-    private LinkedList<Location> mLocationTrace;
-    private FusedLocationModule fusedLocationModule = null;
-    private HeuristicBasedFilter mOutlierDetector;
-
-    //Activity Modules
-    private DetectedActivity mCurrentActivity = null;
-    private  LinkedList<DetectedActivity> mActivityTrace;
-    private ActivityRecognitionModule activityRecognitionModule = null;
-
-    //Settings
-    private SettingsManager mSettingsManager;
-
-    private TRACETracker(Context context){
-        mContext = context;
-
-        mGoogleMan = new GoogleClientManager(mContext);
-        mGoogleMan.connect();
-
-        //Settings
-        mSettingsManager = SettingsManager.getInstance(context);
-
-        //Location
-        mLocationTrace = new LinkedList<>();
-        mOutlierDetector = new HeuristicBasedFilter();
-        mOutlierDetector.addNewHeuristic(new HeuristicBasedFilter.AccuracyBasedHeuristicRule(30));
-        //mOutlierDetector.addNewHeuristic(new HeuristicBasedFilter.SatelliteBasedHeuristicRule(4));
-        mOutlierDetector.addNewHeuristic(new HeuristicBasedFilter.SpeedBasedHeuristicRule(55.56f));
-
-        //Activity Recognition
-        mActivityTrace = new LinkedList<>();
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        mTracker = Tracker.getTracker(this);
     }
 
-    protected static TRACETracker getTracker(Context ctx){
-        if(TRACKER == null)
-            TRACKER = new TRACETracker(ctx);
+    @Nullable
+    @Override
+    public IBinder onBind(Intent intent) {
 
-        return TRACKER;
+        Log.d(LOG_TAG, "onBind");
+        Toast.makeText(getApplicationContext(), "binding", Toast.LENGTH_SHORT).show();
+
+        LocalBroadcastManager.getInstance(this)
+                .registerReceiver(mTracker, new IntentFilter(Constants.COLLECT_ACTION));
+
+        registerReceiver(mTracker, new IntentFilter(Constants.COLLECT_ACTION));
+
+        return mMessenger.getBinder();
     }
 
 
-    private void init(){
 
-        fusedLocationModule = new FusedLocationModule(
-                mContext,
-                mGoogleMan.getApiClient());
+    @Override
+    public boolean onUnbind(Intent intent) {
+        Log.d(LOG_TAG, "onUnbind");
 
-        activityRecognitionModule = new ActivityRecognitionModule(
-                mContext,
-                mGoogleMan.getApiClient());
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(mTracker);
+
+        unregisterReceiver(mTracker);
+
+        return super.onUnbind(intent);
     }
 
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+
+        Log.d(LOG_TAG, "onDestroy");
+    }
+
+    @Override
+    public boolean stopService(Intent name) {
+        Log.d(LOG_TAG, "stopService");
+        return super.stopService(name);
+
+    }
 
     @Override
     public void storeLocation(Location location) {
-
-        if(track == null){
-            track = new Track(TRACEStoreApiClient.getSessionId(), location);
-        }else
-            track.addTracedLocation(location, mCurrentActivity.toString());
+        mTracker.storeLocation(location);
     }
 
 
-    public void startLocationUpdates(){
-        if(fusedLocationModule==null) init();
+    class ClientHandler extends Handler {
 
-        TrackingProfile profile = mSettingsManager.getTrackingProfile();
-
-        track = null;
-
-        fusedLocationModule.setInterval(profile.getLocationInterval());
-        fusedLocationModule.setFastInterval(profile.getLocationFastInterval());
-        fusedLocationModule.setPriority(profile.getLocationTrackingPriority());
-        fusedLocationModule.setMinimumDisplacement(profile.getLocationDisplacementThreshold());
-
-        fusedLocationModule.startLocationUpdates();
-
-    }
-
-    public void stopLocationUpdates(){
-        fusedLocationModule.stopTracking();
-
-        if(track == null) return;
-
-        track.setSessionId(TRACEStoreApiClient.getSessionId());
-
-        try {
-            TrackInternalStorage.storeTracedTrack(mContext, TRACEStoreApiClient.getSessionId(), track);
-        } catch (UnableToStoreTrackException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void startActivityUpdates(){
-        if(activityRecognitionModule==null) init();
-
-        activityRecognitionModule.startTracking();
-    }
-
-    public void stopActivityUpdates(){
-        activityRecognitionModule.stopTracking();
-    }
-
-    private void onHandleLocation(Location location){
-        Log.e("onHandle", "Location:"+location.toString());
-
-        if(mOutlierDetector.isValidLocation(location)){
-            mLocationTrace.add(location);
-            storeLocation(location);
-
-            DetectedActivity activity = null;
-            synchronized (mLock){
-                if(mCurrentActivity != null)
-                    activity = mCurrentActivity;
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case TRACETrackerOperations.TEST_OP:
+                    Toast.makeText(getApplicationContext(), "Hello!", Toast.LENGTH_SHORT).show();
+                    break;
+                case TRACETrackerOperations.TRACK_ACTION:
+                case TRACETrackerOperations.TRACK_LOCATION_ACTION:
+                    mTracker.updateSettings();
+                    mTracker.startLocationUpdates();
+                    mTracker.startActivityUpdates();
+                    break;
+                case TRACETrackerOperations.UNTRACK_ACTION:
+                case TRACETrackerOperations.UNTRACK_LOCATION_ACTION:
+                    mTracker.stopLocationUpdates();
+                    mTracker.stopActivityUpdates();
+                    break;
+                case TRACETrackerOperations.TRACK_ACTIVITY_ACTION:
+                    Toast.makeText(getApplicationContext(), "Start Tracking activity! (TODO)", Toast.LENGTH_SHORT).show();
+                    break;
+                case TRACETrackerOperations.UNTRACK_ACTIVITY_ACTION:
+                    Toast.makeText(getApplicationContext(), "Stop Tracking activity! (TODO)", Toast.LENGTH_SHORT).show();
+                    break;
+                default:
+                    super.handleMessage(msg);
             }
-
-            TRACEStoreApiClient.uploadTrackingInfo(location, activity);
         }
     }
 
-    private void onHandleDetectedActivity(ArrayList<DetectedActivity> detectedActivities){
-        Log.e("onHandle", detectedActivities.toString());
+    public interface TRACETrackerOperations {
+        int TEST_OP                 = 1;
 
-        if(detectedActivities.isEmpty()) return;
+        int TRACK_LOCATION_ACTION   = 2;
+        int UNTRACK_LOCATION_ACTION = 3;
 
-        DetectedActivity aux = detectedActivities.get(0);
+        int TRACK_ACTIVITY_ACTION   = 5;
+        int UNTRACK_ACTIVITY_ACTION = 6;
 
-        for(DetectedActivity activity : detectedActivities)
-            if (aux.getConfidence() > activity.getConfidence())
-                aux = activity;
-
-        synchronized (mLock) {
-            mCurrentActivity = aux;
-        }
+        int TRACK_ACTION            = 7;
+        int UNTRACK_ACTION          = 8;
     }
 
-    @Override
-    public void onReceive(Context context, Intent intent) {
+    /**
+     *
+     */
+    public static class TRACETrackerClient {
 
-        if(intent.hasExtra(Constants.LOCATION_EXTRA)) {
+        private final Messenger mService;
 
-            Location location = intent.getParcelableExtra(Constants.LOCATION_EXTRA);
-            onHandleLocation(location);
-
-        }else if(intent.hasExtra(Constants.ACTIVITY_EXTRA)) {
-
-            ArrayList<DetectedActivity> updatedActivities =
-                    intent.getParcelableArrayListExtra(Constants.ACTIVITY_EXTRA);
-
-            onHandleDetectedActivity(updatedActivities);
+        public TRACETrackerClient(Messenger messenger){
+            this.mService = messenger;
         }
 
+        private void sendRequest(Message msg){
+            try {
+                mService.send(msg);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        }
 
+        public void testService(){
+            Message msg = Message.obtain(null, TRACETrackerOperations.TEST_OP, 0, 0);
+            sendRequest(msg);
+        }
+
+        public void startTracking(){
+            Message msg = Message.obtain(null, TRACETrackerOperations.TRACK_ACTION);
+            sendRequest(msg);
+        }
+
+        public void stopTracking(){
+            Message msg = Message.obtain(null, TRACETrackerOperations.UNTRACK_ACTION);
+            sendRequest(msg);
+        }
+
+        @Deprecated
+        public void startTrackingLocation(int precision, int energy){
+            Message msg = Message.obtain(null, TRACETrackerOperations.TRACK_LOCATION_ACTION, precision, energy);
+            sendRequest(msg);
+        }
+
+        @Deprecated
+        public void stopTrackingLocation(){
+            Message msg = Message.obtain(null, TRACETrackerOperations.UNTRACK_LOCATION_ACTION, 0, 0);
+            sendRequest(msg);
+        }
+
+        @Deprecated
+        public void startTrackingActivity(){
+            Message msg = Message.obtain(null, TRACETrackerOperations.TRACK_ACTIVITY_ACTION, 0, 0);
+            sendRequest(msg);
+        }
+
+        @Deprecated
+        public void stopTrackingActivity(){
+            Message msg = Message.obtain(null, TRACETrackerOperations.UNTRACK_ACTIVITY_ACTION, 0, 0);
+            sendRequest(msg);
+        }
+
+        public void storeSession(String session){
+
+        }
     }
 }

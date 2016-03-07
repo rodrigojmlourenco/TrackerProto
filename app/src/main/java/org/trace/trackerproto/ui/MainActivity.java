@@ -27,13 +27,12 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import org.javacc.jjtree.Main;
 import org.trace.trackerproto.Constants;
 import org.trace.trackerproto.R;
 import org.trace.trackerproto.store.TRACEStoreApiClient;
 import org.trace.trackerproto.store.TRACEStoreReceiver;
-import org.trace.trackerproto.tracking.TRACETrackerClient;
-import org.trace.trackerproto.tracking.TRACETrackerService;
+import org.trace.trackerproto.tracking.TRACETracker;
+import org.trace.trackerproto.tracking.Tracker;
 
 public class MainActivity extends AppCompatActivity
         implements  PermissionChecker {
@@ -79,7 +78,7 @@ public class MainActivity extends AppCompatActivity
 
                     TRACEStoreApiClient.requestInitiateSession(MainActivity.this);
 
-                    client.startTrackingLocation(0, 0);
+                    client.startTracking();
                     isTracking = true;
                     toggleButtons(isBound, true);
                 }
@@ -90,7 +89,7 @@ public class MainActivity extends AppCompatActivity
             @Override
             public void onClick(View v) {
                 if (client != null) {
-                    client.stopTrackingLocation();
+                    client.stopTracking();
                     isTracking = false;
                     toggleButtons(isBound, false);
 
@@ -157,7 +156,7 @@ public class MainActivity extends AppCompatActivity
     protected void onStart() {
         super.onStart();
 
-        Intent trackerService = new Intent(getApplicationContext(), TRACETrackerService.class);
+        Intent trackerService = new Intent(getApplicationContext(), TRACETracker.class);
         trackerService.setFlags(Service. START_STICKY);
         bindService(trackerService, mConnection, Context.BIND_AUTO_CREATE);
         isBound = true;
@@ -176,7 +175,7 @@ public class MainActivity extends AppCompatActivity
             TRACEStoreApiClient.requestLogout(this);
 
             if(isTracking) {
-                client.stopTrackingLocation();
+                client.stopTracking();
                 isTracking = false;
             }
         }
@@ -185,7 +184,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 
@@ -217,8 +216,6 @@ public class MainActivity extends AppCompatActivity
             
             if(inState.containsKey(Constants.REQUEST_LOCATION_UPDATES)){
                 isTracking = inState.getBoolean(Constants.REQUEST_LOCATION_UPDATES);
-                //if(isTracking)
-                //    fusedLocationModule.startLocationUpdates();
             }
 
             if(inState.containsKey(Constants.TRACKER_SERVICE_BOUND_KEY))
@@ -287,11 +284,11 @@ public class MainActivity extends AppCompatActivity
     }
 
 
-    //TESTING - TRACETrackerService
+    //TESTING - TRACETracker
     Messenger mService = null;
     boolean isBound = false;
 
-    private TRACETrackerClient client = null;
+    private TRACETracker.TRACETrackerClient client = null;
 
 
 
@@ -300,7 +297,7 @@ public class MainActivity extends AppCompatActivity
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             mService= new Messenger(service);
-            client  = new TRACETrackerClient(mService);
+            client  = new TRACETracker.TRACETrackerClient(mService);
             isBound = true;
         }
 
@@ -311,10 +308,4 @@ public class MainActivity extends AppCompatActivity
             isBound = false;
         }
     };
-
-    public void sayHello(){
-        if(!isBound) return;
-
-        client.testService();
-    }
 }

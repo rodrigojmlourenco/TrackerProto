@@ -35,7 +35,7 @@
         <service
             android:name=".store.TRACEStore"
             android:exported="false" />
-        <service android:name=".tracking.TRACETrackerService" />
+        <service android:name=".tracking.TRACETracker" />
         <service
             android:name=".tracking.modules.activity.ActivityRecognitionHandler"
             android:exported="false" />
@@ -45,7 +45,7 @@
             android:screenOrientation="portrait" />
         <activity android:name=".ui.MapActivity" />
         <activity android:name=".ui.TrackListActivity" />
-        <activity android:name=".ui.SettingsActivity" android:screenOrientation="portrait"></activity>
+        <activity android:name=".ui.SettingsActivity" android:screenOrientation="portrait"/>
     </application>
 
 </manifest>

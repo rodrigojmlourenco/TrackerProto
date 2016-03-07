@@ -17,7 +17,7 @@ public final class Constants {
 
     //TRACEStore Extras
     public static final String TRACK_EXTRA = "org.trace.store.extras.TRACK";
-    //TRACETracker
+    //Tracker
     public static final String COLLECT_ACTION = "org.trace.tracker.COLLECT";
     public static final String ACTIVITY_EXTRA = "org.trace.tracker.ACTIVITY_EXTRA";
     public static final String LOCATION_EXTRA = "org.trace.tracker.LOCATION_EXTRA";
@@ -37,11 +37,11 @@ public final class Constants {
     public static final String TRACK_KEY = "org.trace.intent.TRACK";
 
     public interface TRACEService {
-        static final String FAILED_LOGIN_KEY = "-1";
+        String FAILED_LOGIN_KEY = "-1";
     }
 
     public interface Permissions {
-        public static final int EXTERNAL_STORAGE = 2;
+        int EXTERNAL_STORAGE = 2;
     }
 
 

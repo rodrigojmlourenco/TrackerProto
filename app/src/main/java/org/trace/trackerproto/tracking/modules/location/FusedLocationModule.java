@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.location.Location;
 import android.support.v4.content.LocalBroadcastManager;
+import android.util.Log;
 
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
@@ -11,6 +12,7 @@ import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 
 import org.trace.trackerproto.Constants;
+import org.trace.trackerproto.tracking.filter.HeuristicBasedFilter;
 import org.trace.trackerproto.tracking.modules.ModuleInterface;
 
 
@@ -22,19 +24,31 @@ public class FusedLocationModule implements LocationListener, ModuleInterface {
     private final GoogleApiClient mGoogleApiClient;
 
 
+
     private boolean isTracking = false;
 
+    // Tracking Parameters
     private long mInterval = 10000,
-            mFastInterval = 5000;
+                 mFastInterval = 5000;
 
     private int mPriority = LocationRequest.PRIORITY_HIGH_ACCURACY;
 
     private float mMinimumDisplacement = 2f; //meters
 
+    // Outlier Detection Filters && Parameters
+    private HeuristicBasedFilter mOutlierDetector;
+    private float mMinimumAccuracy  = 40f;
+    private float mMaximumSpeed     = 55.56f;
+    private float mMinimumSatellites= 4;
 
     public FusedLocationModule(Context ctx, GoogleApiClient client) {
         this.mContext = ctx;
         this.mGoogleApiClient = client;
+
+        mOutlierDetector = new HeuristicBasedFilter();
+        mOutlierDetector.addNewHeuristic(new HeuristicBasedFilter.AccuracyBasedHeuristicRule(mMinimumAccuracy));
+        //mOutlierDetector.addNewHeuristic(new HeuristicBasedFilter.SatelliteBasedHeuristicRule(4));
+        mOutlierDetector.addNewHeuristic(new HeuristicBasedFilter.SpeedBasedHeuristicRule(mMaximumSpeed));
     }
 
     public long getInterval() {
@@ -69,6 +83,18 @@ public class FusedLocationModule implements LocationListener, ModuleInterface {
         this.mMinimumDisplacement = mMinimumDisplacement;
     }
 
+    public void setMinimumAccuracy(float mMinimumAccuracy) {
+        this.mMinimumAccuracy = mMinimumAccuracy;
+    }
+
+    public void setMaximumSpeed(float mMaximumSpeed) {
+        this.mMaximumSpeed = mMaximumSpeed;
+    }
+
+    public void setMinimumSatellites(float mMinimumSatellites) {
+        this.mMinimumSatellites = mMinimumSatellites;
+    }
+
     public boolean isTracking() {
         return isTracking;
     }
@@ -86,10 +112,13 @@ public class FusedLocationModule implements LocationListener, ModuleInterface {
     @Override
     public void onLocationChanged(Location location) {
 
-        // Broadcast the location
-        Intent localIntent = new Intent(Constants.COLLECT_ACTION);
-        localIntent.putExtra(Constants.LOCATION_EXTRA, location);
-        LocalBroadcastManager.getInstance(mContext).sendBroadcast(localIntent);
+        if(mOutlierDetector.isValidLocation(location)) {
+            // Broadcast the location
+            Intent localIntent = new Intent(Constants.COLLECT_ACTION);
+            localIntent.putExtra(Constants.LOCATION_EXTRA, location);
+            LocalBroadcastManager.getInstance(mContext).sendBroadcast(localIntent);
+        }else
+            Log.i(LOG_TAG, "Location discarded as it was identified as an outlier.");
 
     }
 

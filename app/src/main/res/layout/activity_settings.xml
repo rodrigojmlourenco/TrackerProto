@@ -18,7 +18,8 @@
         <LinearLayout
             android:orientation="vertical"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="match_parent"
+            android:focusableInTouchMode="true">
 
             <Button
                 android:layout_width="wrap_content"
@@ -40,6 +41,33 @@
             <LinearLayout
                 android:orientation="horizontal"
                 android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="15dp" >
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Priority"
+                    android:id="@+id/textView20" />
+
+                <SeekBar
+                    android:layout_width="150dp"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/prioritySeekBar"
+                    android:max="3"
+                    android:indeterminate="false" />
+
+                <TextView
+                    android:layout_width="200dp"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?android:attr/textAppearanceSmall"
+                    android:text="Small Text"
+                    android:id="@+id/priorityLabel" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content">
 
                 <TextView
@@ -50,14 +78,14 @@
                     android:layout_weight="0.5" />
 
                 <EditText
-                    android:layout_width="wrap_content"
+                    android:layout_width="70dp"
                     android:layout_height="wrap_content"
                     android:inputType="number"
                     android:ems="10"
                     android:id="@+id/locationIntervalInput" />
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="50dp"
                     android:layout_height="wrap_content"
                     android:textAppearance="?android:attr/textAppearanceSmall"
                     android:text="ms"
@@ -77,14 +105,14 @@
                     android:layout_weight="0.5" />
 
                 <EditText
-                    android:layout_width="wrap_content"
+                    android:layout_width="70dp"
                     android:layout_height="wrap_content"
                     android:inputType="number"
                     android:ems="10"
                     android:id="@+id/locationFastIntervalInput" />
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="50dp"
                     android:layout_height="wrap_content"
                     android:textAppearance="?android:attr/textAppearanceSmall"
                     android:text="ms"
@@ -104,20 +132,46 @@
                     android:layout_weight="0.5" />
 
                 <EditText
-                    android:layout_width="wrap_content"
+                    android:layout_width="70dp"
                     android:layout_height="wrap_content"
                     android:inputType="number"
                     android:ems="10"
-                    android:id="@+id/minAccuracyInput"
-                    android:layout_weight="0.5" />
+                    android:id="@+id/minAccuracyInput" />
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="50dp"
                     android:layout_height="wrap_content"
                     android:textAppearance="?android:attr/textAppearanceSmall"
                     android:text="m"
                     android:id="@+id/textView16" />
 
+            </LinearLayout>
+
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" >
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Speed"
+                    android:id="@+id/textView18"
+                    android:layout_weight="0.5" />
+
+                <EditText
+                    android:layout_width="70dp"
+                    android:layout_height="wrap_content"
+                    android:inputType="number"
+                    android:ems="10"
+                    android:id="@+id/locationSpeedInput" />
+
+                <TextView
+                    android:layout_width="50dp"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?android:attr/textAppearanceSmall"
+                    android:text="Km/h"
+                    android:id="@+id/textView19" />
             </LinearLayout>
 
             <LinearLayout
@@ -146,34 +200,6 @@
                     android:textAppearance="?android:attr/textAppearanceSmall"
                     android:text="00 meters"
                     android:id="@+id/displacementLabel" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:orientation="horizontal"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="15dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Priority"
-                    android:id="@+id/textView6" />
-
-                <SeekBar
-                    android:layout_width="150dp"
-                    android:layout_height="wrap_content"
-                    android:id="@+id/prioritySeekBar"
-                    android:max="3"
-                    android:indeterminate="false" />
-
-                <TextView
-                    android:layout_width="200dp"
-                    android:layout_height="wrap_content"
-                    android:textAppearance="?android:attr/textAppearanceSmall"
-                    android:text="Small Text"
-                    android:id="@+id/priorityLabel" />
-
             </LinearLayout>
 
             <TextView
@@ -210,6 +236,34 @@
                     android:text="ms"
                     android:id="@+id/textView11" />
 
+            </LinearLayout>
+
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" >
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Confidence"
+                    android:id="@+id/textView17"
+                    android:layout_weight="0.5" />
+
+                <SeekBar
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/activityConfidenceSeekBar"
+                    android:layout_weight="1"
+                    android:max="100"
+                    android:indeterminate="false" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?android:attr/textAppearanceSmall"
+                    android:text="%"
+                    android:id="@+id/activityConfidenceLabel" />
             </LinearLayout>
 
             <TextView
