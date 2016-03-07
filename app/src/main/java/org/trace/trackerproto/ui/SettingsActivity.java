@@ -4,10 +4,15 @@ import android.location.Location;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
+import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.gms.location.LocationRequest;
 
@@ -20,10 +25,19 @@ public class SettingsActivity extends AppCompatActivity {
     private SettingsManager mSettingsManager;
     private TrackingProfile mTrackingProfile;
 
+    //
+    private Button saveSettingsBtn;
+
     //Location Inputs
     private EditText locationIntervalInput, locationFastIntervalInput, locationMinAccuracyInput;
     private SeekBar locationDisplacementSeekbar, locationPrioSeekBar;
     private TextView locationDisplacementLabel, locationPriorityLabel;
+
+    //Activity Recognition Inputs
+    private EditText activityIntervalInput;
+
+    //Uploading Inputs
+    private CheckBox wifiOnlyBox, onDemandUploadOnlyBox;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,7 +53,10 @@ public class SettingsActivity extends AppCompatActivity {
 
     private void setupLocationSettings(){
 
+        saveSettingsBtn = (Button) findViewById(R.id.saveSettingsBtn);
+
         //Init
+        //////Location Inputs
         locationIntervalInput       = (EditText)    findViewById(R.id.locationIntervalInput);
         locationFastIntervalInput   = (EditText)    findViewById(R.id.locationFastIntervalInput);
         locationMinAccuracyInput    = (EditText)    findViewById(R.id.minAccuracyInput);
@@ -47,42 +64,29 @@ public class SettingsActivity extends AppCompatActivity {
         locationDisplacementLabel   = (TextView)    findViewById(R.id.displacementLabel);
         locationPrioSeekBar         = (SeekBar)     findViewById(R.id.prioritySeekBar);
         locationPriorityLabel       = (TextView)    findViewById(R.id.priorityLabel);
+        ////// Activity Recognition Inputs
+        activityIntervalInput       = (EditText)    findViewById(R.id.activityRecogIntervalInput);
+        ////// Uploading Inputs
+        wifiOnlyBox                 = (CheckBox)    findViewById(R.id.wifiOnlyCheckBox);
+        onDemandUploadOnlyBox       = (CheckBox)    findViewById(R.id.onDemandOnlyCheckBox);
 
         //Populate
+        ////// Location Inputs
         locationIntervalInput.setText(String.valueOf(mTrackingProfile.getLocationInterval()));
         locationFastIntervalInput.setText(String.valueOf(mTrackingProfile.getLocationFastInterval()));
-        //TODO: fazer accuracy para o TrackingProfile
+        locationMinAccuracyInput.setText(String.valueOf(mTrackingProfile.getLocationMinimumAccuracy()));
         locationDisplacementSeekbar.setProgress(mTrackingProfile.getLocationDisplacementThreshold());
         locationDisplacementLabel.setText(mTrackingProfile.getLocationDisplacementThreshold() + "m");
         locationPrioSeekBar.setProgress(priorityToValue(mTrackingProfile.getLocationTrackingPriority()));
         locationPriorityLabel.setText(priorityToLabel(mTrackingProfile.getLocationTrackingPriority()));
-
-        //Listener
-        locationIntervalInput.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View v, boolean hasFocus) {
-                if (!hasFocus) {
-                    mTrackingProfile.setLocationInterval(
-                            Long.valueOf(locationIntervalInput.getText().toString()));
-
-                    mSettingsManager.saveTrackingProfile(mTrackingProfile);
-                }
-            }
-        });
-
-        locationFastIntervalInput.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View v, boolean hasFocus) {
-                if(!hasFocus){
-                    mTrackingProfile.setLocationFastInterval(
-                            Long.valueOf(locationFastIntervalInput.getText().toString()));
-
-                    mSettingsManager.saveTrackingProfile(mTrackingProfile);
-                }
-            }
-        });
+        ////// Activity Recognition Inputs
+        activityIntervalInput.setText(String.valueOf(mTrackingProfile.getArInterval()));
+        ///// Uploading Inputs
+        wifiOnlyBox.setChecked(mTrackingProfile.isWifiOnly());
+        onDemandUploadOnlyBox.setChecked(false);
 
 
+        //Listeners
         locationDisplacementSeekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -96,9 +100,6 @@ public class SettingsActivity extends AppCompatActivity {
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                mTrackingProfile.setLocationDisplacementThreshold(locationDisplacementSeekbar.getProgress());
-                mSettingsManager.saveTrackingProfile(mTrackingProfile);
-
                 locationDisplacementLabel.setText(locationDisplacementSeekbar.getProgress() + "m");
             }
         });
@@ -118,24 +119,56 @@ public class SettingsActivity extends AppCompatActivity {
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
                 int prio = locationPrioSeekBar.getProgress();
+                locationPriorityLabel.setText(priorityToLabel(valueToPriority(prio)));
+            }
+        });
 
-                mTrackingProfile.setLocationTrackingPriority(valueToPriority(prio));
+        saveSettingsBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                long locationInterval = Long.valueOf(locationIntervalInput.getText().toString()),
+                    locationFastInterval = Long.valueOf(locationFastIntervalInput.getText().toString()),
+                    activityInterval = Long.valueOf(activityIntervalInput.getText().toString());
+
+                int displacementThreshold = locationDisplacementSeekbar.getProgress(),
+                    priority = valueToPriority(locationPrioSeekBar.getProgress());
+
+                float minAcc = Float.valueOf(locationMinAccuracyInput.getText().toString());
+
+                boolean wifiOnly = wifiOnlyBox.isChecked(),
+                        onDemandOnly = onDemandUploadOnlyBox.isChecked();
+
+                ////// Location
+                mTrackingProfile.setLocationInterval(locationInterval);
+                mTrackingProfile.setLocationFastInterval(locationFastInterval);
+                mTrackingProfile.setLocationDisplacementThreshold(displacementThreshold);
+                mTrackingProfile.setLocationMinimumAccuracy(minAcc);
+                mTrackingProfile.setLocationTrackingPriority(priority);
+                ////// Activity Recognition
+                mTrackingProfile.setActivityRecognitionInterval(activityInterval);
+                ////// Uploading
+                mTrackingProfile.setWifiOnly(wifiOnly);
+                mTrackingProfile.setOnDemandOnly(onDemandOnly);
+
                 mSettingsManager.saveTrackingProfile(mTrackingProfile);
 
-                locationPriorityLabel.setText(priorityToLabel(valueToPriority(prio)));
+                String message = "Settings saved. They will take effect on the next tracking session.";
+                Toast.makeText(SettingsActivity.this, message, Toast.LENGTH_LONG).show();
+                finish();
             }
         });
     }
 
     private int valueToPriority(int value){
         switch (value){
-            case 1:
+            case 0:
                 return LocationRequest.PRIORITY_HIGH_ACCURACY;
-            case 2:
+            case 1:
                 return LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY;
-            case 3:
+            case 2:
                 return  LocationRequest.PRIORITY_LOW_POWER;
-            case 4:
+            case 3:
                 return LocationRequest.PRIORITY_NO_POWER;
             default:
                 return LocationRequest.PRIORITY_HIGH_ACCURACY;
@@ -145,15 +178,15 @@ public class SettingsActivity extends AppCompatActivity {
     private int priorityToValue(int priority){
         switch (priority){
             case LocationRequest.PRIORITY_HIGH_ACCURACY:
-                return 1;
+                return 0;
             case LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY:
-                return 2;
-            case LocationRequest.PRIORITY_LOW_POWER:
-                return 3;
-            case LocationRequest.PRIORITY_NO_POWER:
-                return 4;
-            default:
                 return 1;
+            case LocationRequest.PRIORITY_LOW_POWER:
+                return 2;
+            case LocationRequest.PRIORITY_NO_POWER:
+                return 3;
+            default:
+                return 0;
         }
     }
 
@@ -169,7 +202,6 @@ public class SettingsActivity extends AppCompatActivity {
                 return "No Power";
             default:
                 return "High Accuracy";
-
         }
     }
 }

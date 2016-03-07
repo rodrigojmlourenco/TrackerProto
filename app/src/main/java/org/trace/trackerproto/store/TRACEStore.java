@@ -127,15 +127,14 @@ public class TRACEStore extends IntentService{
         Log.i(LOG_TAG, "Logging out");
 
         String authToken = authManager.getAuthenticationToken();
+        authManager.clearAuthenticationToken();
 
         try {
             mHttpClient.logout(authToken);
-            authManager.clearAuthenticationToken();
         } catch (RemoteTraceException e) {
             e.printStackTrace();
         } catch (AuthTokenIsExpiredException e){
-            Log.e(LOG_TAG, "Authentication token is expired, removing it...");
-            authManager.clearAuthenticationToken();
+            e.printStackTrace();
         }
     }
 

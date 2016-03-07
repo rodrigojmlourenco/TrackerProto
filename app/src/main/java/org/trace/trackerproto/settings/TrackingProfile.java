@@ -27,6 +27,7 @@ public class TrackingProfile {
     private long arInterval     = 1000;
     //Uploading
     private boolean wifiOnly    = false;
+    private boolean onDemandOnly= false;
 
     public TrackingProfile(){}
 
@@ -81,6 +82,14 @@ public class TrackingProfile {
 
     public void setLocationTrackingPriority(int locationTrackingPriority) {
         this.locationTrackingPriority = locationTrackingPriority;
+    }
+
+    public float getLocationMinimumAccuracy() {
+        return locationMinimumAccuracy;
+    }
+
+    public void setLocationMinimumAccuracy(float locationMinimumAccuracy) {
+        this.locationMinimumAccuracy = locationMinimumAccuracy;
     }
 
     public HeuristicBasedFilter[] getLocationEnabledOutlierFilters() {
@@ -144,6 +153,16 @@ public class TrackingProfile {
         trackingProfile.add(Constants.UPLOADING, getJsonUploadingProfile());
 
         return trackingProfile;
+    }
+
+
+
+    public boolean isOnDemandOnly() {
+        return onDemandOnly;
+    }
+
+    public void setOnDemandOnly(boolean onDemandOnly) {
+        this.onDemandOnly = onDemandOnly;
     }
 
     @Override
