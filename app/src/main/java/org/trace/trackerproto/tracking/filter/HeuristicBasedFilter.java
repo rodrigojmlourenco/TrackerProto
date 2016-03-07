@@ -6,21 +6,25 @@ import android.util.Log;
 
 import org.trace.trackerproto.tracking.utils.LocationUtils;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 
 
 public class HeuristicBasedFilter {
 
 
-    private LinkedList<HeuristicRule> heuristics;
+    private ArrayList<HeuristicRule> heuristics;
+    private HashMap<Class, Integer> heuristicsMap;
 
     public HeuristicBasedFilter(){
-        heuristics = new LinkedList<>();
+        heuristics = new ArrayList<>();
+        heuristicsMap = new HashMap<>();
     }
 
     public void addNewHeuristic(HeuristicRule rule){
         this.heuristics.add(rule);
+        this.heuristicsMap.put(rule.getClass(), heuristics.indexOf(rule));
     }
 
     public boolean isValidLocation(Location location){
@@ -32,6 +36,11 @@ public class HeuristicBasedFilter {
         return true;
     }
 
+    public void updateHeuristic(HeuristicRule rule){
+        int index = heuristicsMap.get(rule.getClass());
+        heuristics.remove(index);
+        heuristics.add(index, rule);
+    }
 
     public interface HeuristicRule {
 

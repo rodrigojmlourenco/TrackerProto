@@ -85,10 +85,12 @@ public class FusedLocationModule implements LocationListener, ModuleInterface {
 
     public void setMinimumAccuracy(float mMinimumAccuracy) {
         this.mMinimumAccuracy = mMinimumAccuracy;
+        mOutlierDetector.updateHeuristic(new HeuristicBasedFilter.AccuracyBasedHeuristicRule(mMinimumAccuracy));
     }
 
     public void setMaximumSpeed(float mMaximumSpeed) {
         this.mMaximumSpeed = mMaximumSpeed;
+        mOutlierDetector.updateHeuristic(new HeuristicBasedFilter.SpeedBasedHeuristicRule(mMaximumSpeed));
     }
 
     public void setMinimumSatellites(float mMinimumSatellites) {

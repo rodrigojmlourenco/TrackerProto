@@ -94,6 +94,8 @@ public class Tracker extends BroadcastReceiver implements CollectorManager{
     public void updateSettings() {
         TrackingProfile profile = mSettingsManager.getTrackingProfile();
 
+
+        if(mFusedLocationModule ==null) init();
         mFusedLocationModule.setInterval(profile.getLocationInterval());
         mFusedLocationModule.setFastInterval(profile.getLocationFastInterval());
         mFusedLocationModule.setMinimumDisplacement(profile.getLocationDisplacementThreshold());
@@ -101,6 +103,7 @@ public class Tracker extends BroadcastReceiver implements CollectorManager{
         mFusedLocationModule.setPriority(profile.getLocationTrackingPriority());
         mFusedLocationModule.setMaximumSpeed(profile.getLocationMaximumSpeed());
 
+        if(mActivityRecognitionModule ==null) init();
         mActivityRecognitionModule.setInterval(profile.getArInterval());
         mActivityRecognitionModule.setMinimumConfidence(profile.getActivityMinimumConfidence());
 
