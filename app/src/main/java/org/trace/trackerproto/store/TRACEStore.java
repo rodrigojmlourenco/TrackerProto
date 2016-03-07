@@ -53,28 +53,27 @@ public class TRACEStore extends IntentService{
 
     private boolean login(String username, String password) throws InvalidAuthCredentialsException {
 
-        String authToken;
+        boolean success = false;
+        String authToken = "";
 
         try {
 
             authToken = mHttpClient.login(username, password);
             authManager.storeAuthenticationToken(authToken);
+            Log.i(LOG_TAG, "Login was successful");
+            success = true;
 
         } catch (LoginFailedException e) {
             e.printStackTrace();
         } catch (UnableToPerformLogin e) {
             e.printStackTrace();
-            Log.e("LOGIN", "Unable to login... Generating local session");
-            authToken = String.valueOf(Math.random());
-            TRACEStoreApiClient.setSessionId(authToken);
-            return true;
         }
 
-            if(authManager.isFirstTime())
-                authManager.storeCredentials(username, password);
+        if(success && authManager.isFirstTime())
+            authManager.storeCredentials(username, password);
 
-            Log.i(LOG_TAG, "Login was successful");
-            return  true;
+
+        return success;
     }
 
     private void performLogin(Intent intent){

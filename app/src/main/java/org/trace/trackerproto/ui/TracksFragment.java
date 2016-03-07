@@ -1,16 +1,19 @@
 package org.trace.trackerproto.ui;
 
 import android.Manifest;
-import android.app.ListActivity;
+import android.app.Fragment;
+import android.app.ListFragment;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ImageButton;
+import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -29,29 +32,41 @@ import java.util.List;
 
 import pub.devrel.easypermissions.EasyPermissions;
 
-public class TrackListActivity extends ListActivity implements EasyPermissions.PermissionCallbacks {
+/**
+ * Created by Rodrigo Lourenço on 07/03/2016.
+ */
+public class TracksFragment extends Fragment implements EasyPermissions.PermissionCallbacks{
 
     TrackItemAdapter mAdapter;
 
+    //Permissions
+    private String[] perms = {  Manifest.permission.READ_EXTERNAL_STORAGE,
+                                Manifest.permission.WRITE_EXTERNAL_STORAGE };
 
+    @Nullable
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        View rootView = inflater.inflate(R.layout.fragment_tracks, container, false);
+        return rootView;
+    }
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+    public void onViewCreated(View view, Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
 
-        List<String> trackFiles = TrackInternalStorage.listStoredTracks(this);
+        List<String> trackFiles = TrackInternalStorage.listStoredTracks(getActivity());
         String[] tracks = new String[trackFiles.size()];
 
         for(int i=0; i < trackFiles.size(); i++) //Remove the file prefix
             tracks[i] = trackFiles.get(i).replace("track_", "");
 
-        mAdapter = new TrackItemAdapter(this, tracks);
-        setListAdapter(mAdapter);
-
+        mAdapter = new TrackItemAdapter(getActivity(), tracks);
+        ListView list = (ListView) getView().findViewById(R.id.trackListView);
+        list.setAdapter(mAdapter);
     }
 
     private String[] fetchTracks(){
-        List<String> trackFiles = TrackInternalStorage.listStoredTracks(this);
+        List<String> trackFiles = TrackInternalStorage.listStoredTracks(getActivity());
         String[] tracks = new String[trackFiles.size()];
 
         for(int i=0; i < trackFiles.size(); i++) //Remove the file prefix
@@ -74,16 +89,15 @@ public class TrackListActivity extends ListActivity implements EasyPermissions.P
 
     @Override
     public void onPermissionsDenied(int requestCode, List<String> perms) {
-        finish();
+
     }
 
 
     private void exportTrack(String sessionId){
 
         String feedback;
-        String[] perms = {Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE};
 
-        if(!EasyPermissions.hasPermissions(TrackListActivity.this, perms)) {
+        if(!EasyPermissions.hasPermissions(getActivity(), perms)) {
             EasyPermissions.requestPermissions(this, "Some some", Constants.Permissions.EXTERNAL_STORAGE, perms);
             feedback = "Try again.";
         }else {
@@ -92,18 +106,18 @@ public class TrackListActivity extends ListActivity implements EasyPermissions.P
 
 
             try {
-                track = TrackInternalStorage.loadTracedTrack(this, sessionId);
-                feedback = TrackInternalStorage.exportAsGPX(this, track);
+                track = TrackInternalStorage.loadTracedTrack(getActivity(), sessionId);
+                feedback = TrackInternalStorage.exportAsGPX(getActivity(), track);
             } catch (UnableToLoadStoredTrackException e) {
                 e.printStackTrace();
                 feedback = "Unable to find the track";
             }
         }
 
-        Toast.makeText(this, feedback, Toast.LENGTH_SHORT).show();
+        Toast.makeText(getActivity(), feedback, Toast.LENGTH_SHORT).show();
     }
 
-    private class TrackItemAdapter extends ArrayAdapter<String>{
+    private class TrackItemAdapter extends ArrayAdapter<String> {
 
         private Context context;
         private ArrayList<String> values;
@@ -174,11 +188,20 @@ public class TrackListActivity extends ListActivity implements EasyPermissions.P
             rowView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    Toast.makeText(context, tracks.get(values.get(position)).getSessionId(), Toast.LENGTH_LONG).show();
 
-                    Intent maps = new Intent(context, MapActivity.class);
-                    maps.putExtra(Constants.TRACK_KEY, values.get(position));
-                    context.startActivity(maps);
+                    if(EasyPermissions.hasPermissions(getActivity(), perms)) {
+                        Toast.makeText(context, tracks.get(values.get(position)).getSessionId(), Toast.LENGTH_LONG).show();
+
+                        Intent maps = new Intent(context, MapActivity.class);
+                        maps.putExtra(Constants.TRACK_KEY, values.get(position));
+                        context.startActivity(maps);
+
+                    }else{
+                        EasyPermissions.requestPermissions(
+                                getActivity(),
+                                getString(R.string.export_rationale),
+                                Constants.Permissions.EXTERNAL_STORAGE, perms);
+                    }
 
                 }
             });
@@ -217,7 +240,7 @@ public class TrackListActivity extends ListActivity implements EasyPermissions.P
             exportBtn.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                exportTrack(values.get(position));
+                    exportTrack(values.get(position));
                 }
             });
 

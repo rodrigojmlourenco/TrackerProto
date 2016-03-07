@@ -1,311 +1,295 @@
 package org.trace.trackerproto.ui;
 
-import android.Manifest;
-import android.annotation.TargetApi;
 import android.app.AlertDialog;
-import android.app.Service;
-import android.content.ComponentName;
-import android.content.Context;
+import android.app.Fragment;
+import android.app.FragmentManager;
 import android.content.DialogInterface;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.content.ServiceConnection;
-import android.content.pm.PackageManager;
-import android.location.Location;
-import android.os.Build;
+import android.content.res.Configuration;
+import android.content.res.TypedArray;
 import android.os.Bundle;
-import android.os.IBinder;
-import android.os.Messenger;
-import android.support.annotation.NonNull;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
-import android.support.v4.content.LocalBroadcastManager;
+import android.os.PersistableBundle;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
-import android.widget.Button;
-import android.widget.TextView;
-import android.widget.Toast;
+import android.widget.AdapterView;
+import android.widget.ListView;
 
-import org.trace.trackerproto.Constants;
 import org.trace.trackerproto.R;
 import org.trace.trackerproto.store.TRACEStoreApiClient;
-import org.trace.trackerproto.store.TRACEStoreReceiver;
-import org.trace.trackerproto.tracking.TRACETracker;
-import org.trace.trackerproto.tracking.Tracker;
+import org.trace.trackerproto.ui.slidingmenu.adapter.NavDrawerListAdapter;
+import org.trace.trackerproto.ui.slidingmenu.model.NavDrawerItem;
 
-public class MainActivity extends AppCompatActivity
-        implements  PermissionChecker {
+import java.util.ArrayList;
+import java.util.List;
 
-    private Location mLastLocation = null;
+import pub.devrel.easypermissions.EasyPermissions;
 
-    private final String[] mSupportedBroadcastActions =
-            new String[] {  Constants.BROADCAST_ACTION,
-                            Constants.FIRST_TIME_BROADCAST};
+public class MainActivity extends AppCompatActivity implements EasyPermissions.PermissionCallbacks{
 
-    //UI Elements
-    private Button startBtn, stopBtn, mapsBtn, tracksBtn, settingsBtn;
-    private TextView locationTxtView;
+    private static final String LOG_TAG = "MainActivity";
+    private Fragment mCurrentFragment = null;
 
-
-    //State
-    private boolean isTracking = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        //Registering the BroadcastReceiver for the TRACEStore intent service
-        registerBroadcastReceiver(mSupportedBroadcastActions);
-
-        updateValuesFromBundle(savedInstanceState);
-
-        //Setup UI and respective OnClickListeners
-        this.startBtn   = (Button) findViewById(R.id.startBtn);
-        this.stopBtn    = (Button) findViewById(R.id.stopBtn);
-        this.settingsBtn= (Button) findViewById(R.id.settingsBtn);
-        this.locationTxtView = (TextView) findViewById(R.id.locationIn);
-
-
-        startBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-
-                checkForLocationPermissions();
-
-                if(client!=null && hasLocationPermissions()) {
-
-                    TRACEStoreApiClient.requestInitiateSession(MainActivity.this);
-
-                    client.startTracking();
-                    isTracking = true;
-                    toggleButtons(isBound, true);
-                }
-            }
-        });
-
-        stopBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (client != null) {
-                    client.stopTracking();
-                    isTracking = false;
-                    toggleButtons(isBound, false);
-
-                    Toast.makeText(MainActivity.this, TRACEStoreApiClient.getSessionId(), Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
-
-        settingsBtn.setOnClickListener(new View.OnClickListener(){
-
-            @Override
-            public void onClick(View v) {
-                Intent settingsActivity = new Intent(MainActivity.this, SettingsActivity.class);
-                startActivity(settingsActivity);
-            }
-        });
-
-        //TEST - Maps Forge
-        mapsBtn = (Button) findViewById(R.id.mapBtn);
-        mapsBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent i = new Intent(MainActivity.this, MapActivity.class);
-                startActivity(i);
-            }
-        });
-
-
-        //Test - Tracks List
-        tracksBtn = (Button) findViewById(R.id.tracksBtn);
-        tracksBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent i = new Intent(MainActivity.this, TrackListActivity.class);
-                startActivity(i);
-            }
-        });
-    }
-
-
-    private void toggleButtons(boolean bound, boolean isTracking){
-        if(!bound){
-            startBtn.setEnabled(false);
-            stopBtn.setEnabled(false);
-        }else {
-            startBtn.setEnabled(!isTracking);
-            stopBtn.setEnabled(isTracking);
-        }
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        //Force Login if it's the first time
-        if(TRACEStoreApiClient.isFirstTime(this)){
-            Intent forceLogin = new Intent(this, LoginActivity.class);
-            startActivity(forceLogin);
-        }else{
-            TRACEStoreApiClient.requestLogin(this, "", "");
-        }
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-
-        Intent trackerService = new Intent(getApplicationContext(), TRACETracker.class);
-        trackerService.setFlags(Service. START_STICKY);
-        bindService(trackerService, mConnection, Context.BIND_AUTO_CREATE);
-        isBound = true;
-        toggleButtons(true, isTracking);
+        setupSlidingMenu(savedInstanceState);
 
     }
 
     @Override
     protected void onDestroy() {
-        if(isBound){
-            isBound = false;
-            unbindService(mConnection);
-        }
 
         if(isFinishing()){
-            TRACEStoreApiClient.requestLogout(this);
-
-            if(isTracking) {
-                client.stopTracking();
-                isTracking = false;
-            }
+            TRACEStoreApiClient.requestLogout(MainActivity.this);
         }
 
         super.onDestroy();
     }
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+    /* Sliding Menu
+    /* Sliding Menu
+    /* Sliding Menu
+    /* Sliding Menu
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+
+    private DrawerLayout mDrawerLayout;
+    private ListView mDrawerList;
+    private ActionBarDrawerToggle mDrawerToggle;
+
+    // nav drawer title
+    private CharSequence mDrawerTitle;
+
+    // used to store app title
+    private CharSequence mTitle;
+
+    // slide menu items
+    private String[] navMenuTitles;
+    private TypedArray navMenuIcons;
+
+    private ArrayList<NavDrawerItem> navDrawerItems;
+    private NavDrawerListAdapter adapter;
+
+    private void setupSlidingMenu(Bundle savedInstanceState){
+
+        getSupportActionBar().setHomeAsUpIndicator(R.drawable.ic_app);
+
+        mTitle = mDrawerTitle = getTitle();
+
+        // load slide menu items
+        navMenuTitles = getResources().getStringArray(R.array.nav_drawer_items);
+
+        // nav drawer icons from resources
+        navMenuIcons = getResources()
+                .obtainTypedArray(R.array.nav_drawer_icons);
+
+        mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
+        mDrawerList = (ListView) findViewById(R.id.list_slidermenu);
+
+        navDrawerItems = new ArrayList<NavDrawerItem>();
+
+        // adding nav drawer items to array
+        // Home
+        navDrawerItems.add(new NavDrawerItem(navMenuTitles[0], navMenuIcons.getResourceId(0, -1)));
+        // Tracks
+        navDrawerItems.add(new NavDrawerItem(navMenuTitles[1], navMenuIcons.getResourceId(1, -1)));
+        // Settings
+        navDrawerItems.add(new NavDrawerItem(navMenuTitles[2], navMenuIcons.getResourceId(2, -1)));
+
+        // Recycle the typed array
+        navMenuIcons.recycle();
+
+        // setting the nav drawer list adapter
+        adapter = new NavDrawerListAdapter(getApplicationContext(),
+                navDrawerItems);
+        mDrawerList.setAdapter(adapter);
+
+        // enabling action bar app icon and behaving it as toggle button
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setHomeButtonEnabled(true);
+
+
+        mDrawerToggle = new ActionBarDrawerToggle(this, mDrawerLayout,
+                //R.drawable.ic_drawer, //nav menu toggle icon
+                R.string.app_name, // nav drawer open - description for accessibility
+                R.string.app_name // nav drawer close - description for accessibility
+        ){
+            public void onDrawerClosed(View view) {
+                getSupportActionBar().setTitle(mTitle);
+                // calling onPrepareOptionsMenu() to show action bar icons
+                invalidateOptionsMenu();
+            }
+
+            public void onDrawerOpened(View drawerView) {
+                getSupportActionBar().setTitle(mDrawerTitle);
+                // calling onPrepareOptionsMenu() to hide action bar icons
+                invalidateOptionsMenu();
+            }
+        };
+        mDrawerLayout.setDrawerListener(mDrawerToggle);
+
+        if (savedInstanceState == null) {
+            // on first time display view for first nav item
+            displayView(0);
+        }
+
+
+        mDrawerList.setOnItemClickListener(new SlideMenuClickListener());
     }
 
 
-    private void showMessageOKCancel(String message, DialogInterface.OnClickListener okListener) {
-        new AlertDialog.Builder(MainActivity.this)
-                .setMessage(message)
-                .setPositiveButton("OK", okListener)
-                .setNegativeButton("Cancel", null)
-                .create()
-                .show();
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // toggle nav drawer on selecting action bar app icon/title
+        if (mDrawerToggle.onOptionsItemSelected(item)) {
+            return true;
+        }
+        // Handle action bar actions click
+        switch (item.getItemId()) {
+            case R.id.action_settings:
+                displayView(2);
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        // if nav drawer is opened, hide the action items
+        boolean drawerOpen = mDrawerLayout.isDrawerOpen(mDrawerList);
+        menu.findItem(R.id.action_settings).setVisible(!drawerOpen);
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    @Override
+    public void setTitle(CharSequence title) {
+        mTitle = title;
+        getSupportActionBar().setTitle(title);
+    }
+
+    @Override
+    public void onPostCreate(Bundle savedInstanceState, PersistableBundle persistentState) {
+        super.onPostCreate(savedInstanceState, persistentState);
+        mDrawerToggle.syncState();
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        mDrawerToggle.onConfigurationChanged(newConfig);
+    }
+
+    @Override
+    public void onPermissionsGranted(int requestCode, List<String> perms) {
+
+    }
+
+    @Override
+    public void onPermissionsDenied(int requestCode, List<String> perms) {
+
+    }
+
+    private class SlideMenuClickListener implements ListView.OnItemClickListener{
+
+        @Override
+        public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+            displayView(position);
+        }
+    }
+
+    /**
+     * Diplaying fragment view for selected nav drawer list item
+     * */
+    private void displayView(int position) {
+        // update the main content by replacing fragments
+        Fragment fragment = null;
+        switch (position) {
+            case 0:
+                fragment = new HomeFragment();
+                break;
+            case 1:
+                fragment = new TracksFragment();
+                break;
+            case 2:
+                fragment = new SettingsFragment();
+                break;
+            default:
+                break;
+        }
+
+        if (fragment != null) {
+            mCurrentFragment = fragment;
+            FragmentManager fragmentManager = getFragmentManager();
+            fragmentManager.beginTransaction()
+                    .replace(R.id.frame_container, fragment).commit();
+
+            // update selected item and title, then close the drawer
+            mDrawerList.setItemChecked(position, true);
+            mDrawerList.setSelection(position);
+            setTitle(navMenuTitles[position]);
+            mDrawerLayout.closeDrawer(mDrawerList);
+        } else {
+            // error in creating fragment
+            Log.e("MainActivity", "Error in creating fragment");
+        }
+    }
+
+
+
+
+    @Override
+    public void onBackPressed() {
+        if(mCurrentFragment!=null && !(mCurrentFragment instanceof HomeFragment))
+            displayView(0);
+        else{
+            if(mCurrentFragment!=null && mCurrentFragment instanceof TrackingFragment) {
+
+                final TrackingFragment trackingFragment = (TrackingFragment)mCurrentFragment;
+
+                if(trackingFragment.isTracking()) {
+                    new AlertDialog.Builder(this)
+                            .setTitle("Exiting")
+                            .setMessage("TrackerProto is currently tracking, are you sure you want to exit?")
+                            .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    trackingFragment.stopTracking();
+                                    finish();
+                                }
+                            })
+                            .setNegativeButton(R.string.no, null)
+                            .show();
+                }else
+                    super.onBackPressed();
+
+
+            }else {
+                super.onBackPressed();
+            }
+        }
     }
 
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
-        outState.putBoolean(Constants.TRACKER_SERVICE_BOUND_KEY, isBound);
-        outState.putBoolean(Constants.TRACKER_SERVICE_TRACKING_KEY, isTracking);
-        outState.putParcelable(Constants.LAST_LOCATION_KEY, mLastLocation);
         super.onSaveInstanceState(outState);
     }
-
-    private void updateValuesFromBundle(Bundle inState){
-        if(inState != null){
-
-            if(inState.containsKey(Constants.LAST_LOCATION_KEY) && inState.get(Constants.LAST_LOCATION_KEY) != null)
-                locationTxtView.setText(inState.get(Constants.LAST_LOCATION_KEY).toString());
-
-            
-            if(inState.containsKey(Constants.REQUEST_LOCATION_UPDATES)){
-                isTracking = inState.getBoolean(Constants.REQUEST_LOCATION_UPDATES);
-            }
-
-            if(inState.containsKey(Constants.TRACKER_SERVICE_BOUND_KEY))
-                isBound = inState.getBoolean(Constants.TRACKER_SERVICE_BOUND_KEY);
-
-            if(inState.containsKey(Constants.TRACKER_SERVICE_TRACKING_KEY))
-                isTracking = inState.getBoolean(Constants.TRACKER_SERVICE_TRACKING_KEY);
-        }
-    }
-
-    private void registerBroadcastReceiver(String[] actions){
-
-        if(actions.length <=0) return;
-
-
-        IntentFilter filter = new IntentFilter(actions[0]);
-
-        int i;
-        for(i=1; i < actions.length; i++){
-            filter.addAction(actions[i]);
-        }
-
-        LocalBroadcastManager.getInstance(this).registerReceiver(new TRACEStoreReceiver(), filter);
-    }
-
-
-    @Override
-    @TargetApi(Build.VERSION_CODES.M)
-    public void checkForLocationPermissions() {
-        int coarsePermission, finePermission;
-
-        finePermission  = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
-        coarsePermission= ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION);
-
-        if(finePermission != PackageManager.PERMISSION_GRANTED || coarsePermission != PackageManager.PERMISSION_GRANTED){
-
-            if(shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_COARSE_LOCATION)
-                    || shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION)) {
-
-                showMessageOKCancel("TRACE needs access to your location to track your movements",
-                        new DialogInterface.OnClickListener(){
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                Log.e("PERMISSIONS", String.valueOf(which));
-                            }
-                        });
-                return;
-            }
-
-            //TODO: should provide some rationale
-            ActivityCompat.requestPermissions(
-                    this,
-                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION},
-                    Constants.TRACE_LOC_PERMISSIONS);
-
-        }
-    }
-
-    @Override
-    public boolean hasLocationPermissions() {
-        int finePermission  = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
-        int coarsePermission= ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION);
-
-        return finePermission == PackageManager.PERMISSION_GRANTED
-                && coarsePermission == PackageManager.PERMISSION_GRANTED;
-    }
-
-
-    //TESTING - TRACETracker
-    Messenger mService = null;
-    boolean isBound = false;
-
-    private TRACETracker.TRACETrackerClient client = null;
-
-
-
-    private ServiceConnection mConnection = new ServiceConnection() {
-
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            mService= new Messenger(service);
-            client  = new TRACETracker.TRACETrackerClient(mService);
-            isBound = true;
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            mService= null;
-            client  = null;
-            isBound = false;
-        }
-    };
 }

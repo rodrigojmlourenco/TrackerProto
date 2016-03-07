@@ -24,13 +24,7 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".ui.MainActivity">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
 
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
 
         <service
             android:name=".store.TRACEStore"
@@ -40,12 +34,16 @@
             android:name=".tracking.modules.activity.ActivityRecognitionHandler"
             android:exported="false" />
 
+        <activity android:name=".ui.MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
         <activity
             android:name=".ui.LoginActivity"
             android:screenOrientation="portrait" />
         <activity android:name=".ui.MapActivity" />
-        <activity android:name=".ui.TrackListActivity" />
-        <activity android:name=".ui.SettingsActivity" android:screenOrientation="portrait"/>
     </application>
 
 </manifest>

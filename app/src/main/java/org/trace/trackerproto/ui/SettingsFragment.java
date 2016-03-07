@@ -1,12 +1,11 @@
 package org.trace.trackerproto.ui;
 
-import android.location.Location;
-import android.support.v7.app.AppCompatActivity;
+import android.app.Fragment;
 import android.os.Bundle;
-import android.util.Log;
-import android.view.KeyEvent;
+import android.support.annotation.Nullable;
+import android.view.LayoutInflater;
 import android.view.View;
-import android.view.inputmethod.EditorInfo;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
@@ -20,7 +19,10 @@ import org.trace.trackerproto.R;
 import org.trace.trackerproto.settings.SettingsManager;
 import org.trace.trackerproto.settings.TrackingProfile;
 
-public class SettingsActivity extends AppCompatActivity {
+/**
+ * Created by Rodrigo Lourenço on 07/03/2016.
+ */
+public class SettingsFragment extends Fragment {
 
     private SettingsManager mSettingsManager;
     private TrackingProfile mTrackingProfile;
@@ -41,12 +43,18 @@ public class SettingsActivity extends AppCompatActivity {
     //Uploading Inputs
     private CheckBox wifiOnlyBox, onDemandUploadOnlyBox;
 
+    @Nullable
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_settings);
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        View rootView = inflater.inflate(R.layout.fragment_settings, container, false);
+        return rootView;
+    }
 
-        mSettingsManager = SettingsManager.getInstance(this);
+    @Override
+    public void onViewCreated(View view, Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        mSettingsManager = SettingsManager.getInstance(getActivity());
         mTrackingProfile = mSettingsManager.getTrackingProfile();
 
         //Location
@@ -55,25 +63,25 @@ public class SettingsActivity extends AppCompatActivity {
 
     private void setupLocationSettings(){
 
-        saveSettingsBtn = (Button) findViewById(R.id.saveSettingsBtn);
+        saveSettingsBtn = (Button) getView().findViewById(R.id.saveSettingsBtn);
 
         //Init
         //////Location Inputs
-        locationIntervalInput       = (EditText)    findViewById(R.id.locationIntervalInput);
-        locationFastIntervalInput   = (EditText)    findViewById(R.id.locationFastIntervalInput);
-        locationMinAccuracyInput    = (EditText)    findViewById(R.id.minAccuracyInput);
-        locationDisplacementSeekbar = (SeekBar)     findViewById(R.id.displacementSeekBar);
-        locationDisplacementLabel   = (TextView)    findViewById(R.id.displacementLabel);
-        locationPrioSeekBar         = (SeekBar)     findViewById(R.id.prioritySeekBar);
-        locationPriorityLabel       = (TextView)    findViewById(R.id.priorityLabel);
-        locationSpeedInput          = (EditText)    findViewById(R.id.locationSpeedInput);
+        locationIntervalInput       = (EditText)    getView().findViewById(R.id.locationIntervalInput);
+        locationFastIntervalInput   = (EditText)    getView().findViewById(R.id.locationFastIntervalInput);
+        locationMinAccuracyInput    = (EditText)    getView().findViewById(R.id.minAccuracyInput);
+        locationDisplacementSeekbar = (SeekBar)     getView().findViewById(R.id.displacementSeekBar);
+        locationDisplacementLabel   = (TextView)    getView().findViewById(R.id.displacementLabel);
+        locationPrioSeekBar         = (SeekBar)     getView().findViewById(R.id.prioritySeekBar);
+        locationPriorityLabel       = (TextView)    getView().findViewById(R.id.priorityLabel);
+        locationSpeedInput          = (EditText)    getView().findViewById(R.id.locationSpeedInput);
         ////// Activity Recognition Inputs
-        activityIntervalInput       = (EditText)    findViewById(R.id.activityRecogIntervalInput);
-        activityConfidenceSeekbar   = (SeekBar)     findViewById(R.id.activityConfidenceSeekBar);
-        activityConfidenceLabel     = (TextView)    findViewById(R.id.activityConfidenceLabel);
+        activityIntervalInput       = (EditText)    getView().findViewById(R.id.activityRecogIntervalInput);
+        activityConfidenceSeekbar   = (SeekBar)     getView().findViewById(R.id.activityConfidenceSeekBar);
+        activityConfidenceLabel     = (TextView)    getView().findViewById(R.id.activityConfidenceLabel);
         ////// Uploading Inputs
-        wifiOnlyBox                 = (CheckBox)    findViewById(R.id.wifiOnlyCheckBox);
-        onDemandUploadOnlyBox       = (CheckBox)    findViewById(R.id.onDemandOnlyCheckBox);
+        wifiOnlyBox                 = (CheckBox)    getView().findViewById(R.id.wifiOnlyCheckBox);
+        onDemandUploadOnlyBox       = (CheckBox)    getView().findViewById(R.id.onDemandOnlyCheckBox);
 
         //Populate
         ////// Location Inputs
@@ -153,12 +161,12 @@ public class SettingsActivity extends AppCompatActivity {
             public void onClick(View v) {
 
                 long locationInterval = Long.valueOf(locationIntervalInput.getText().toString()),
-                    locationFastInterval = Long.valueOf(locationFastIntervalInput.getText().toString()),
-                    activityInterval = Long.valueOf(activityIntervalInput.getText().toString());
+                        locationFastInterval = Long.valueOf(locationFastIntervalInput.getText().toString()),
+                        activityInterval = Long.valueOf(activityIntervalInput.getText().toString());
 
                 int displacementThreshold = locationDisplacementSeekbar.getProgress(),
-                    priority = valueToPriority(locationPrioSeekBar.getProgress()),
-                    activityConfidence = activityConfidenceSeekbar.getProgress();
+                        priority = valueToPriority(locationPrioSeekBar.getProgress()),
+                        activityConfidence = activityConfidenceSeekbar.getProgress();
 
                 float minAcc = Float.valueOf(locationMinAccuracyInput.getText().toString()),
                         maxSpeed = Float.valueOf(locationSpeedInput.getText().toString());
@@ -185,8 +193,7 @@ public class SettingsActivity extends AppCompatActivity {
                 mSettingsManager.saveTrackingProfile(mTrackingProfile);
 
                 String message = "Settings saved. They will take effect on the next tracking session.";
-                Toast.makeText(SettingsActivity.this, message, Toast.LENGTH_LONG).show();
-                finish();
+                Toast.makeText(getActivity(), message, Toast.LENGTH_LONG).show();
             }
         });
     }

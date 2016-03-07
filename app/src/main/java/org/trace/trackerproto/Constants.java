@@ -41,6 +41,7 @@ public final class Constants {
     }
 
     public interface Permissions {
+        int TRACKING         = 1;
         int EXTERNAL_STORAGE = 2;
     }
 
