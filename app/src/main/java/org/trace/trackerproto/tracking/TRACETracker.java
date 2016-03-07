@@ -119,6 +119,8 @@ public class TRACETracker extends Service implements CollectorManager{
 
         int TRACK_ACTION            = 7;
         int UNTRACK_ACTION          = 8;
+
+        int LAST_LOCATION_ACTION    = 9;
     }
 
     /**
