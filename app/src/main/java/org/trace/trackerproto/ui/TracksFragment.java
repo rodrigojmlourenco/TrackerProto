@@ -98,7 +98,7 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
         String feedback;
 
         if(!EasyPermissions.hasPermissions(getActivity(), perms)) {
-            EasyPermissions.requestPermissions(this, "Some some", Constants.Permissions.EXTERNAL_STORAGE, perms);
+            EasyPermissions.requestPermissions(this, "Some some", Constants.permissions.EXTERNAL_STORAGE, perms);
             feedback = "Try again.";
         }else {
 
@@ -200,7 +200,7 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
                         EasyPermissions.requestPermissions(
                                 getActivity(),
                                 getString(R.string.export_rationale),
-                                Constants.Permissions.EXTERNAL_STORAGE, perms);
+                                Constants.permissions.EXTERNAL_STORAGE, perms);
                     }
 
                 }

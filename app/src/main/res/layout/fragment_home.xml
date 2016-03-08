@@ -4,34 +4,41 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <LinearLayout
-        android:orientation="vertical"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="45dp">
+    <FrameLayout
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:id="@+id/mapContainerLayout"></FrameLayout>
 
-        <LinearLayout
-            android:orientation="horizontal"
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginRight="15dp"
+        android:layout_marginBottom="15dp">
+
+        <ImageButton
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal">
+            android:id="@+id/lastLocationBtn"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentEnd="true"
+            android:background="@drawable/responsive_location_bg"
+            android:layout_margin="10dp" />
 
-            <Button
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Start Tracking"
-                android:id="@+id/startBtn"
-                android:layout_gravity="center_horizontal" />
-
-            <Button
-                style="?android:attr/buttonStyleSmall"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Stop Tracking"
-                android:id="@+id/stopBtn"
-                android:layout_gravity="center_horizontal" />
-        </LinearLayout>
+        <ImageButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/toggleTrackingBtn"
+            android:background="@drawable/responsive_start_bg"
+            android:layout_alignTop="@+id/lastLocationBtn"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentEnd="true"
+            android:layout_margin="10dp" />
 
     </LinearLayout>
+
 
 </RelativeLayout>

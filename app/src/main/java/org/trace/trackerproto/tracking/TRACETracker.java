@@ -76,31 +76,51 @@ public class TRACETracker extends Service implements CollectorManager{
         mTracker.storeLocation(location);
     }
 
+    private void startTracking(){
+        mTracker.updateSettings();
+        mTracker.startLocationUpdates();
+        mTracker.startActivityUpdates();
+    }
+
+    private void stopTracking(){
+        mTracker.stopLocationUpdates();
+        mTracker.stopActivityUpdates();
+    }
+
+    private void broadcastCurrentLocation(){
+
+        Location location = mTracker.getCurrentLocation();
+
+        Log.d("SERVICE", "Broadcasting action :" + Constants.BROADCAST_LOCATION_ACTION + " with location " + String.valueOf(location));
+
+        Intent locationBroadcast = new Intent();
+        locationBroadcast.setAction(Constants.BROADCAST_LOCATION_ACTION);
+        locationBroadcast.putExtra(Constants.BROADCAST_LOCATION_EXTRA, location);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(locationBroadcast);
+    }
 
     class ClientHandler extends Handler {
 
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
-                case TRACETrackerOperations.TEST_OP:
-                    Toast.makeText(getApplicationContext(), "Hello!", Toast.LENGTH_SHORT).show();
-                    break;
+
                 case TRACETrackerOperations.TRACK_ACTION:
                 case TRACETrackerOperations.TRACK_LOCATION_ACTION:
-                    mTracker.updateSettings();
-                    mTracker.startLocationUpdates();
-                    mTracker.startActivityUpdates();
+                    startTracking();
                     break;
                 case TRACETrackerOperations.UNTRACK_ACTION:
                 case TRACETrackerOperations.UNTRACK_LOCATION_ACTION:
-                    mTracker.stopLocationUpdates();
-                    mTracker.stopActivityUpdates();
+                    stopTracking();
                     break;
                 case TRACETrackerOperations.TRACK_ACTIVITY_ACTION:
                     Toast.makeText(getApplicationContext(), "Start Tracking activity! (TODO)", Toast.LENGTH_SHORT).show();
                     break;
                 case TRACETrackerOperations.UNTRACK_ACTIVITY_ACTION:
                     Toast.makeText(getApplicationContext(), "Stop Tracking activity! (TODO)", Toast.LENGTH_SHORT).show();
+                    break;
+                case TRACETrackerOperations.LAST_LOCATION_ACTION:
+                    broadcastCurrentLocation();
                     break;
                 default:
                     super.handleMessage(msg);
@@ -109,7 +129,6 @@ public class TRACETracker extends Service implements CollectorManager{
     }
 
     public interface TRACETrackerOperations {
-        int TEST_OP                 = 1;
 
         int TRACK_LOCATION_ACTION   = 2;
         int UNTRACK_LOCATION_ACTION = 3;
@@ -140,11 +159,6 @@ public class TRACETracker extends Service implements CollectorManager{
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
-        }
-
-        public void testService(){
-            Message msg = Message.obtain(null, TRACETrackerOperations.TEST_OP, 0, 0);
-            sendRequest(msg);
         }
 
         public void startTracking(){
@@ -183,6 +197,11 @@ public class TRACETracker extends Service implements CollectorManager{
 
         public void storeSession(String session){
 
+        }
+
+        public void getLastLocation(){
+            Message msg = Message.obtain(null, TRACETrackerOperations.LAST_LOCATION_ACTION);
+            sendRequest(msg);
         }
     }
 }

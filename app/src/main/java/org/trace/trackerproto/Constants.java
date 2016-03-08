@@ -1,5 +1,7 @@
 package org.trace.trackerproto;
 
+import android.Manifest;
+
 public final class Constants {
 
     public final static int TRACE_LOC_PERMISSIONS = 1;
@@ -27,6 +29,9 @@ public final class Constants {
     public static final String BROADCAST_ACTION = "org.trace.intent.BROADCAST";
     public static final String FIRST_TIME_BROADCAST = "org.trace.intent.FIRST_TIME";
 
+    public static final String BROADCAST_LOCATION_ACTION = "org.trace.intent.BROADCAST_LOCATION";
+    public static final String BROADCAST_LOCATION_EXTRA = "org.trace.intent.BROADCAST_LOCATION_EXTRA";
+
     //Login Activity
     public static final String LOGIN_ACTION = "org.trace.intent.LOGIN";
     public static final String SUCCESS_LOGIN_KEY = "org.trace.intent.SUCCESS_LOGIN";
@@ -40,9 +45,11 @@ public final class Constants {
         String FAILED_LOGIN_KEY = "-1";
     }
 
-    public interface Permissions {
+    public interface permissions {
         int TRACKING         = 1;
         int EXTERNAL_STORAGE = 2;
+
+        String[] TRACKING_PERMISSIONS = {Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION};
     }
 
 

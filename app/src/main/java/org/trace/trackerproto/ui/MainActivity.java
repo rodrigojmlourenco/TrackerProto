@@ -24,6 +24,7 @@ import org.trace.trackerproto.ui.slidingmenu.adapter.NavDrawerListAdapter;
 import org.trace.trackerproto.ui.slidingmenu.model.NavDrawerItem;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import pub.devrel.easypermissions.EasyPermissions;
@@ -38,6 +39,9 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        if(savedInstanceState!=null)
+            updateState(savedInstanceState);
 
         setupSlidingMenu(savedInstanceState);
 
@@ -215,12 +219,15 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
         }
     }
 
+    private HashMap<String, Fragment.SavedState> mFragmentStates = new HashMap<>();
+
     /**
      * Diplaying fragment view for selected nav drawer list item
      * */
     private void displayView(int position) {
         // update the main content by replacing fragments
         Fragment fragment = null;
+
         switch (position) {
             case 0:
                 fragment = new HomeFragment();
@@ -236,10 +243,21 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
         }
 
         if (fragment != null) {
-            mCurrentFragment = fragment;
+
+            CURRENT_FRAG_TAG = fragment.getClass().getSimpleName();
+
             FragmentManager fragmentManager = getFragmentManager();
+
+            Fragment.SavedState state =
+                    saveCurrentStateAndLoadNext(mCurrentFragment, fragment, fragmentManager);
+
+            if (state != null)
+                fragment.setInitialSavedState(state);
+
             fragmentManager.beginTransaction()
-                    .replace(R.id.frame_container, fragment).commit();
+                    .replace(R.id.frame_container, fragment, CURRENT_FRAG_TAG).commit();
+
+            mCurrentFragment = fragment;
 
             // update selected item and title, then close the drawer
             mDrawerList.setItemChecked(position, true);
@@ -288,8 +306,67 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
     }
 
 
+
+
+
+
+    /* Fragment State Management
+    /* Fragment State Management
+    /* Fragment State Management
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+
+    private String CURRENT_FRAG_TAG = "";
+
     @Override
     protected void onSaveInstanceState(Bundle outState) {
+        Bundle extra = new Bundle();
+
+        for(String frag : mFragmentStates.keySet())
+            extra.putParcelable(frag, mFragmentStates.get(frag));
+
+        outState.putParcelable("states", extra);
+        outState.putString("current", CURRENT_FRAG_TAG);
+
         super.onSaveInstanceState(outState);
+    }
+
+    private void updateState(Bundle state){
+
+        if(state.containsKey("states")){
+            Bundle statesExtra = state.getParcelable("states");
+
+            for(String key : statesExtra.keySet())
+                mFragmentStates.put(key, (Fragment.SavedState) statesExtra.getParcelable(key));
+        }
+
+        if(state.containsKey("current")) {
+            FragmentManager man = getFragmentManager();
+            CURRENT_FRAG_TAG = state.getString("current");
+            mCurrentFragment = man.findFragmentByTag(CURRENT_FRAG_TAG);
+        }
+
+    }
+
+    private Fragment.SavedState saveCurrentStateAndLoadNext(Fragment current, Fragment next, FragmentManager manager){
+
+        String currentKey, nextKey;
+
+        //Step 1 - Save the current fragment's state if he exists
+        if(current != null) {
+            currentKey = mCurrentFragment.getClass().getSimpleName();
+            Fragment.SavedState saveState = manager.saveFragmentInstanceState(mCurrentFragment);
+            mFragmentStates.put(currentKey, saveState);
+        }
+
+        //Step 2 - Load the new fragment's state if exists
+        nextKey = next.getClass().getSimpleName();
+        Fragment.SavedState state = null;
+        if (mFragmentStates.containsKey(nextKey))
+            state = mFragmentStates.get(nextKey);
+
+        return state;
     }
 }

@@ -10,6 +10,7 @@ import android.os.RemoteException;
 import android.util.Log;
 
 import com.google.android.gms.location.DetectedActivity;
+import com.google.android.gms.location.LocationServices;
 
 import org.trace.trackerproto.Constants;
 import org.trace.trackerproto.settings.SettingsManager;
@@ -35,6 +36,8 @@ public class Tracker extends BroadcastReceiver implements CollectorManager{
     private GoogleClientManager mGoogleMan;
 
     private Track track = null;
+    private Location mCurrentLocation = null;
+    private final Object mLocationLock = new Object();
 
     //Async
     private final Object mLock = new Object();
@@ -117,15 +120,18 @@ public class Tracker extends BroadcastReceiver implements CollectorManager{
 
         if(track == null){
             track = new Track(TRACEStoreApiClient.getSessionId(), location);
-        }else
+        }else {
             track.addTracedLocation(location, mCurrentActivity.toString());
+        }
+
+        synchronized (mLocationLock) {
+            mCurrentLocation = location;
+        }
     }
 
 
     public void startLocationUpdates(){
         if(mFusedLocationModule ==null) init();
-
-        TrackingProfile profile = mSettingsManager.getTrackingProfile();
 
         track = null;
 
@@ -213,5 +219,61 @@ public class Tracker extends BroadcastReceiver implements CollectorManager{
         }
 
 
+    }
+
+    private boolean isFreshLocation(Location location){
+        long timeDiff = System.currentTimeMillis() - location.getTime();
+        return timeDiff <= 30*1000; //30s
+    }
+
+    private Location getLastKnownLocation(){
+
+        if(mGoogleMan.getApiClient().isConnected())
+            return LocationServices.FusedLocationApi.getLastLocation(mGoogleMan.getApiClient());
+        else
+            return null;
+
+    }
+
+    public Location getCurrentLocation() {
+
+        //Scenario 1 - There is a current location and its fresh
+        synchronized (mLocationLock) {
+            if (mCurrentLocation != null && isFreshLocation(mCurrentLocation))
+                return mCurrentLocation;
+        }
+
+        //Scenario 2 - There is no current location or it's not fresh
+        //              Using the LocationServices the last known location is retrieved.
+        Location lastKnown = getLastKnownLocation();
+        if(lastKnown != null && isFreshLocation(lastKnown)){
+            synchronized (mLocationLock){
+
+                if(mCurrentLocation != null
+                    && mCurrentLocation.getTime() >= lastKnown.getTime()) {
+
+                    mCurrentLocation = lastKnown;
+
+                }
+
+                return lastKnown;
+            }
+        }
+
+
+        // Scenario 3 - Both scenarios failed
+        //              Turn on the FusedLocationModule and wait for mCurrentLocation to be set
+        boolean await = true;
+        startLocationUpdates();
+
+        do {
+            synchronized (mLocationLock) {
+                await = mCurrentLocation != null && isFreshLocation(mCurrentLocation);
+            }
+        }while (await);
+
+        stopLocationUpdates();
+
+        return mCurrentLocation;
     }
 }

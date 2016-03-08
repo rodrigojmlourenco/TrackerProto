@@ -44,6 +44,7 @@
             android:name=".ui.LoginActivity"
             android:screenOrientation="portrait" />
         <activity android:name=".ui.MapActivity" />
+
     </application>
 
 </manifest>

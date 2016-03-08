@@ -1,12 +1,11 @@
 package org.trace.trackerproto.ui;
 
 import android.Manifest;
-import android.app.AlertDialog;
 import android.app.Fragment;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
@@ -15,12 +14,13 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Messenger;
 import android.support.annotation.Nullable;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.TextView;
+import android.widget.ImageButton;
 import android.widget.Toast;
 
 import org.trace.trackerproto.Constants;
@@ -44,21 +44,43 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
                     Constants.FIRST_TIME_BROADCAST};
 
     //UI Elements
-    private Button startBtn, stopBtn;
+    private ImageButton lastLocationBtn, toggleTrackingBtn;
 
 
     //State
-    private boolean isTracking = false;
+    boolean isBound = false;
+    boolean isTracking = false;
 
-    //Permissions
-    private String[] perms = {Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION};
+
+
+
+    //Location Listening
+    private Location mCurrentLocation;
+    private BroadcastReceiver mLocationReceiver;
+
 
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
         updateValuesFromBundle(savedInstanceState);
 
         toggleButtons(isBound, isTracking);
+
+        mLocationReceiver = new BroadcastReceiver(){
+
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                mCurrentLocation = intent.getParcelableExtra(Constants.BROADCAST_LOCATION_EXTRA);
+                Toast.makeText(context, String.valueOf(mCurrentLocation), Toast.LENGTH_SHORT).show();
+            }
+        };
+
+        IntentFilter locationFilter = new IntentFilter();
+        locationFilter.addAction(Constants.BROADCAST_LOCATION_ACTION);
+
+        LocalBroadcastManager.getInstance(getActivity())
+                .registerReceiver(mLocationReceiver, locationFilter);
     }
 
     @Nullable
@@ -69,51 +91,40 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
         //Registering the BroadcastReceiver for the TRACEStore intent service
         registerBroadcastReceiver(mSupportedBroadcastActions);
 
-
-
         //Setup UI and respective OnClickListeners
-        this.startBtn   = (Button) rootView.findViewById(R.id.startBtn);
-        this.stopBtn    = (Button) rootView.findViewById(R.id.stopBtn);
+        this.lastLocationBtn    = (ImageButton) rootView.findViewById(R.id.lastLocationBtn);
+        this.toggleTrackingBtn  = (ImageButton) rootView.findViewById(R.id.toggleTrackingBtn);
+        this.lastLocationBtn.setBackgroundResource(R.drawable.responsive_location_bg);
 
-
-
-        startBtn.setOnClickListener(new View.OnClickListener() {
+        lastLocationBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                TRACEStoreApiClient.requestInitiateSession(getActivity());
 
-                if(EasyPermissions.hasPermissions(getActivity(), perms)) {
-
-                    client.startTracking();
-                    isTracking = true;
-                    toggleButtons(isBound, true);
-                }else {
+                if (EasyPermissions.hasPermissions(getActivity(), Constants.permissions.TRACKING_PERMISSIONS))
+                    client.getLastLocation();
+                else
                     EasyPermissions.requestPermissions(
                             getActivity(),
                             getString(R.string.tracking_rationale),
-                            Constants.Permissions.TRACKING, perms);
-                }
+                            Constants.permissions.TRACKING,
+                            Constants.permissions.TRACKING_PERMISSIONS);
             }
         });
 
-        stopBtn.setOnClickListener(new View.OnClickListener() {
+        toggleTrackingBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (client != null) {
-                    client.stopTracking();
-                    isTracking = false;
-                    toggleButtons(isBound, false);
 
-                    Toast.makeText(getActivity(), TRACEStoreApiClient.getSessionId(), Toast.LENGTH_SHORT).show();
-                }
+                if (!isTracking())
+                    startTrackingOnClick();
+                else
+                    stopTrackingOnClick();
+
             }
         });
-
-
 
         return rootView;
     }
-
 
 
     @Override
@@ -121,7 +132,7 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
         super.onStart();
 
         Intent trackerService = new Intent(getActivity(), TRACETracker.class);
-        trackerService.setFlags(Service. START_STICKY);
+        trackerService.setFlags(Service.START_STICKY);
         getActivity().bindService(trackerService, mConnection, Context.BIND_AUTO_CREATE);
         isBound = true;
         toggleButtons(true, isTracking);
@@ -168,10 +179,6 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
     private void updateValuesFromBundle(Bundle inState){
         if(inState != null){
 
-            if(inState.containsKey(Constants.REQUEST_LOCATION_UPDATES)){
-                isTracking = inState.getBoolean(Constants.REQUEST_LOCATION_UPDATES);
-            }
-
             if(inState.containsKey(Constants.TRACKER_SERVICE_BOUND_KEY))
                 isBound = inState.getBoolean(Constants.TRACKER_SERVICE_BOUND_KEY);
 
@@ -188,8 +195,6 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
             updateValuesFromBundle(savedInstanceState);
     }
 
-
-
     /* UI
     /* UI
     /* UI
@@ -200,21 +205,15 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
 
     private void toggleButtons(boolean bound, boolean isTracking){
         if(!bound){
-            startBtn.setEnabled(false);
-            stopBtn.setEnabled(false);
+            toggleTrackingBtn.setEnabled(false);
         }else {
-            startBtn.setEnabled(!isTracking);
-            stopBtn.setEnabled(isTracking);
-        }
-    }
+            toggleTrackingBtn.setEnabled(true);
 
-    private void showMessageOKCancel(String message, DialogInterface.OnClickListener okListener) {
-        new AlertDialog.Builder(getActivity())
-                .setMessage(message)
-                .setPositiveButton("OK", okListener)
-                .setNegativeButton("Cancel", null)
-                .create()
-                .show();
+            if (isTracking)
+                toggleTrackingBtn.setBackgroundResource(R.drawable.responsive_stop_bg);
+            else
+                toggleTrackingBtn.setBackgroundResource(R.drawable.responsive_start_bg);
+        }
     }
 
     /* TRACE Store
@@ -248,7 +247,7 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
      ***********************************************************************************************
      */
 
-    boolean isBound = false;
+
     Messenger mService = null;
 
     private TRACETracker.TRACETrackerClient client = null;
@@ -307,6 +306,34 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
 
     @Override
     public void stopTracking() {
+        if (client != null) {
+            client.stopTracking();
+            isTracking = false;
+            toggleButtons(isBound, false);
+
+            Toast.makeText(getActivity(), TRACEStoreApiClient.getSessionId(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+
+    private void startTrackingOnClick(){
+        TRACEStoreApiClient.requestInitiateSession(getActivity());
+
+        if (EasyPermissions.hasPermissions(getActivity(), Constants.permissions.TRACKING_PERMISSIONS)) {
+
+            client.startTracking();
+            isTracking = true;
+            toggleButtons(isBound, true);
+        } else {
+            EasyPermissions.requestPermissions(
+                    getActivity(),
+                    getString(R.string.tracking_rationale),
+                    Constants.permissions.TRACKING,
+                    Constants.permissions.TRACKING_PERMISSIONS);
+        }
+    }
+
+    private void stopTrackingOnClick(){
         if (client != null) {
             client.stopTracking();
             isTracking = false;
