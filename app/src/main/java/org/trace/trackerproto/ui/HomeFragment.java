@@ -1,6 +1,5 @@
 package org.trace.trackerproto.ui;
 
-import android.Manifest;
 import android.app.Fragment;
 import android.app.Service;
 import android.content.BroadcastReceiver;
@@ -11,24 +10,39 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.location.Location;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.IBinder;
 import android.os.Messenger;
 import android.support.annotation.Nullable;
-import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.Toast;
 
+import org.mapsforge.core.model.LatLong;
+import org.mapsforge.map.android.graphics.AndroidGraphicFactory;
+import org.mapsforge.map.android.util.AndroidUtil;
+import org.mapsforge.map.android.view.MapView;
+import org.mapsforge.map.datastore.MapDataStore;
+import org.mapsforge.map.layer.cache.TileCache;
+import org.mapsforge.map.layer.renderer.TileRendererLayer;
+import org.mapsforge.map.reader.MapFile;
+import org.mapsforge.map.rendertheme.InternalRenderTheme;
 import org.trace.trackerproto.Constants;
 import org.trace.trackerproto.R;
 import org.trace.trackerproto.store.TRACEStoreApiClient;
 import org.trace.trackerproto.store.TRACEStoreReceiver;
 import org.trace.trackerproto.tracking.TRACETracker;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.List;
 
 import pub.devrel.easypermissions.EasyPermissions;
@@ -45,7 +59,7 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
 
     //UI Elements
     private ImageButton lastLocationBtn, toggleTrackingBtn;
-
+    private FrameLayout mapLayout;
 
     //State
     boolean isBound = false;
@@ -72,7 +86,10 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
             @Override
             public void onReceive(Context context, Intent intent) {
                 mCurrentLocation = intent.getParcelableExtra(Constants.BROADCAST_LOCATION_EXTRA);
-                Toast.makeText(context, String.valueOf(mCurrentLocation), Toast.LENGTH_SHORT).show();
+
+                if(mCurrentLocation!=null)
+                    focusOnMap(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
+                //TODO: caso seja null lança umas delayed task que faz o pedido
             }
         };
 
@@ -81,6 +98,9 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
 
         LocalBroadcastManager.getInstance(getActivity())
                 .registerReceiver(mLocationReceiver, locationFilter);
+
+
+        setupForgeMaps();
     }
 
     @Nullable
@@ -92,6 +112,7 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
         registerBroadcastReceiver(mSupportedBroadcastActions);
 
         //Setup UI and respective OnClickListeners
+        this.mapLayout          = (FrameLayout) rootView.findViewById(R.id.mapContainerLayout);
         this.lastLocationBtn    = (ImageButton) rootView.findViewById(R.id.lastLocationBtn);
         this.toggleTrackingBtn  = (ImageButton) rootView.findViewById(R.id.toggleTrackingBtn);
         this.lastLocationBtn.setBackgroundResource(R.drawable.responsive_location_bg);
@@ -173,6 +194,7 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
     public void onSaveInstanceState(Bundle outState) {
         outState.putBoolean(Constants.TRACKER_SERVICE_BOUND_KEY, isBound);
         outState.putBoolean(Constants.TRACKER_SERVICE_TRACKING_KEY, isTracking);
+        if(mCurrentLocation != null) outState.putParcelable(Constants.LAST_LOCATION_KEY, mCurrentLocation);
         super.onSaveInstanceState(outState);
     }
 
@@ -184,6 +206,11 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
 
             if(inState.containsKey(Constants.TRACKER_SERVICE_TRACKING_KEY))
                 isTracking = inState.getBoolean(Constants.TRACKER_SERVICE_TRACKING_KEY);
+
+            if(inState.containsKey(Constants.LAST_LOCATION_KEY))
+                mCurrentLocation = inState.getParcelable(Constants.LAST_LOCATION_KEY);
+
+
         }
     }
 
@@ -259,6 +286,8 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
             mService= new Messenger(service);
             client  = new TRACETracker.TRACETrackerClient(mService);
             isBound = true;
+
+            //client.getLastLocation();
         }
 
         @Override
@@ -299,6 +328,7 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
      ***********************************************************************************************
      ***********************************************************************************************
      */
+
     @Override
     public boolean isTracking() {
         return isTracking;
@@ -341,5 +371,136 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
 
             Toast.makeText(getActivity(), TRACEStoreApiClient.getSessionId(), Toast.LENGTH_SHORT).show();
         }
+    }
+
+    /* Tracking Fragment
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+
+    private static final String MAPFILE = "lisbon.map";
+
+    private MapView mapView;
+    private TileCache tileCache;
+    private TileRendererLayer tileRendererLayer;
+
+    private void setupForgeMaps(){
+
+        AndroidGraphicFactory.createInstance(getActivity().getApplication());
+
+        this.mapView = new MapView(getActivity());
+        mapLayout.addView(this.mapView);
+
+        this.mapView.setClickable(true);
+        this.mapView.getMapScaleBar().setVisible(true);
+        this.mapView.setBuiltInZoomControls(true);
+        this.mapView.getMapZoomControls().setZoomLevelMin((byte) 10);
+        this.mapView.getMapZoomControls().setZoomLevelMax((byte) 20);
+
+        // create a tile cache of suitable size
+        this.tileCache = AndroidUtil.createTileCache(getActivity(), "mapcache",
+                mapView.getModel().displayModel.getTileSize(), 1f,
+                this.mapView.getModel().frameBufferModel.getOverdrawFactor());
+
+        LatLong pinpoint;
+        int zoom;
+        if(mCurrentLocation == null){
+            pinpoint = new LatLong(38.7368192, -9.138705);
+            zoom = 12;
+        }else{
+            pinpoint = new LatLong(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
+            zoom = 16;
+        }
+
+
+        this.mapView.getModel().mapViewPosition.setCenter(pinpoint);
+        this.mapView.getModel().mapViewPosition.setZoomLevel((byte) zoom);
+
+        File map;
+
+        try {
+            map = getMapFile();
+            if (map == null) return;
+        }catch (FileNotFoundException e){ //TODO: create better exception
+            e.printStackTrace();
+            return;
+        }
+
+
+        MapDataStore mapDataStore = new MapFile(map);
+        this.tileRendererLayer = new TileRendererLayer(tileCache, mapDataStore,
+                this.mapView.getModel().mapViewPosition, false, true, AndroidGraphicFactory.INSTANCE);
+        tileRendererLayer.setXmlRenderTheme(InternalRenderTheme.OSMARENDER);
+
+        // only once a layer is associated with a mapView the rendering starts
+        this.mapView.getLayerManager().getLayers().add(tileRendererLayer);
+
+    }
+
+    private void focusOnMap(double latitude, double longitude){
+        this.mapView.getModel().mapViewPosition.setCenter(new LatLong(latitude, longitude));
+        this.mapView.getModel().mapViewPosition.setZoomLevel((byte) 16);
+    }
+
+    private File getMapFile() throws  FileNotFoundException{
+
+        if(!EasyPermissions.hasPermissions(getActivity(), Constants.permissions.EXTERNAL_STORAGE_PERMISSIONS)){
+            EasyPermissions.requestPermissions(
+                    getActivity(),
+                    "Some some",
+                    Constants.permissions.EXTERNAL_STORAGE,
+                    Constants.permissions.EXTERNAL_STORAGE_PERMISSIONS);
+        }else {
+
+            File file;
+            InputStream inputStream = null;
+            OutputStream outputStream = null;
+
+            file = new File(Environment.getExternalStorageDirectory(), MAPFILE);
+
+            if (!file.exists()) {
+
+
+                try {
+                    inputStream = getResources().openRawResource(R.raw.portugal);
+                    outputStream = new FileOutputStream(file);
+
+                    int read = 0;
+                    byte[] bytes = new byte[1024];
+
+
+                    while ((read = inputStream.read(bytes)) != -1) {
+                        outputStream.write(bytes, 0, read);
+                    }
+
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } finally {
+                    if (inputStream != null) {
+                        try {
+                            inputStream.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    if (outputStream != null) {
+                        try {
+                            // outputStream.flush();
+                            outputStream.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+
+                    }
+                }
+            }
+
+            return new File(Environment.getExternalStorageDirectory(), MAPFILE);
+        }
+
+        return null;
     }
 }

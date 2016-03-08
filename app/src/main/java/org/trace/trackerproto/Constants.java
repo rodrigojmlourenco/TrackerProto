@@ -48,8 +48,8 @@ public final class Constants {
     public interface permissions {
         int TRACKING         = 1;
         int EXTERNAL_STORAGE = 2;
-
         String[] TRACKING_PERMISSIONS = {Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION};
+        String[] EXTERNAL_STORAGE_PERMISSIONS = {Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE};
     }
 
 
