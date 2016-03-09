@@ -4,18 +4,10 @@ import android.Manifest;
 
 public final class Constants {
 
-    public final static int TRACE_LOC_PERMISSIONS = 1;
-
     public final static String OPERATION_KEY = "action";
     public final static String USERNAME_KEY = "username";
     public final static String PASSWORD_KEY = "password";
 
-
-    public final static String LAST_LOCATION_KEY = "LAST_LOCATION";
-    public final static String REQUEST_LOCATION_UPDATES = "IS_TRACKING";
-
-    public final static String TRACKER_SERVICE_BOUND_KEY = "BOUND_TRACKER_SERVICE";
-    public final static String TRACKER_SERVICE_TRACKING_KEY = "TRACKING_TRACKER_SERVICE";
 
     //TRACEStore Extras
     public static final String TRACK_EXTRA = "org.trace.store.extras.TRACK";
@@ -80,5 +72,12 @@ public final class Constants {
         String CONTENT_LANGUAGE = "Content-Language";
         String AUTHORIZATION = "Authorization";
 
+    }
+
+    public interface home {
+        String MARKER_INDEX_KEY = "MARKER_INDEX_KEY";
+        String SERVICE_BOUND_KEY ="BOUND_TRACKER_SERVICE";
+        String TRACKING_STATE_KEY = "TRACKING_TRACKER_SERVICE";
+        String LAST_LOCATION_KEY = "LAST_LOCATION";
     }
 }

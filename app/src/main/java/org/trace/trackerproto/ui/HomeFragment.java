@@ -16,6 +16,7 @@ import android.os.Environment;
 import android.os.IBinder;
 import android.os.Messenger;
 import android.support.annotation.Nullable;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AlertDialog;
 import android.view.LayoutInflater;
@@ -25,12 +26,14 @@ import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.Toast;
 
+import org.mapsforge.core.graphics.Bitmap;
 import org.mapsforge.core.model.LatLong;
 import org.mapsforge.map.android.graphics.AndroidGraphicFactory;
 import org.mapsforge.map.android.util.AndroidUtil;
 import org.mapsforge.map.android.view.MapView;
 import org.mapsforge.map.datastore.MapDataStore;
 import org.mapsforge.map.layer.cache.TileCache;
+import org.mapsforge.map.layer.overlay.Marker;
 import org.mapsforge.map.layer.renderer.TileRendererLayer;
 import org.mapsforge.map.reader.MapFile;
 import org.mapsforge.map.rendertheme.InternalRenderTheme;
@@ -39,7 +42,6 @@ import org.trace.trackerproto.R;
 import org.trace.trackerproto.store.TRACEStoreApiClient;
 import org.trace.trackerproto.store.TRACEStoreReceiver;
 import org.trace.trackerproto.tracking.TRACETracker;
-import org.trace.trackerproto.ui.exceptions.RefusedGPSException;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -48,6 +50,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import pub.devrel.easypermissions.EasyPermissions;
 
@@ -93,7 +99,8 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
 
                 if(mCurrentLocation!=null)
                     focusOnMap(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
-                //TODO: caso seja null lança umas delayed task que faz o pedido
+                else
+                    scheduleFocusTask(1);
             }
         };
 
@@ -148,7 +155,7 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
             @Override
             public void onClick(View v) {
 
-                if(isGPSEnabled()) {
+                if (isGPSEnabled()) {
 
                     if (!isTracking()) {
                         startTrackingOnClick();
@@ -157,7 +164,7 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
                         stopTrackingOnClick();
                         Toast.makeText(getActivity(), getString(R.string.stoped_tracking), Toast.LENGTH_SHORT).show();
                     }
-                }else
+                } else
                     buildAlertMessageNoGps();
 
             }
@@ -198,7 +205,13 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
             getActivity().unbindService(mConnection);
         }
 
+        super.onDestroyView();
+    }
+
+    @Override
+    public void onDestroy() {
         super.onDestroy();
+        this.mapView.destroyAll();
     }
 
     /* Save State
@@ -211,24 +224,29 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
 
     @Override
     public void onSaveInstanceState(Bundle outState) {
-        outState.putBoolean(Constants.TRACKER_SERVICE_BOUND_KEY, isBound);
-        outState.putBoolean(Constants.TRACKER_SERVICE_TRACKING_KEY, isTracking);
-        if(mCurrentLocation != null) outState.putParcelable(Constants.LAST_LOCATION_KEY, mCurrentLocation);
+        outState.putBoolean(Constants.home.SERVICE_BOUND_KEY, isBound);
+        outState.putBoolean(Constants.home.TRACKING_STATE_KEY, isTracking);
+        outState.putInt(Constants.home.MARKER_INDEX_KEY, mMarkerIndex);
+        if(mCurrentLocation != null) outState.putParcelable(Constants.home.LAST_LOCATION_KEY, mCurrentLocation);
+
         super.onSaveInstanceState(outState);
     }
 
     private void updateValuesFromBundle(Bundle inState){
         if(inState != null){
 
-            if(inState.containsKey(Constants.TRACKER_SERVICE_BOUND_KEY))
-                isBound = inState.getBoolean(Constants.TRACKER_SERVICE_BOUND_KEY);
+            if(inState.containsKey(Constants.home.SERVICE_BOUND_KEY))
+                isBound = inState.getBoolean(Constants.home.SERVICE_BOUND_KEY);
 
-            if(inState.containsKey(Constants.TRACKER_SERVICE_TRACKING_KEY))
-                isTracking = inState.getBoolean(Constants.TRACKER_SERVICE_TRACKING_KEY);
+            if(inState.containsKey(Constants.home.TRACKING_STATE_KEY))
+                isTracking = inState.getBoolean(Constants.home.TRACKING_STATE_KEY);
 
-            if(inState.containsKey(Constants.LAST_LOCATION_KEY))
-                mCurrentLocation = inState.getParcelable(Constants.LAST_LOCATION_KEY);
+            if(inState.containsKey(Constants.home.LAST_LOCATION_KEY))
+                mCurrentLocation = inState.getParcelable(Constants.home.LAST_LOCATION_KEY);
 
+
+            if(inState.containsKey(Constants.home.MARKER_INDEX_KEY))
+                mMarkerIndex = inState.getInt(Constants.home.MARKER_INDEX_KEY);
 
         }
     }
@@ -306,7 +324,7 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
             client  = new TRACETracker.TRACETrackerClient(mService);
             isBound = true;
 
-            //client.getLastLocation();
+            scheduleFocusTask(2);
         }
 
         @Override
@@ -390,6 +408,7 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
         }
     }
 
+
     /* Tracking Fragment
      ***********************************************************************************************
      ***********************************************************************************************
@@ -420,14 +439,17 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
                 mapView.getModel().displayModel.getTileSize(), 1f,
                 this.mapView.getModel().frameBufferModel.getOverdrawFactor());
 
-        LatLong pinpoint;
+
         int zoom;
+        LatLong pinpoint;
+        Marker marker = null;
         if(mCurrentLocation == null){
             pinpoint = new LatLong(38.7368192, -9.138705);
             zoom = 12;
         }else{
             pinpoint = new LatLong(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
             zoom = 16;
+            marker = generateMarker(pinpoint);
         }
 
 
@@ -453,11 +475,37 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
         // only once a layer is associated with a mapView the rendering starts
         this.mapView.getLayerManager().getLayers().add(tileRendererLayer);
 
+        if(marker != null)
+            this.mapView.getLayerManager().getLayers().add(marker);
+
+        this.mapView.getMapZoomControls().hide();
+
     }
 
+    private int mMarkerIndex = -1;
     private void focusOnMap(double latitude, double longitude){
-        this.mapView.getModel().mapViewPosition.setCenter(new LatLong(latitude, longitude));
+        LatLong position =  new LatLong(latitude, longitude);
+
+        //Center
+        this.mapView.getModel().mapViewPosition.setCenter(position);
         this.mapView.getModel().mapViewPosition.setZoomLevel((byte) 16);
+
+
+
+        //Add Marker
+        try {
+            if (mMarkerIndex != -1)
+                this.mapView.getLayerManager().getLayers().remove(mMarkerIndex);
+        }catch (ArrayIndexOutOfBoundsException e){
+            e.printStackTrace();
+        }
+
+        Marker marker = generateMarker(position);
+        this.mapView.getLayerManager().getLayers().add(marker);
+        mMarkerIndex = this.mapView.getLayerManager().getLayers().indexOf(marker);
+
+
+
     }
 
     private File getMapFile() throws  FileNotFoundException{
@@ -521,6 +569,11 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
         return null;
     }
 
+    private Marker generateMarker(LatLong position){
+        Bitmap icon = AndroidGraphicFactory.convertToBitmap(ContextCompat.getDrawable(getActivity(), R.drawable.ic_pin3));
+        return new Marker(position, icon, 1*icon.getWidth()/2, -1*icon.getHeight()/2);
+    }
+
     /* Devices Management
     /* Devices Management
     /* Devices Management
@@ -528,8 +581,6 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
      ***********************************************************************************************
      ***********************************************************************************************
      */
-
-
     private LocationManager mLocationManager;
 
     private boolean isGPSEnabled(){
@@ -554,5 +605,30 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
 
         final AlertDialog alert = builder.create();
         alert.show();
+    }
+
+
+    /* Devices Management
+    /* Devices Management
+    /* Devices Management
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+
+    private static final ScheduledExecutorService worker =
+            Executors.newSingleThreadScheduledExecutor();
+
+    private void scheduleFocusTask(int time){
+        worker.schedule(new FocusTask(), time, TimeUnit.SECONDS);
+    }
+
+
+    private class FocusTask implements Runnable {
+
+        @Override
+        public void run() {
+            client.getLastLocation();
+        }
     }
 }
