@@ -118,11 +118,11 @@ public class Tracker extends BroadcastReceiver implements CollectorManager{
     @Override
     public void storeLocation(Location location) {
 
-        if(track == null){
+        if(track == null)
             track = new Track(TRACEStoreApiClient.getSessionId(), location);
-        }else {
-            track.addTracedLocation(location, mCurrentActivity.toString());
-        }
+        else
+            track.addTracedLocation(location, (mCurrentActivity == null ? "" : mCurrentActivity.toString()));
+
 
         synchronized (mLocationLock) {
             mCurrentLocation = location;

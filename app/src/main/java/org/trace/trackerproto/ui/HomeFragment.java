@@ -5,16 +5,19 @@ import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.location.Location;
+import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.IBinder;
 import android.os.Messenger;
 import android.support.annotation.Nullable;
 import android.support.v4.content.LocalBroadcastManager;
+import android.support.v7.app.AlertDialog;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -36,6 +39,7 @@ import org.trace.trackerproto.R;
 import org.trace.trackerproto.store.TRACEStoreApiClient;
 import org.trace.trackerproto.store.TRACEStoreReceiver;
 import org.trace.trackerproto.tracking.TRACETracker;
+import org.trace.trackerproto.ui.exceptions.RefusedGPSException;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -100,6 +104,8 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
                 .registerReceiver(mLocationReceiver, locationFilter);
 
 
+        mLocationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
+
         setupForgeMaps();
     }
 
@@ -121,25 +127,38 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
             @Override
             public void onClick(View v) {
 
-                if (EasyPermissions.hasPermissions(getActivity(), Constants.permissions.TRACKING_PERMISSIONS))
-                    client.getLastLocation();
-                else
-                    EasyPermissions.requestPermissions(
-                            getActivity(),
-                            getString(R.string.tracking_rationale),
-                            Constants.permissions.TRACKING,
-                            Constants.permissions.TRACKING_PERMISSIONS);
+                if (isGPSEnabled()) {
+
+                    if (EasyPermissions.hasPermissions(getActivity(), Constants.permissions.TRACKING_PERMISSIONS))
+                        client.getLastLocation();
+                    else
+                        EasyPermissions.requestPermissions(
+                                getActivity(),
+                                getString(R.string.tracking_rationale),
+                                Constants.permissions.TRACKING,
+                                Constants.permissions.TRACKING_PERMISSIONS);
+                }else{
+                    buildAlertMessageNoGps();
+                }
             }
+
         });
 
         toggleTrackingBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
 
-                if (!isTracking())
-                    startTrackingOnClick();
-                else
-                    stopTrackingOnClick();
+                if(isGPSEnabled()) {
+
+                    if (!isTracking()) {
+                        startTrackingOnClick();
+                        Toast.makeText(getActivity(), getString(R.string.started_tracking), Toast.LENGTH_SHORT).show();
+                    } else {
+                        stopTrackingOnClick();
+                        Toast.makeText(getActivity(), getString(R.string.stoped_tracking), Toast.LENGTH_SHORT).show();
+                    }
+                }else
+                    buildAlertMessageNoGps();
 
             }
         });
@@ -368,8 +387,6 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
             client.stopTracking();
             isTracking = false;
             toggleButtons(isBound, false);
-
-            Toast.makeText(getActivity(), TRACEStoreApiClient.getSessionId(), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -502,5 +519,40 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
         }
 
         return null;
+    }
+
+    /* Devices Management
+    /* Devices Management
+    /* Devices Management
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+
+
+    private LocationManager mLocationManager;
+
+    private boolean isGPSEnabled(){
+        return mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+    }
+
+    private void buildAlertMessageNoGps() {
+
+        final AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+        builder.setMessage(getString(R.string.gps_enable_rationale))
+                .setCancelable(false)
+                .setPositiveButton(getString(R.string.yes), new DialogInterface.OnClickListener() {
+                    public void onClick(@SuppressWarnings("unused") final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
+                        startActivity(new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+                    }
+                })
+                .setNegativeButton(getString(R.string.no), new DialogInterface.OnClickListener() {
+                    public void onClick(final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
+                        dialog.cancel();
+                    }
+                });
+
+        final AlertDialog alert = builder.create();
+        alert.show();
     }
 }

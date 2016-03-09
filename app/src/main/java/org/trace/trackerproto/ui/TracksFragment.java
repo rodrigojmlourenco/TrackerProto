@@ -2,7 +2,6 @@ package org.trace.trackerproto.ui;
 
 import android.Manifest;
 import android.app.Fragment;
-import android.app.ListFragment;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
