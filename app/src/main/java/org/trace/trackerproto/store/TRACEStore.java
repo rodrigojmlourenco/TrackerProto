@@ -12,7 +12,9 @@ import org.trace.trackerproto.store.exceptions.AuthTokenIsExpiredException;
 import org.trace.trackerproto.store.exceptions.InvalidAuthCredentialsException;
 import org.trace.trackerproto.store.exceptions.LoginFailedException;
 import org.trace.trackerproto.store.exceptions.RemoteTraceException;
+import org.trace.trackerproto.store.exceptions.UnableToCloseSessionTokenExpiredException;
 import org.trace.trackerproto.store.exceptions.UnableToPerformLogin;
+import org.trace.trackerproto.store.exceptions.UnableToSubmitTrackTokenExpiredException;
 import org.trace.trackerproto.tracking.data.Track;
 
 import static us.monoid.web.Resty.content;
@@ -47,6 +49,29 @@ public class TRACEStore extends IntentService{
             mHttpClient.submitTrackAndCloseSession(authManager.getAuthenticationToken(), track);
         } catch (RemoteTraceException e) {
             e.printStackTrace();
+        } catch (UnableToSubmitTrackTokenExpiredException e){
+
+            login(authManager.getUsername(), authManager.getPassword());
+
+            try {
+                mHttpClient.submitTrackAndCloseSession(authManager.getAuthenticationToken(), track);
+            } catch (RemoteTraceException e1) {
+                e1.printStackTrace();
+            } catch (UnableToCloseSessionTokenExpiredException e1) {
+                e1.printStackTrace();
+            } catch (UnableToSubmitTrackTokenExpiredException e1) {
+                e1.printStackTrace();
+            }
+
+        } catch (UnableToCloseSessionTokenExpiredException e) {
+
+            login(authManager.getUsername(), authManager.getPassword());
+
+            try {
+                mHttpClient.closeTrackingSession(authManager.getAuthenticationToken(), track.getSessionId());
+            } catch (RemoteTraceException | AuthTokenIsExpiredException e1) {
+                Log.d(LOG_TAG, "Unable to close session '" + track.getSessionId() + "' due to " + e1.getMessage());
+            }
         }
     }
 
@@ -137,11 +162,11 @@ public class TRACEStore extends IntentService{
         }
     }
 
-    public void performInitiateSession(Intent intent){
+    public void performInitiateSession(Intent intent) throws RemoteTraceException {
 
         Log.d(LOG_TAG, "Attempting session acquisition...");
 
-        String session;
+        String session = "";
         String authToken = authManager.getAuthenticationToken();
 
         try {
@@ -149,6 +174,22 @@ public class TRACEStore extends IntentService{
             TRACEStoreApiClient.setSessionId(session);
         } catch (RemoteTraceException e) {
             e.printStackTrace();
+        } catch (AuthTokenIsExpiredException e) {
+            Log.i(LOG_TAG, "Session request failed due to expired authentication token, requesting new one...");
+            login(authManager.getUsername(), authManager.getPassword());
+
+        }finally {
+
+            if(session.isEmpty()){
+                try {
+                    session = mHttpClient.requestTrackingSession(authToken);
+                    TRACEStoreApiClient.setSessionId(session);
+                } catch (RemoteTraceException | AuthTokenIsExpiredException e) {
+                    e.printStackTrace();
+                    throw new RemoteTraceException("InitiateSession", e.getMessage());
+                }
+
+            }
         }
 
     }
@@ -193,7 +234,12 @@ public class TRACEStore extends IntentService{
                 performSubmitTrack(intent);
                 break;
             case initiateSession:
-                performInitiateSession(intent);
+                try {
+                    performInitiateSession(intent);
+                } catch (RemoteTraceException e) {
+                    e.printStackTrace();
+                    //TODO: broadcast the fail to the HomeFragment
+                }
                 break;
             case terminateSession:
                 performTerminateSession(intent);

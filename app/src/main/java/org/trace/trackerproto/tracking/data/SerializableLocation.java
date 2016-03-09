@@ -1,8 +1,13 @@
 package org.trace.trackerproto.tracking.data;
 
 import android.location.Location;
+import android.os.Build;
 import android.os.Parcel;
 import android.os.Parcelable;
+
+import com.google.gson.JsonObject;
+
+import org.trace.trackerproto.Constants;
 
 import java.io.Serializable;
 
@@ -30,7 +35,10 @@ public class SerializableLocation implements Serializable, Parcelable{
         this.provider = location.getProvider();
 
         this.timestamp = location.getTime();
-        this.elapsedNanos = location.getElapsedRealtimeNanos();
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+            this.elapsedNanos = location.getElapsedRealtimeNanos();
+        }
     }
 
     protected SerializableLocation(Parcel in) {
@@ -138,6 +146,33 @@ public class SerializableLocation implements Serializable, Parcelable{
     public void setActivityMode(String activityMode) {
         this.activityMode = activityMode;
     }
+
+    public JsonObject getSerializableLocationAsJson(){
+        JsonObject location = getMainAttributesAsJson();
+        location.add(Constants.store.ATTRIBUTES, getSecondaryAttributesAsJson());
+        return location;
+    }
+
+    public JsonObject getMainAttributesAsJson(){
+        JsonObject attributes = new JsonObject();
+        attributes.addProperty(Constants.store.LATITUDE, getLatitude());
+        attributes.addProperty(Constants.store.LONGITUDE, getLongitude());
+        attributes.addProperty(Constants.store.TIMESTAMP, getTimestamp());
+        return  attributes;
+    }
+
+    public JsonObject getSecondaryAttributesAsJson(){
+        JsonObject attributes = new JsonObject();
+        attributes.addProperty(Constants.store.attributes.ACCURACY, getAccuracy());
+        attributes.addProperty(Constants.store.attributes.SPEED, getSpeed());
+        attributes.addProperty(Constants.store.attributes.BEARING, getBearing());
+        attributes.addProperty(Constants.store.attributes.ALTITUDE, getAltitude());
+        attributes.addProperty(Constants.store.attributes.ELAPSED_NANOS, getProvider());
+        attributes.addProperty(Constants.store.attributes.PROVIDER, getProvider());
+        attributes.addProperty(Constants.store.attributes.ACTIVITY, getActivityMode());
+        return  attributes;
+    }
+
 
     @Override
     public int describeContents() {

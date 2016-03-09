@@ -54,4 +54,31 @@ public final class Constants {
 
 
     public static final String AUTH_TOKEN = "auth_token";
+
+    public interface store {
+        String  LATITUDE    = "latitude",
+                LONGITUDE   = "longitude",
+                TIMESTAMP   = "timestamp",
+                ATTRIBUTES  = "attributes";
+
+        interface attributes {
+            String  ACTIVITY= "activity",
+                    BEARING = "bearing",
+                    ALTITUDE= "altitude",
+                    SPEED   = "speed",
+                    ACCURACY= "accuracy",
+                    PROVIDER= "provider",
+                    ELAPSED_NANOS = "elapsedNanos";
+        }
+    }
+
+    public interface http {
+
+
+        String CONTENT_TYPE = "Content-Type";
+        String CONTENT_LENGTH = "Content-Length";
+        String CONTENT_LANGUAGE = "Content-Language";
+        String AUTHORIZATION = "Authorization";
+
+    }
 }
