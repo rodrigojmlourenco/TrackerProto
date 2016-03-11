@@ -135,11 +135,12 @@ public class Tracker extends BroadcastReceiver implements CollectorManager{
 
         track = null;
 
-        mFusedLocationModule.startLocationUpdates();
+        mFusedLocationModule.startTracking();
 
     }
 
     public void stopLocationUpdates(){
+
         mFusedLocationModule.stopTracking();
 
         if(track == null) return;

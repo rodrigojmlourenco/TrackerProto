@@ -34,7 +34,8 @@
             android:name=".tracking.modules.activity.ActivityRecognitionHandler"
             android:exported="false" />
 
-        <activity android:name=".ui.MainActivity">
+        <activity   android:name=".ui.MainActivity"
+                    android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -43,6 +44,7 @@
         <activity
             android:name=".ui.LoginActivity"
             android:screenOrientation="portrait" />
+
         <activity android:name=".ui.MapActivity" />
 
     </application>

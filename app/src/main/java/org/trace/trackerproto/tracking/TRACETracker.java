@@ -14,9 +14,11 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.google.android.gms.location.LocationListener;
+
 import org.trace.trackerproto.Constants;
 
-public class TRACETracker extends Service implements CollectorManager{
+public class TRACETracker extends Service implements CollectorManager, LocationListener{
 
     private final String LOG_TAG = "TRACETracker";
 
@@ -34,7 +36,6 @@ public class TRACETracker extends Service implements CollectorManager{
     public IBinder onBind(Intent intent) {
 
         Log.d(LOG_TAG, "onBind");
-        Toast.makeText(getApplicationContext(), "binding", Toast.LENGTH_SHORT).show();
 
         LocalBroadcastManager.getInstance(this)
                 .registerReceiver(mTracker, new IntentFilter(Constants.COLLECT_ACTION));
@@ -43,6 +44,7 @@ public class TRACETracker extends Service implements CollectorManager{
 
         return mMessenger.getBinder();
     }
+
 
 
 
@@ -76,15 +78,17 @@ public class TRACETracker extends Service implements CollectorManager{
         mTracker.storeLocation(location);
     }
 
+
+
     private void startTracking(){
         mTracker.updateSettings();
         mTracker.startLocationUpdates();
-        mTracker.startActivityUpdates();
+        //mTracker.startActivityUpdates();
     }
 
     private void stopTracking(){
         mTracker.stopLocationUpdates();
-        mTracker.stopActivityUpdates();
+        //mTracker.stopActivityUpdates();
     }
 
     private void broadcastCurrentLocation(){
@@ -97,6 +101,11 @@ public class TRACETracker extends Service implements CollectorManager{
         locationBroadcast.setAction(Constants.BROADCAST_LOCATION_ACTION);
         locationBroadcast.putExtra(Constants.BROADCAST_LOCATION_EXTRA, location);
         LocalBroadcastManager.getInstance(this).sendBroadcast(locationBroadcast);
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+        Log.d("LOC", String.valueOf(location));
     }
 
     class ClientHandler extends Handler {
@@ -169,34 +178,6 @@ public class TRACETracker extends Service implements CollectorManager{
         public void stopTracking(){
             Message msg = Message.obtain(null, TRACETrackerOperations.UNTRACK_ACTION);
             sendRequest(msg);
-        }
-
-        @Deprecated
-        public void startTrackingLocation(int precision, int energy){
-            Message msg = Message.obtain(null, TRACETrackerOperations.TRACK_LOCATION_ACTION, precision, energy);
-            sendRequest(msg);
-        }
-
-        @Deprecated
-        public void stopTrackingLocation(){
-            Message msg = Message.obtain(null, TRACETrackerOperations.UNTRACK_LOCATION_ACTION, 0, 0);
-            sendRequest(msg);
-        }
-
-        @Deprecated
-        public void startTrackingActivity(){
-            Message msg = Message.obtain(null, TRACETrackerOperations.TRACK_ACTIVITY_ACTION, 0, 0);
-            sendRequest(msg);
-        }
-
-        @Deprecated
-        public void stopTrackingActivity(){
-            Message msg = Message.obtain(null, TRACETrackerOperations.UNTRACK_ACTIVITY_ACTION, 0, 0);
-            sendRequest(msg);
-        }
-
-        public void storeSession(String session){
-
         }
 
         public void getLastLocation(){

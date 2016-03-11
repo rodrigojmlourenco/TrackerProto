@@ -3,10 +3,17 @@ package org.trace.trackerproto.ui;
 import android.app.AlertDialog;
 import android.app.Fragment;
 import android.app.FragmentManager;
+import android.app.Service;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.res.Configuration;
 import android.content.res.TypedArray;
 import android.os.Bundle;
+import android.os.IBinder;
+import android.os.Messenger;
 import android.os.PersistableBundle;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
@@ -20,6 +27,7 @@ import android.widget.ListView;
 
 import org.trace.trackerproto.R;
 import org.trace.trackerproto.store.TRACEStoreApiClient;
+import org.trace.trackerproto.tracking.TRACETracker;
 import org.trace.trackerproto.ui.slidingmenu.adapter.NavDrawerListAdapter;
 import org.trace.trackerproto.ui.slidingmenu.model.NavDrawerItem;
 
@@ -47,16 +55,64 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
 
     }
 
+
+    /* Activity Life-Cycle
+    /* Activity Life-Cycle
+    /* Activity Life-Cycle
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+
+    private boolean isBound = false;
+    private Messenger mService = null;
+    private TRACETracker.TRACETrackerClient mTrakerClient = null;
+
+    private ServiceConnection mConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            mService= new Messenger(service);
+            mTrakerClient = new TRACETracker.TRACETrackerClient(mService);
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            mService= null;
+            mTrakerClient = null;
+
+        }
+    };
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        Intent trackerService = new Intent(this, TRACETracker.class);
+        trackerService.setFlags(Service.START_STICKY);
+        bindService(trackerService, mConnection, Context.BIND_AUTO_CREATE);
+
+        isBound = true;
+
+    }
+
     @Override
     protected void onDestroy() {
 
-        if(isFinishing()){
+        if(isBound){
+            isBound = false;
+            this.unbindService(mConnection);
+        }
+
+        if(isFinishing())
             TRACEStoreApiClient.requestLogout(MainActivity.this);
+
+        if(mCurrentFragment instanceof MapViewFragment){
+            ((MapViewFragment)mCurrentFragment).cleanMap();
         }
 
         super.onDestroy();
     }
-
 
     /* Sliding Menu
     /* Sliding Menu

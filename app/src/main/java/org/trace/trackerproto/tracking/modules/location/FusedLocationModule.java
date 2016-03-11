@@ -124,8 +124,16 @@ public class FusedLocationModule implements LocationListener, ModuleInterface {
 
     }
 
-    public void startLocationUpdates() {
+    /* Module Interface
+    /* Module Interface
+    /* Module Interface
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
 
+    @Override
+    public void startTracking() {
         if (!isTracking) {
 
             LocationServices.FusedLocationApi.requestLocationUpdates(
@@ -137,23 +145,11 @@ public class FusedLocationModule implements LocationListener, ModuleInterface {
         }
     }
 
-    public void stopLocationUpdates(){
-
+    @Override
+    public void stopTracking() {
         if(isTracking) {
             LocationServices.FusedLocationApi.removeLocationUpdates(this.mGoogleApiClient, this);
             isTracking = false;
         }
-    }
-
-
-
-    @Override
-    public void startTracking() {
-        startLocationUpdates();
-    }
-
-    @Override
-    public void stopTracking() {
-        stopLocationUpdates();
     }
 }

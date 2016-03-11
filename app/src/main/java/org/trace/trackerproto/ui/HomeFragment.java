@@ -9,6 +9,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
@@ -19,6 +20,7 @@ import android.support.annotation.Nullable;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AlertDialog;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -50,7 +52,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -60,7 +61,8 @@ import pub.devrel.easypermissions.EasyPermissions;
 /**
  * Created by Rodrigo Lourenço on 07/03/2016.
  */
-public class HomeFragment extends Fragment implements EasyPermissions.PermissionCallbacks, TrackingFragment{
+public class HomeFragment extends Fragment
+        implements EasyPermissions.PermissionCallbacks, TrackingFragment, MapViewFragment{
 
 
     private final String[] mSupportedBroadcastActions =
@@ -114,6 +116,8 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
         mLocationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
 
         setupForgeMaps();
+
+
     }
 
     @Nullable
@@ -199,6 +203,12 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
     }
 
     @Override
+    public void onStop() {
+        super.onStop();
+        //this.mapView.destroyAll();
+    }
+
+    @Override
     public void onDestroyView() {
         if(isBound){
             isBound = false;
@@ -208,11 +218,6 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
         super.onDestroyView();
     }
 
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        this.mapView.destroyAll();
-    }
 
     /* Save State
     /* Save State
@@ -226,7 +231,8 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
     public void onSaveInstanceState(Bundle outState) {
         outState.putBoolean(Constants.home.SERVICE_BOUND_KEY, isBound);
         outState.putBoolean(Constants.home.TRACKING_STATE_KEY, isTracking);
-        outState.putInt(Constants.home.MARKER_INDEX_KEY, mMarkerIndex);
+        outState.putInt(Constants.home.MARKER_INDEX_KEY, -1);
+        //outState.putInt(Constants.home.MARKER_INDEX_KEY, mMarkerIndex);
         if(mCurrentLocation != null) outState.putParcelable(Constants.home.LAST_LOCATION_KEY, mCurrentLocation);
 
         super.onSaveInstanceState(outState);
@@ -323,8 +329,6 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
             mService= new Messenger(service);
             client  = new TRACETracker.TRACETrackerClient(mService);
             isBound = true;
-
-            scheduleFocusTask(2);
         }
 
         @Override
@@ -430,7 +434,7 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
 
         this.mapView.setClickable(true);
         this.mapView.getMapScaleBar().setVisible(true);
-        this.mapView.setBuiltInZoomControls(true);
+        this.mapView.setBuiltInZoomControls(false);
         this.mapView.getMapZoomControls().setZoomLevelMin((byte) 10);
         this.mapView.getMapZoomControls().setZoomLevelMax((byte) 20);
 
@@ -449,7 +453,6 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
         }else{
             pinpoint = new LatLong(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
             zoom = 16;
-            marker = generateMarker(pinpoint);
         }
 
 
@@ -480,17 +483,21 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
 
         this.mapView.getMapZoomControls().hide();
 
+        if (mCurrentLocation!=null)
+            focusOnMap(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
+
     }
 
     private int mMarkerIndex = -1;
     private void focusOnMap(double latitude, double longitude){
+
+        if(getActivity()== null || (getActivity() != null && getActivity().isFinishing())) return;
+
         LatLong position =  new LatLong(latitude, longitude);
 
         //Center
         this.mapView.getModel().mapViewPosition.setCenter(position);
         this.mapView.getModel().mapViewPosition.setZoomLevel((byte) 16);
-
-
 
         //Add Marker
         try {
@@ -501,11 +508,11 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
         }
 
         Marker marker = generateMarker(position);
-        this.mapView.getLayerManager().getLayers().add(marker);
-        mMarkerIndex = this.mapView.getLayerManager().getLayers().indexOf(marker);
 
-
-
+        if(marker != null){
+            this.mapView.getLayerManager().getLayers().add(marker);
+            mMarkerIndex = this.mapView.getLayerManager().getLayers().indexOf(marker);
+        }
     }
 
     private File getMapFile() throws  FileNotFoundException{
@@ -570,8 +577,14 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
     }
 
     private Marker generateMarker(LatLong position){
-        Bitmap icon = AndroidGraphicFactory.convertToBitmap(ContextCompat.getDrawable(getActivity(), R.drawable.ic_pin3));
-        return new Marker(position, icon, 1*icon.getWidth()/2, -1*icon.getHeight()/2);
+
+        Drawable drawable = ContextCompat.getDrawable(getActivity(), R.drawable.ic_pin3);
+
+        Bitmap icon = drawable==null? null : AndroidGraphicFactory.convertToBitmap(drawable);
+
+        return icon == null ? null : new Marker(position, icon, 1 * icon.getWidth() / 2, -1 * icon.getHeight() / 2);
+
+
     }
 
     /* Devices Management
@@ -616,11 +629,18 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
      ***********************************************************************************************
      */
 
-    private static final ScheduledExecutorService worker =
+    private final ScheduledExecutorService mMarkerWorker =
             Executors.newSingleThreadScheduledExecutor();
 
     private void scheduleFocusTask(int time){
-        worker.schedule(new FocusTask(), time, TimeUnit.SECONDS);
+        Log.d("HOME", "schedueling focus task");
+        mMarkerWorker.schedule(new FocusTask(), time, TimeUnit.SECONDS);
+    }
+
+    @Override
+    public void cleanMap() {
+        if(this.mapView != null)
+            this.mapView.destroyAll();
     }
 
 
@@ -631,4 +651,5 @@ public class HomeFragment extends Fragment implements EasyPermissions.Permission
             client.getLastLocation();
         }
     }
+
 }

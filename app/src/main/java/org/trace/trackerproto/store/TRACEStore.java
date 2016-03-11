@@ -2,8 +2,11 @@ package org.trace.trackerproto.store;
 
 
 import android.app.IntentService;
+import android.content.Context;
 import android.content.Intent;
+import android.os.Handler;
 import android.util.Log;
+import android.widget.Toast;
 
 import org.trace.trackerproto.Constants;
 import org.trace.trackerproto.store.api.TRACEStoreOperations;
@@ -22,8 +25,6 @@ import static us.monoid.web.Resty.content;
 public class TRACEStore extends IntentService{
 
     private final String LOG_TAG = this.getClass().getSimpleName();
-
-    private final String BASE_URI = "http://146.193.41.50:8080/trace";
 
 
     private final AuthenticationManager authManager;
@@ -45,22 +46,27 @@ public class TRACEStore extends IntentService{
 
         track = intent.getParcelableExtra(Constants.TRACK_EXTRA);
 
+        postUserFeedback("Uploading track with session '"+track.getSessionId()+"'...");
+
         try {
             mHttpClient.submitTrackAndCloseSession(authManager.getAuthenticationToken(), track);
+
+            postUserFeedback("Track successfully posted.");
+
         } catch (RemoteTraceException e) {
             e.printStackTrace();
+            postUserFeedback("Track was not posted because " + e.getMessage());
+
         } catch (UnableToSubmitTrackTokenExpiredException e){
 
             login(authManager.getUsername(), authManager.getPassword());
 
             try {
                 mHttpClient.submitTrackAndCloseSession(authManager.getAuthenticationToken(), track);
-            } catch (RemoteTraceException e1) {
+                postUserFeedback("Track successfully posted.");
+            } catch (RemoteTraceException | UnableToCloseSessionTokenExpiredException | UnableToSubmitTrackTokenExpiredException e1) {
                 e1.printStackTrace();
-            } catch (UnableToCloseSessionTokenExpiredException e1) {
-                e1.printStackTrace();
-            } catch (UnableToSubmitTrackTokenExpiredException e1) {
-                e1.printStackTrace();
+                postUserFeedback("Track was not posted because " + e.getMessage());
             }
 
         } catch (UnableToCloseSessionTokenExpiredException e) {
@@ -69,8 +75,10 @@ public class TRACEStore extends IntentService{
 
             try {
                 mHttpClient.closeTrackingSession(authManager.getAuthenticationToken(), track.getSessionId());
+                postUserFeedback("Track successfully posted.");
             } catch (RemoteTraceException | AuthTokenIsExpiredException e1) {
                 Log.d(LOG_TAG, "Unable to close session '" + track.getSessionId() + "' due to " + e1.getMessage());
+                postUserFeedback("Track was not posted because " + e.getMessage());
             }
         }
     }
@@ -188,10 +196,8 @@ public class TRACEStore extends IntentService{
                     e.printStackTrace();
                     throw new RemoteTraceException("InitiateSession", e.getMessage());
                 }
-
             }
         }
-
     }
 
     public void performTerminateSession(Intent intent){
@@ -219,8 +225,6 @@ public class TRACEStore extends IntentService{
         }
 
         switch (op){
-
-
             case login:
                 performLogin(intent);
                 break;
@@ -249,5 +253,33 @@ public class TRACEStore extends IntentService{
         }
     }
 
+    /* User Feedback
+    /* User Feedback
+    /* User Feedback
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
 
+    private Handler mHandler = new Handler();
+
+    private void postUserFeedback(String feedback){
+        mHandler.post(new DisplayToast(this, feedback));
+    }
+
+    private class DisplayToast implements Runnable {
+
+        private final Context mContext;
+        private String message;
+
+        public DisplayToast(Context context, String message){
+            this.mContext = context;
+            this.message  = message;
+        }
+
+        @Override
+        public void run() {
+            Toast.makeText(mContext, message, Toast.LENGTH_SHORT).show();
+        }
+    }
 }
