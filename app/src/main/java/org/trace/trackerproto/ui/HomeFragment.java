@@ -161,12 +161,21 @@ public class HomeFragment extends Fragment
 
                 if (isGPSEnabled()) {
 
-                    if (!isTracking()) {
-                        startTrackingOnClick();
-                        Toast.makeText(getActivity(), getString(R.string.started_tracking), Toast.LENGTH_SHORT).show();
-                    } else {
-                        stopTrackingOnClick();
-                        Toast.makeText(getActivity(), getString(R.string.stoped_tracking), Toast.LENGTH_SHORT).show();
+                    if (EasyPermissions.hasPermissions(getActivity(), Constants.permissions.TRACKING_PERMISSIONS)) {
+                        if (!isTracking()) {
+                            startTrackingOnClick();
+                            Toast.makeText(getActivity(), getString(R.string.started_tracking), Toast.LENGTH_SHORT).show();
+                        } else {
+                            stopTrackingOnClick();
+                            Toast.makeText(getActivity(), getString(R.string.stoped_tracking), Toast.LENGTH_SHORT).show();
+                            ((TrackCountListener)getActivity()).updateTrackCount();
+                        }
+                    }else{
+                        EasyPermissions.requestPermissions(
+                                getActivity(),
+                                getString(R.string.tracking_rationale),
+                                Constants.permissions.TRACKING,
+                                Constants.permissions.TRACKING_PERMISSIONS);
                     }
                 } else
                     buildAlertMessageNoGps();

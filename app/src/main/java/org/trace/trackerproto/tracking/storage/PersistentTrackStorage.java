@@ -1,0 +1,438 @@
+package org.trace.trackerproto.tracking.storage;
+
+import android.content.ContentValues;
+import android.content.Context;
+import android.database.Cursor;
+import android.database.DatabaseUtils;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
+import android.provider.BaseColumns;
+import android.util.Log;
+
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
+import org.trace.trackerproto.tracking.storage.data.SerializableLocation;
+import org.trace.trackerproto.tracking.storage.data.SimplifiedTrack;
+import org.trace.trackerproto.tracking.storage.data.Track;
+
+import java.util.ArrayList;
+import java.util.List;
+
+//TODO: integrar elapsedTime e elapsedDistance nas queries
+public class PersistentTrackStorage {
+
+    private TrackStorageDBHelper mDBHelper;
+
+    public PersistentTrackStorage(Context context){
+        mDBHelper = new TrackStorageDBHelper(context);
+    }
+
+    /* Constructors
+    /* Constructors
+    /* Constructors
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+
+    /**
+     * Create a new track entry.
+     * @param session The track's session identifier.
+     * @param isValid If the session was provided by the TraceStore server.
+     *
+     * @return The track's identifier.
+     */
+    public long createTrack(String session, boolean isValid){
+
+        SQLiteDatabase db = mDBHelper.getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put(TraceEntry.COLUMN_NAME_SESSION, session);
+        values.put(TraceEntry.COLUMN_NAME_IS_CLOSED, 0);
+        values.put(TraceEntry.COLUMN_NAME_IS_VALID, (isValid ? 1 : 0));
+        values.put(TraceEntry.COLUMN_NAME_ELAPSED_TIME, 0);
+        values.put(TraceEntry.COLUMN_NAME_ELAPSED_DISTANCE, 0);
+
+        return db.insert(TraceEntry.TABLE_NAME_TRACKS,null,values);
+    }
+
+    // TODO: sempre que uma nova localização é adicionada é actualizado o elapsed time e distance.
+    /**
+     * Stores a new location, which is associated with a track.
+     *
+     * @param location The new location.
+     * @param session The session identifier that identifies the track.
+     * @param isRemote True if the session identifier is valid, false otherwise. I.e, if the session is not local.
+     */
+    public void storeLocation(SerializableLocation location, String session, boolean isRemote){
+
+        long trackId;
+
+        if((trackId = getTrackId(session)) == -1)
+            trackId = createTrack(session, isRemote);
+
+        SQLiteDatabase db = mDBHelper.getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put(TraceEntry.COLUMN_NAME_LATITUDE, location.getLatitude());
+        values.put(TraceEntry.COLUMN_NAME_LONGITUDE, location.getLongitude());
+        values.put(TraceEntry.COLUMN_NAME_ATTRIBUTES, location.getSecondaryAttributesAsJson().toString());
+        values.put(TraceEntry.COLUMN_NAME_TIMESTAMP, location.getTimestamp());
+        values.put(TraceEntry.COLUMN_NAME_TRACK_ID, trackId);
+
+
+        db.insert(TraceEntry.TABLE_NAME_TRACES, null, values);
+    }
+
+    /* Getters
+    /* Getters
+    /* Getters
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+
+    /**
+     * Returns the track identifier, given the provided session identifier.
+     * @param session The track's identifier, or -1 if the track was not found.
+     * @return The track's sqlite identifier.
+     */
+    public int getTrackId(String session){
+        int trackId;
+        SQLiteDatabase db = mDBHelper.getReadableDatabase();
+
+        String[] projection = { TraceEntry._ID };
+        String selection = TraceEntry.COLUMN_NAME_SESSION+" = ?";
+        String[] selectionArgs = { session };
+
+        Cursor c = db.query(true, TraceEntry.TABLE_NAME_TRACKS, projection, selection, selectionArgs, null, null, null, null);
+
+        if(!c.moveToFirst()){
+            db.close();
+            return -1;
+        }
+
+        trackId = c.getInt(c.getColumnIndex(TraceEntry._ID));
+
+        db.close();
+
+        return trackId;
+    }
+
+    /**
+     * Fetches a track as a Track object, given the provided session identifier.
+     * @param session The session identifier
+     * @return The Track
+     * @see Track
+     */
+    public Track getTrack(String session){
+
+        SQLiteDatabase db = mDBHelper.getReadableDatabase();
+
+        String[] selectionArgs = { session };
+
+        Cursor c = db.rawQuery(ContractHelper.SQL_RAW_QUERY_COMPLETE_TRACKS_2, selectionArgs);
+
+        if(!c.moveToFirst()) return null;
+
+        boolean isClosed, isValid;
+        String storedSession;
+
+        storedSession  = c.getString(c.getColumnIndex(TraceEntry.COLUMN_NAME_SESSION));
+
+        isClosed= c.getInt(c.getColumnIndex(TraceEntry.COLUMN_NAME_IS_CLOSED)) == 0 ? false : true;
+        isValid = c.getInt(c.getColumnIndex(TraceEntry.COLUMN_NAME_IS_VALID)) == 0 ? false : true;
+
+        Track track = new Track();
+        track.setSessionId(storedSession);
+        if(isClosed) track.upload();
+        track.setIsValid(isValid);
+
+        JsonParser parser = new JsonParser();
+        SerializableLocation location;
+        do {
+            location = new SerializableLocation();
+
+            location.setLatitude(c.getDouble(c.getColumnIndex(TraceEntry.COLUMN_NAME_LATITUDE)));
+            location.setLongitude(c.getDouble(c.getColumnIndex(TraceEntry.COLUMN_NAME_LONGITUDE)));
+            location.setTimestamp(c.getLong(c.getColumnIndex(TraceEntry.COLUMN_NAME_TIMESTAMP)));
+
+            String attributes = c.getString(c.getColumnIndex(TraceEntry.COLUMN_NAME_ATTRIBUTES));
+            location.setSecondaryAttributes((JsonObject) parser.parse(attributes));
+
+            track.addTracedLocation(location);
+
+        }while (c.moveToNext());
+
+        db.close();
+
+        return track;
+    }
+
+    /**
+     * Fetches a list of all stored tracks. These are provided as simplified Tracks that contain only
+     * top level information.
+     * @return List of simplified tracks
+     * @see SimplifiedTrack
+     */
+    public List<SimplifiedTrack> getTracksSessions(){
+
+        List<SimplifiedTrack> simplifiedTracks = new ArrayList<>();
+        SQLiteDatabase db = mDBHelper.getReadableDatabase();
+
+        String[] projection = {
+                TraceEntry.COLUMN_NAME_SESSION,
+                TraceEntry.COLUMN_NAME_IS_CLOSED,
+                TraceEntry.COLUMN_NAME_IS_VALID
+        };
+
+
+        Cursor c = db.query(true, TraceEntry.TABLE_NAME_TRACKS, projection, "", null, "", "", "", "");
+
+
+
+        if(c.moveToFirst()) {
+
+            boolean isClosed, isValid;
+            String session;
+            do {
+                session = c.getString(c.getColumnIndex(TraceEntry.COLUMN_NAME_SESSION));
+
+                isClosed= c.getInt(c.getColumnIndex(TraceEntry.COLUMN_NAME_IS_CLOSED)) == 1 ? true : false;
+                isValid = c.getInt(c.getColumnIndex(TraceEntry.COLUMN_NAME_IS_VALID)) == 1 ? true : false;
+
+                simplifiedTracks.add(new SimplifiedTrack(session, isClosed, isValid));
+
+            } while (c.moveToNext());
+        }
+
+        db.close();
+
+        return simplifiedTracks;
+    }
+
+    /**
+     * Returns the number of tracks currently stored in the database.
+     * @return The tracks count.
+     */
+    public int getTracksCount(){
+
+        int count;
+        SQLiteDatabase db = mDBHelper.getReadableDatabase();
+        count = (int) DatabaseUtils.queryNumEntries(db, TraceEntry.TABLE_NAME_TRACKS,"", null);
+
+        return count;
+    }
+
+    public int getTracksCount(boolean isClosed){
+
+        int count;
+        SQLiteDatabase db = mDBHelper.getReadableDatabase();
+        count = (int) DatabaseUtils.queryNumEntries(
+                db,
+                TraceEntry.TABLE_NAME_TRACKS,
+                TraceEntry.COLUMN_NAME_IS_CLOSED+"=?",
+                new String[]{String.valueOf((isClosed ? 1 : 0))});
+
+        return count;
+    }
+
+
+    /* Updaters
+    /* Updaters
+    /* Updaters
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+
+    public boolean updateTrackSession(String oldSession, String newSession){
+
+        int trackId = getTrackId(oldSession);
+
+        if(trackId == -1) return false;
+
+        SQLiteDatabase db = mDBHelper.getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put(TraceEntry.COLUMN_NAME_SESSION, newSession);
+        values.put(TraceEntry.COLUMN_NAME_IS_VALID, 1);
+
+        String selection = TraceEntry._ID + "= ?";
+        String[] selectionArgs = {String.valueOf(trackId)};
+
+        int count = db.update(TraceEntry.TABLE_NAME_TRACKS, values, selection, selectionArgs);
+
+        db.close();
+
+        return count > 0;
+    }
+
+    public boolean uploadTrack(String session){
+
+        int trackId = getTrackId(session);
+
+        if(trackId == -1) return false;
+
+        SQLiteDatabase db = mDBHelper.getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put(TraceEntry.COLUMN_NAME_IS_CLOSED, 1);
+
+        String selection = TraceEntry._ID + "= ?";
+        String[] selectionArgs = {String.valueOf(trackId)};
+
+        int count = db.update(TraceEntry.TABLE_NAME_TRACKS, values, selection, selectionArgs);
+
+        db.close();
+
+        return count > 0;
+    }
+
+
+    public boolean deleteTrackById(String session){
+        int trackId = getTrackId(session);
+
+        if(trackId == -1) return false;
+
+        SQLiteDatabase db = mDBHelper.getWritableDatabase();
+
+        String selection = TraceEntry._ID + " = ?";
+        String[] selectionArgs = {String.valueOf(trackId)};
+
+        int affected = db.delete(TraceEntry.TABLE_NAME_TRACKS, selection, selectionArgs);
+        Log.d("DELETED", "Rows deleted with session "+ session+" : "+String.valueOf(affected));
+
+        db.close();
+
+        return affected > 0;
+    }
+
+    /* Checks
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+
+    public boolean trackExists(String session){
+        int trackId = getTrackId(session);
+        return trackId != -1;
+    }
+
+
+    /* DB Helpers
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+    private class TrackStorageDBHelper extends SQLiteOpenHelper {
+
+        public static final int DATABASE_VERSION = 2;
+        public static final String DATABASE_NAME = "TraceTracker.db";
+
+        public TrackStorageDBHelper(Context context){
+            super(context, DATABASE_NAME, null, DATABASE_VERSION);
+        }
+
+        @Override
+        public void onCreate(SQLiteDatabase db) {
+            db.execSQL(ContractHelper.SQL_CREATE_TRACKS);
+            db.execSQL(ContractHelper.SQL_CREATE_TRACES);
+        }
+
+        @Override
+        public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+            db.execSQL(ContractHelper.SQL_DELETE_TRACES_TABLE);
+            db.execSQL(ContractHelper.SQL_DELETE_TRACKS_TABLE);
+            onCreate(db);
+        }
+
+        @Override
+        public void onDowngrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+            onUpgrade(db, oldVersion, newVersion);
+        }
+    }
+
+
+
+    public static abstract class TraceEntry implements BaseColumns {
+        public static final String TABLE_NAME_TRACKS = "tracks";
+        public static final String TABLE_NAME_TRACES = "traces";
+
+        public static final String COLUMN_NAME_SESSION = "localSession";
+        public static final String COLUMN_NAME_IS_VALID = "isValid";
+        public static final String COLUMN_NAME_IS_CLOSED = "isClosed";
+        public static final String COLUMN_NAME_ELAPSED_TIME = "elapsedTime";
+        public static final String COLUMN_NAME_ELAPSED_DISTANCE = "elapsedDistance";
+
+        public static final String COLUMN_NAME_LATITUDE = "latitude";
+        public static final String COLUMN_NAME_LONGITUDE = "longitude";
+        public static final String COLUMN_NAME_TIMESTAMP = "timestamp";
+        public static final String COLUMN_NAME_ATTRIBUTES = "attributes";
+        public static final String COLUMN_NAME_TRACK_ID = "trackId";
+    }
+
+    private interface ContractHelper {
+        String TEXT_TYPE        = " TEXT";
+        String IDENTIFIER_TYPE  = " INTEGER PRIMARY KEY AUTOINCREMENT";
+        String DOUBLE_TYPE      = " DOUBLE";
+        String DATE_TYPE        = " LONG";
+        String BOOLEAN_TYPE     = " INTEGER DEFAULT 0";
+        String INT_TYPE         = " INTEGER";
+
+        String SEPARATOR = ", ";
+
+        String SQL_CREATE_TRACKS =
+                "CREATE TABLE "+TraceEntry.TABLE_NAME_TRACKS +" ( " +
+                        TraceEntry._ID + " "                + IDENTIFIER_TYPE   + SEPARATOR +
+                        TraceEntry.COLUMN_NAME_SESSION      + TEXT_TYPE         + SEPARATOR +
+                        TraceEntry.COLUMN_NAME_IS_VALID     + BOOLEAN_TYPE      + SEPARATOR +
+                        TraceEntry.COLUMN_NAME_IS_CLOSED    + BOOLEAN_TYPE      + SEPARATOR +
+                        TraceEntry.COLUMN_NAME_ELAPSED_TIME + DOUBLE_TYPE       + SEPARATOR +
+                        TraceEntry.COLUMN_NAME_ELAPSED_DISTANCE + DOUBLE_TYPE + ")";
+
+        String SQL_CREATE_TRACES =
+                "CREATE TABLE "+TraceEntry.TABLE_NAME_TRACES +" ("+
+                        TraceEntry._ID + " "                + IDENTIFIER_TYPE   + SEPARATOR +
+                        TraceEntry.COLUMN_NAME_LATITUDE     + DOUBLE_TYPE       + SEPARATOR +
+                        TraceEntry.COLUMN_NAME_LONGITUDE    + DOUBLE_TYPE       + SEPARATOR +
+                        TraceEntry.COLUMN_NAME_ATTRIBUTES   + TEXT_TYPE         + SEPARATOR +
+                        TraceEntry.COLUMN_NAME_TIMESTAMP    + DATE_TYPE         + SEPARATOR +
+                        TraceEntry.COLUMN_NAME_TRACK_ID     + INT_TYPE          + SEPARATOR +
+                        " FOREIGN KEY ( "+TraceEntry.COLUMN_NAME_TRACK_ID+" ) REFERENCES "+TraceEntry.TABLE_NAME_TRACKS+ " ( "+TraceEntry._ID+" ) ON DELETE CASCADE)";
+
+        String SQL_DELETE_TRACKS_TABLE =
+                "DROP TABLE IF EXISTS " + TraceEntry.TABLE_NAME_TRACKS;
+
+        String SQL_DELETE_TRACES_TABLE =
+                "DROP TABLE IF EXISTS " + TraceEntry.TABLE_NAME_TRACES;
+
+        /*
+        String SQL_RAW_QUERY_COMPLETE_TRACKS =
+                "SELECT "+
+                        TraceEntry.COLUMN_NAME_LATITUDE         + SEPARATOR +
+                        TraceEntry.COLUMN_NAME_LONGITUDE        + SEPARATOR +
+                        TraceEntry.COLUMN_NAME_TIMESTAMP        + SEPARATOR +
+                        TraceEntry.COLUMN_NAME_ATTRIBUTES       + SEPARATOR +
+                        TraceEntry.COLUMN_NAME_SESSION          + SEPARATOR +
+                        TraceEntry.COLUMN_NAME_SESSION          + SEPARATOR +
+                        TraceEntry.COLUMN_NAME_IS_CLOSED        +
+                        " FROM "+TraceEntry.TABLE_NAME_TRACKS+ " NATURAL JOIN "+ TraceEntry.TABLE_NAME_TRACES +
+                        " WHERE "+TraceEntry.COLUMN_NAME_SESSION + " = ?";
+        */
+
+        String SQL_RAW_QUERY_COMPLETE_TRACKS_2 =
+                "SELECT "+
+                        TraceEntry.COLUMN_NAME_LATITUDE         + SEPARATOR +
+                        TraceEntry.COLUMN_NAME_LONGITUDE        + SEPARATOR +
+                        TraceEntry.COLUMN_NAME_TIMESTAMP        + SEPARATOR +
+                        TraceEntry.COLUMN_NAME_ATTRIBUTES       + SEPARATOR +
+                        TraceEntry.COLUMN_NAME_SESSION          + SEPARATOR +
+                        TraceEntry.COLUMN_NAME_IS_CLOSED        + SEPARATOR +
+                        TraceEntry.COLUMN_NAME_IS_VALID         +
+                        " FROM "+TraceEntry.TABLE_NAME_TRACKS+ " INNER JOIN "+ TraceEntry.TABLE_NAME_TRACES +
+                        " ON "+TraceEntry.TABLE_NAME_TRACKS+"."+TraceEntry._ID+"="+TraceEntry.TABLE_NAME_TRACES+"."+TraceEntry.COLUMN_NAME_TRACK_ID+
+                        " WHERE "+TraceEntry.COLUMN_NAME_SESSION + " = ?";
+    }
+}

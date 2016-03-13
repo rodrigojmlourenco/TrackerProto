@@ -16,15 +16,15 @@ public class TrackingProfile {
 
     //Fused Location Module
     private int locationDisplacementThreshold   = 2; //meters
-    private long locationInterval               = 10000;
-    private long locationFastInterval           = 5000;
+    private long locationInterval               = 3500;
+    private long locationFastInterval           = 1500;
     private int locationTrackingPriority        = LocationRequest.PRIORITY_HIGH_ACCURACY;
     private float locationMinimumAccuracy       = 40f;
     private float locationMaximumSpeed          = 55.56f;
     private HeuristicBasedFilter[] locationEnabledOutlierFilters = new HeuristicBasedFilter[]{};
 
     //Activity Recognition
-    private long arInterval             = 1000;
+    private long arInterval             = 3000;
     private int arMinimumConfidence     = 75;
 
     //Uploading

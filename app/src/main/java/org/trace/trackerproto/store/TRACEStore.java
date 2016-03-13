@@ -18,7 +18,10 @@ import org.trace.trackerproto.store.exceptions.RemoteTraceException;
 import org.trace.trackerproto.store.exceptions.UnableToCloseSessionTokenExpiredException;
 import org.trace.trackerproto.store.exceptions.UnableToPerformLogin;
 import org.trace.trackerproto.store.exceptions.UnableToSubmitTrackTokenExpiredException;
-import org.trace.trackerproto.tracking.data.Track;
+import org.trace.trackerproto.tracking.storage.data.Track;
+
+import java.math.BigInteger;
+import java.security.SecureRandom;
 
 import static us.monoid.web.Resty.content;
 
@@ -46,12 +49,17 @@ public class TRACEStore extends IntentService{
 
         track = intent.getParcelableExtra(Constants.TRACK_EXTRA);
 
-        postUserFeedback("Uploading track with session '"+track.getSessionId()+"'...");
+        if(!track.isLocalOnly()) {
+            postUserFeedback("This track has already been uploaded.");
+            return;
+        }else
+            postUserFeedback("Uploading track with session '"+track.getSessionId()+"'...");
 
         try {
-            mHttpClient.submitTrackAndCloseSession(authManager.getAuthenticationToken(), track);
-
-            postUserFeedback("Track successfully posted.");
+            if(mHttpClient.submitTrackAndCloseSession(authManager.getAuthenticationToken(), track))
+                postUserFeedback("Track successfully posted.");
+            else
+                postUserFeedback("Track was not successfully posted.");
 
         } catch (RemoteTraceException e) {
             e.printStackTrace();
@@ -62,8 +70,12 @@ public class TRACEStore extends IntentService{
             login(authManager.getUsername(), authManager.getPassword());
 
             try {
-                mHttpClient.submitTrackAndCloseSession(authManager.getAuthenticationToken(), track);
-                postUserFeedback("Track successfully posted.");
+
+                if(mHttpClient.submitTrackAndCloseSession(authManager.getAuthenticationToken(), track))
+                    postUserFeedback("Track successfully posted.");
+                else
+                    postUserFeedback("Track was not successfully posted.");
+
             } catch (RemoteTraceException | UnableToCloseSessionTokenExpiredException | UnableToSubmitTrackTokenExpiredException e1) {
                 e1.printStackTrace();
                 postUserFeedback("Track was not posted because " + e.getMessage());
@@ -184,18 +196,21 @@ public class TRACEStore extends IntentService{
             e.printStackTrace();
         } catch (AuthTokenIsExpiredException e) {
             Log.i(LOG_TAG, "Session request failed due to expired authentication token, requesting new one...");
-            login(authManager.getUsername(), authManager.getPassword());
+
+            try {
+                login(authManager.getUsername(), authManager.getPassword());
+                session = mHttpClient.requestTrackingSession(authToken);
+            } catch (AuthTokenIsExpiredException e1) {
+                e1.printStackTrace();
+            }
 
         }finally {
 
-            if(session.isEmpty()){
-                try {
-                    session = mHttpClient.requestTrackingSession(authToken);
-                    TRACEStoreApiClient.setSessionId(session);
-                } catch (RemoteTraceException | AuthTokenIsExpiredException e) {
-                    e.printStackTrace();
-                    throw new RemoteTraceException("InitiateSession", e.getMessage());
-                }
+            if(session.isEmpty()){ //Create fake session
+                Log.i(LOG_TAG, "Unable to acquire session due to connectivity problems, proceeding with fake one...");
+                SecureRandom random = new SecureRandom();
+                session = new BigInteger(130, random).toString(16);
+                TRACEStoreApiClient.setSessionId("local_"+session, false);
             }
         }
     }

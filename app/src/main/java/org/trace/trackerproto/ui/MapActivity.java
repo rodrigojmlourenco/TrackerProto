@@ -15,17 +15,15 @@ import org.mapsforge.map.android.util.AndroidUtil;
 import org.mapsforge.map.android.view.MapView;
 import org.mapsforge.map.datastore.MapDataStore;
 import org.mapsforge.map.layer.cache.TileCache;
-import org.mapsforge.map.layer.overlay.Marker;
 import org.mapsforge.map.layer.overlay.Polyline;
 import org.mapsforge.map.layer.renderer.TileRendererLayer;
 import org.mapsforge.map.reader.MapFile;
 import org.mapsforge.map.rendertheme.InternalRenderTheme;
 import org.trace.trackerproto.Constants;
 import org.trace.trackerproto.R;
-import org.trace.trackerproto.tracking.data.SerializableLocation;
-import org.trace.trackerproto.tracking.data.Track;
-import org.trace.trackerproto.tracking.storage.TrackInternalStorage;
-import org.trace.trackerproto.tracking.storage.exceptions.UnableToLoadStoredTrackException;
+import org.trace.trackerproto.tracking.storage.PersistentTrackStorage;
+import org.trace.trackerproto.tracking.storage.data.SerializableLocation;
+import org.trace.trackerproto.tracking.storage.data.Track;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -48,9 +46,13 @@ public class MapActivity extends AppCompatActivity implements EasyPermissions.Pe
 
     private Track mTrack;
 
+    private PersistentTrackStorage mTrackStorage;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        mTrackStorage = new PersistentTrackStorage(this);
 
         AndroidGraphicFactory.createInstance(this.getApplication());
 
@@ -70,12 +72,7 @@ public class MapActivity extends AppCompatActivity implements EasyPermissions.Pe
 
         Intent i = getIntent();
         if(i != null && i.hasExtra(Constants.TRACK_KEY)){
-            try {
-                mTrack = TrackInternalStorage.loadTracedTrack(this, i.getStringExtra(Constants.TRACK_KEY));
-            } catch (UnableToLoadStoredTrackException e) {
-                e.printStackTrace();
-                mTrack = null;
-            }
+            mTrack = mTrackStorage.getTrack(i.getStringExtra(Constants.TRACK_KEY));
         }
 
     }

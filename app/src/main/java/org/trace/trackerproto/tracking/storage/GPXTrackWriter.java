@@ -6,111 +6,37 @@ import android.util.Log;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 
-import org.json.JSONObject;
-import org.trace.trackerproto.tracking.data.SerializableLocation;
-import org.trace.trackerproto.tracking.data.Track;
-import org.trace.trackerproto.tracking.storage.exceptions.UnableToLoadStoredTrackException;
-import org.trace.trackerproto.tracking.storage.exceptions.UnableToStoreTrackException;
+import org.trace.trackerproto.tracking.storage.data.SerializableLocation;
+import org.trace.trackerproto.tracking.storage.data.Track;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.OptionalDataException;
-import java.io.OutputStream;
-import java.io.StreamCorruptedException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
-import java.util.List;
 
-/**
- * @author Rodrigo Lourenço
- * @version 1.0
- *
- * Created by Rodrigo Lourenço on 22/02/2016.
- */
-public class TrackInternalStorage {
-
-    private static final String BASE_DIR = "tracks/";
-    private static final String PREFIX = "track_";
-
-    public static void storeTracedTrack(Context context, String sessionId, Track track) throws UnableToStoreTrackException {
+public class GPXTrackWriter {
 
 
-        FileOutputStream fos = null;
-        ObjectOutputStream oos = null;
-        String filename = String.valueOf(System.currentTimeMillis());
+    public static final String GPX_EXTENSION = ".gpx";
+
+    public void writeGPXToInternalStorage(Context context, String sessionId, String gpx){
 
         try {
-            fos = context.openFileOutput(PREFIX + filename, Context.MODE_PRIVATE);
-            oos = new ObjectOutputStream(fos);
-
-            oos.writeObject(track);
-
+            FileOutputStream fos = context.openFileOutput(sessionId+GPX_EXTENSION, Context.MODE_PRIVATE);
+            fos.write(gpx.getBytes());
+            fos.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
-            throw new UnableToStoreTrackException(e.getMessage());
-        } finally {
-            try {
-                if(oos != null){
-
-                    oos.close();
-
-                    if(fos != null)
-                        fos.close();
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
         }
-    }
-
-    public static Track loadTracedTrack(Context context, String sessionId) throws UnableToLoadStoredTrackException {
-
-        Track track;
-
-        try {
-            FileInputStream fis = context.openFileInput(PREFIX + sessionId);
-            ObjectInputStream ois = new ObjectInputStream(fis);
-
-            track = (Track) ois.readObject();
-
-            ois.close();
-            fis.close();
-
-        } catch (ClassNotFoundException | IOException e) {
-            e.printStackTrace();
-            throw new UnableToLoadStoredTrackException(e.getMessage());
-        }
-
-        return track;
-    }
-
-    public static List<String> listStoredTracks(Context context){
-
-        List<String> files = new ArrayList<>();
-
-        for(String fn : Arrays.asList(context.fileList())){
-            if(fn.startsWith(PREFIX))
-                files.add(fn);
-        }
-
-        return files;
-    }
-
-    public static void removeStoreTrack(Context context, String sessionId){
-        context.deleteFile(PREFIX + sessionId);
     }
 
     private static String getAdditionalInfo(SerializableLocation location){
@@ -140,6 +66,19 @@ public class TrackInternalStorage {
         gpx+="\t\t\t</trkpt>";
 
         return gpx;
+    }
+
+    private static boolean isEmptyFile(File f){
+        boolean isEmpty = false;
+
+        try {
+            BufferedReader bf = new BufferedReader(new FileReader(f));
+            isEmpty = (bf.readLine()==null);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return isEmpty;
     }
 
     private static String trackToGPXFile(Track t, File file){
@@ -184,19 +123,6 @@ public class TrackInternalStorage {
         }
 
         return response;
-    }
-
-    private static boolean isEmptyFile(File f){
-        boolean isEmpty = false;
-
-        try {
-            BufferedReader bf = new BufferedReader(new FileReader(f));
-            isEmpty = (bf.readLine()==null);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        return isEmpty;
     }
 
     public static String exportAsGPX(Context context, Track track) {

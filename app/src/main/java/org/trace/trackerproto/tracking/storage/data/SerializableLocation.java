@@ -1,4 +1,4 @@
-package org.trace.trackerproto.tracking.data;
+package org.trace.trackerproto.tracking.storage.data;
 
 import android.location.Location;
 import android.os.Build;
@@ -38,7 +38,8 @@ public class SerializableLocation implements Serializable, Parcelable{
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
             this.elapsedNanos = location.getElapsedRealtimeNanos();
-        }
+        }else
+            this.elapsedNanos = location.getTime();
     }
 
     protected SerializableLocation(Parcel in) {
@@ -140,7 +141,7 @@ public class SerializableLocation implements Serializable, Parcelable{
 
 
     public String getActivityMode() {
-        return activityMode;
+        return activityMode  == null ? "null" : activityMode;
     }
 
     public void setActivityMode(String activityMode) {
@@ -167,12 +168,35 @@ public class SerializableLocation implements Serializable, Parcelable{
         attributes.addProperty(Constants.store.attributes.SPEED, getSpeed());
         attributes.addProperty(Constants.store.attributes.BEARING, getBearing());
         attributes.addProperty(Constants.store.attributes.ALTITUDE, getAltitude());
-        attributes.addProperty(Constants.store.attributes.ELAPSED_NANOS, getProvider());
+        attributes.addProperty(Constants.store.attributes.ELAPSED_NANOS, getElapsedNanos());
         attributes.addProperty(Constants.store.attributes.PROVIDER, getProvider());
         attributes.addProperty(Constants.store.attributes.ACTIVITY, getActivityMode());
         return  attributes;
     }
 
+    public void setSecondaryAttributes(JsonObject secondaryAttributes){
+
+        if (secondaryAttributes.has(Constants.store.attributes.ACCURACY))
+            accuracy = secondaryAttributes.get(Constants.store.attributes.ACCURACY).getAsFloat();
+
+        if (secondaryAttributes.has(Constants.store.attributes.SPEED))
+            speed = secondaryAttributes.get(Constants.store.attributes.SPEED).getAsFloat();
+
+        if (secondaryAttributes.has(Constants.store.attributes.BEARING))
+            bearing = secondaryAttributes.get(Constants.store.attributes.BEARING).getAsFloat();
+
+        if (secondaryAttributes.has(Constants.store.attributes.ALTITUDE))
+            altitude = secondaryAttributes.get(Constants.store.attributes.ALTITUDE).getAsFloat();
+
+        if (secondaryAttributes.has(Constants.store.attributes.ELAPSED_NANOS))
+            elapsedNanos = secondaryAttributes.get(Constants.store.attributes.ELAPSED_NANOS).getAsLong();
+
+        if (secondaryAttributes.has(Constants.store.attributes.PROVIDER))
+            provider = secondaryAttributes.get(Constants.store.attributes.PROVIDER).getAsString();
+
+        if (secondaryAttributes.has(Constants.store.attributes.ACTIVITY))
+            activityMode = secondaryAttributes.get(Constants.store.attributes.ACTIVITY).getAsString();
+    }
 
     @Override
     public int describeContents() {

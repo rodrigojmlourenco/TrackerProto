@@ -1,5 +1,6 @@
 package org.trace.trackerproto.store;
 
+import android.content.Context;
 import android.util.Log;
 
 import com.google.gson.JsonArray;
@@ -8,6 +9,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import org.trace.trackerproto.Constants;
+import org.trace.trackerproto.TrackerProto;
 import org.trace.trackerproto.store.exceptions.AuthTokenIsExpiredException;
 import org.trace.trackerproto.store.exceptions.InvalidAuthCredentialsException;
 import org.trace.trackerproto.store.exceptions.LoginFailedException;
@@ -16,8 +18,9 @@ import org.trace.trackerproto.store.exceptions.UnableToCloseSessionTokenExpiredE
 import org.trace.trackerproto.store.exceptions.UnableToPerformLogin;
 import org.trace.trackerproto.store.exceptions.UnableToRequestPostException;
 import org.trace.trackerproto.store.exceptions.UnableToSubmitTrackTokenExpiredException;
-import org.trace.trackerproto.tracking.data.SerializableLocation;
-import org.trace.trackerproto.tracking.data.Track;
+import org.trace.trackerproto.tracking.storage.PersistentTrackStorage;
+import org.trace.trackerproto.tracking.storage.data.SerializableLocation;
+import org.trace.trackerproto.tracking.storage.data.Track;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
@@ -253,23 +256,58 @@ public class HttpClient {
         }
     }
 
-    public void submitTrackAndCloseSession(String authToken, Track track)
+    public boolean submitTrackAndCloseSession(String authToken, Track track)
             throws RemoteTraceException, UnableToCloseSessionTokenExpiredException, UnableToSubmitTrackTokenExpiredException {
 
-        String session = track.getSessionId();
+
+
+        String session, localSession;
+
+        PersistentTrackStorage storage = new PersistentTrackStorage(TrackerProto.getContext());
+
+
+        if(!track.isValid()){
+            Log.d(LOG_TAG, "Session is local, requesting a valid session before proceeding...");
+
+
+
+
+            try {
+                session = requestTrackingSession(authToken);
+
+                localSession = track.getSessionId();
+
+                if(!storage.updateTrackSession(localSession, session))
+                    return false;
+
+
+            } catch (AuthTokenIsExpiredException e) {
+                throw new UnableToCloseSessionTokenExpiredException();
+            }
+        }else{
+            session = track.getSessionId();
+        }
+
+
+
 
         try {
             uploadLocationSequence(authToken, session, track.getTracedTrack());
 
+
             try {
                 closeTrackingSession(authToken, session);
+                storage.uploadTrack(session);
             } catch (AuthTokenIsExpiredException e1) {
                 throw new UnableToCloseSessionTokenExpiredException();
             }
+
 
         } catch (AuthTokenIsExpiredException e) {
             e.printStackTrace();
             throw new UnableToSubmitTrackTokenExpiredException();
         }
+
+        return true;
     }
 }

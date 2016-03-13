@@ -83,12 +83,12 @@ public class TRACETracker extends Service implements CollectorManager, LocationL
     private void startTracking(){
         mTracker.updateSettings();
         mTracker.startLocationUpdates();
-        //mTracker.startActivityUpdates();
+        mTracker.startActivityUpdates();
     }
 
     private void stopTracking(){
         mTracker.stopLocationUpdates();
-        //mTracker.stopActivityUpdates();
+        mTracker.stopActivityUpdates();
     }
 
     private void broadcastCurrentLocation(){

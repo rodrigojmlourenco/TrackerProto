@@ -28,6 +28,7 @@ import android.widget.ListView;
 import org.trace.trackerproto.R;
 import org.trace.trackerproto.store.TRACEStoreApiClient;
 import org.trace.trackerproto.tracking.TRACETracker;
+import org.trace.trackerproto.tracking.storage.PersistentTrackStorage;
 import org.trace.trackerproto.ui.slidingmenu.adapter.NavDrawerListAdapter;
 import org.trace.trackerproto.ui.slidingmenu.model.NavDrawerItem;
 
@@ -37,11 +38,14 @@ import java.util.List;
 
 import pub.devrel.easypermissions.EasyPermissions;
 
-public class MainActivity extends AppCompatActivity implements EasyPermissions.PermissionCallbacks{
+//TODO: update the count of navdraweritem on delete or create track
+public class MainActivity extends AppCompatActivity implements EasyPermissions.PermissionCallbacks, TrackCountListener{
 
     private static final String LOG_TAG = "MainActivity";
     private Fragment mCurrentFragment = null;
 
+    //Storage
+    private PersistentTrackStorage mTrackStorage;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,8 +55,9 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
         if(savedInstanceState!=null)
             updateState(savedInstanceState);
 
-        setupSlidingMenu(savedInstanceState);
+        mTrackStorage = new PersistentTrackStorage(this);
 
+        setupSlidingMenu(savedInstanceState);
     }
 
 
@@ -141,7 +146,10 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
     private ArrayList<NavDrawerItem> navDrawerItems;
     private NavDrawerListAdapter adapter;
 
+
+
     private void setupSlidingMenu(Bundle savedInstanceState){
+
 
         getSupportActionBar().setHomeAsUpIndicator(R.drawable.ic_app);
 
@@ -163,7 +171,7 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
         // Home
         navDrawerItems.add(new NavDrawerItem(navMenuTitles[0], navMenuIcons.getResourceId(0, -1)));
         // Tracks
-        navDrawerItems.add(new NavDrawerItem(navMenuTitles[1], navMenuIcons.getResourceId(1, -1)));
+        navDrawerItems.add(new NavDrawerItem(navMenuTitles[1], navMenuIcons.getResourceId(1, -1), true, String.valueOf(mTrackStorage.getTracksCount())));
         // Settings
         navDrawerItems.add(new NavDrawerItem(navMenuTitles[2], navMenuIcons.getResourceId(2, -1)));
 
@@ -362,10 +370,6 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
     }
 
 
-
-
-
-
     /* Fragment State Management
     /* Fragment State Management
     /* Fragment State Management
@@ -424,5 +428,16 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
             state = mFragmentStates.get(nextKey);
 
         return state;
+    }
+
+    /* Update Track Count
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+
+    @Override
+    public void updateTrackCount(){
+        navDrawerItems.get(1).setCount(String.valueOf(mTrackStorage.getTracksCount()));
     }
 }

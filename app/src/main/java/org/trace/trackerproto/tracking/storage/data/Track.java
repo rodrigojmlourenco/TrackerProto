@@ -1,16 +1,11 @@
-package org.trace.trackerproto.tracking.data;
+package org.trace.trackerproto.tracking.storage.data;
 
 import android.location.Location;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-import com.google.android.gms.location.DetectedActivity;
-
-import org.trace.trackerproto.tracking.modules.activity.ActivityConstants;
-
 import java.io.Serializable;
 import java.util.LinkedList;
-import java.util.List;
 
 /**
  * @version 1.0
@@ -24,6 +19,7 @@ public class Track implements Serializable, Parcelable{
     private double elapsedDistance;
 
     private boolean isLocalOnly;
+    private boolean isValid = false;
 
     public Track(String sessionId, Location location){
 
@@ -39,6 +35,13 @@ public class Track implements Serializable, Parcelable{
         tracedTrack.add(new SerializableLocation(location));
 
         isLocalOnly = true;
+
+    }
+
+    public Track(){
+        tracedTrack = new LinkedList<>();
+        isLocalOnly = true;
+        elapsedDistance = 0;
     }
 
     protected Track(Parcel in) {
@@ -47,6 +50,7 @@ public class Track implements Serializable, Parcelable{
         stopTime = in.readLong();
         elapsedDistance = in.readDouble();
         isLocalOnly = in.readByte() != 0;
+        isValid = in.readByte() != 0;
         tracedTrack = new LinkedList<>();
         in.readTypedList(tracedTrack, SerializableLocation.CREATOR);
     }
@@ -75,6 +79,16 @@ public class Track implements Serializable, Parcelable{
         elapsedDistance += aux.distanceTo(location);
 
         tracedTrack.add(new SerializableLocation(location));
+    }
+
+    public void addTracedLocation(SerializableLocation location){
+
+        if(tracedTrack.isEmpty())
+            startTime = location.getTimestamp();
+
+        stopTime = location.getTimestamp();
+        //TODO: update elapsedDistance;
+        tracedTrack.add(location);
     }
 
     public void addTracedLocation(Location location, String activity){
@@ -139,6 +153,22 @@ public class Track implements Serializable, Parcelable{
     }
 
 
+    public void setStartTime(long startTime) {
+        this.startTime = startTime;
+    }
+
+    public void setStopTime(long stopTime) {
+        this.stopTime = stopTime;
+    }
+
+    public boolean isValid() {
+        return isValid;
+    }
+
+    public void setIsValid(boolean isValid) {
+        this.isValid = isValid;
+    }
+
     @Override
     public int describeContents() {
         return 0;
@@ -151,6 +181,7 @@ public class Track implements Serializable, Parcelable{
         dest.writeLong(stopTime);
         dest.writeDouble(elapsedDistance);
         dest.writeByte((byte) (isLocalOnly ? 1 : 0));
+        dest.writeByte((byte) (isValid ? 1 : 0));
         dest.writeTypedList(tracedTrack);
     }
 }

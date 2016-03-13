@@ -4,9 +4,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.location.Location;
-import android.os.Message;
-import android.os.Messenger;
-import android.os.RemoteException;
 import android.util.Log;
 
 import com.google.android.gms.location.DetectedActivity;
@@ -16,12 +13,12 @@ import org.trace.trackerproto.Constants;
 import org.trace.trackerproto.settings.SettingsManager;
 import org.trace.trackerproto.settings.TrackingProfile;
 import org.trace.trackerproto.store.TRACEStoreApiClient;
-import org.trace.trackerproto.tracking.data.Track;
+import org.trace.trackerproto.tracking.storage.PersistentTrackStorage;
+import org.trace.trackerproto.tracking.storage.data.SerializableLocation;
+import org.trace.trackerproto.tracking.storage.data.Track;
 import org.trace.trackerproto.tracking.modules.activity.ActivityConstants;
 import org.trace.trackerproto.tracking.modules.activity.ActivityRecognitionModule;
 import org.trace.trackerproto.tracking.modules.location.FusedLocationModule;
-import org.trace.trackerproto.tracking.storage.TrackInternalStorage;
-import org.trace.trackerproto.tracking.storage.exceptions.UnableToStoreTrackException;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -58,6 +55,9 @@ public class Tracker extends BroadcastReceiver implements CollectorManager{
     //Settings
     private SettingsManager mSettingsManager;
 
+    //Persistent Storage
+    private PersistentTrackStorage mTrackPersistentStorage;
+
     private Tracker(Context context){
         mContext = context;
 
@@ -72,6 +72,10 @@ public class Tracker extends BroadcastReceiver implements CollectorManager{
 
         //Activity Recognition
         mActivityTrace = new LinkedList<>();
+
+        mTrackPersistentStorage = new PersistentTrackStorage(mContext);
+
+        Log.d("STORAGE", "Tracks stored: "+String.valueOf(mTrackPersistentStorage.getTracksCount()));
     }
 
     protected static Tracker getTracker(Context ctx){
@@ -95,10 +99,11 @@ public class Tracker extends BroadcastReceiver implements CollectorManager{
 
 
     public void updateSettings() {
+
         TrackingProfile profile = mSettingsManager.getTrackingProfile();
 
-
         if(mFusedLocationModule ==null) init();
+
         mFusedLocationModule.setInterval(profile.getLocationInterval());
         mFusedLocationModule.setFastInterval(profile.getLocationFastInterval());
         mFusedLocationModule.setMinimumDisplacement(profile.getLocationDisplacementThreshold());
@@ -115,14 +120,22 @@ public class Tracker extends BroadcastReceiver implements CollectorManager{
     }
 
 
+
     @Override
     public void storeLocation(Location location) {
 
-        if(track == null)
-            track = new Track(TRACEStoreApiClient.getSessionId(), location);
-        else
+        String session = TRACEStoreApiClient.getSessionId();
+
+        if(track == null) {
+            track = new Track(session, location);
+            track.setIsValid(session != null && !session.isEmpty());
+        }else
             track.addTracedLocation(location, (mCurrentActivity == null ? "" : mCurrentActivity.toString()));
 
+        mTrackPersistentStorage.storeLocation(
+                new SerializableLocation(location),
+                session,
+                TRACEStoreApiClient.isValidSession());
 
         synchronized (mLocationLock) {
             mCurrentLocation = location;
@@ -146,12 +159,6 @@ public class Tracker extends BroadcastReceiver implements CollectorManager{
         if(track == null) return;
 
         track.setSessionId(TRACEStoreApiClient.getSessionId());
-
-        try {
-            TrackInternalStorage.storeTracedTrack(mContext, TRACEStoreApiClient.getSessionId(), track);
-        } catch (UnableToStoreTrackException e) {
-            e.printStackTrace();
-        }
     }
 
     public void startActivityUpdates(){
@@ -163,7 +170,6 @@ public class Tracker extends BroadcastReceiver implements CollectorManager{
     public void stopActivityUpdates(){
         mActivityRecognitionModule.stopTracking();
     }
-
 
 
     private void onHandleLocation(Location location){
@@ -261,7 +267,9 @@ public class Tracker extends BroadcastReceiver implements CollectorManager{
             }
         }
 
+        return lastKnown;
 
+        /* TODO: este cenário pode levar a race conditions
         // Scenario 3 - Both scenarios failed
         //              Turn on the FusedLocationModule and wait for mCurrentLocation to be set
         boolean await = true;
@@ -274,7 +282,7 @@ public class Tracker extends BroadcastReceiver implements CollectorManager{
         }while (await);
 
         stopLocationUpdates();
-
         return mCurrentLocation;
+        */
     }
 }

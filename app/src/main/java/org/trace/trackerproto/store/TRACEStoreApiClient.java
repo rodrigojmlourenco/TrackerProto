@@ -11,7 +11,7 @@ import com.google.android.gms.location.DetectedActivity;
 import org.trace.trackerproto.Constants;
 import org.trace.trackerproto.store.api.TRACEStoreOperations;
 import org.trace.trackerproto.store.auth.AuthenticationManager;
-import org.trace.trackerproto.tracking.data.Track;
+import org.trace.trackerproto.tracking.storage.data.Track;
 
 
 public class TRACEStoreApiClient {
@@ -19,9 +19,21 @@ public class TRACEStoreApiClient {
     private static final String LOG_TAG = "TRACEStore";
 
     private static String sessionId;
+    private static boolean isValid;
 
     protected static void setSessionId(String session){
         sessionId = session;
+        isValid = true;
+    }
+
+    protected static void setSessionId(String session, boolean valid){
+        sessionId = session;
+        isValid = valid;
+    }
+
+
+    public static  boolean isValidSession(){
+        return isValid;
     }
 
     public static String getSessionId(){

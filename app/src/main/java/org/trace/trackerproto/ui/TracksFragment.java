@@ -3,10 +3,14 @@ package org.trace.trackerproto.ui;
 import android.Manifest;
 import android.app.Fragment;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.net.ConnectivityManager;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v7.app.AlertDialog;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -19,9 +23,10 @@ import android.widget.Toast;
 import org.trace.trackerproto.Constants;
 import org.trace.trackerproto.R;
 import org.trace.trackerproto.store.TRACEStoreApiClient;
-import org.trace.trackerproto.tracking.data.Track;
-import org.trace.trackerproto.tracking.storage.TrackInternalStorage;
-import org.trace.trackerproto.tracking.storage.exceptions.UnableToLoadStoredTrackException;
+import org.trace.trackerproto.tracking.storage.GPXTrackWriter;
+import org.trace.trackerproto.tracking.storage.PersistentTrackStorage;
+import org.trace.trackerproto.tracking.storage.data.SimplifiedTrack;
+import org.trace.trackerproto.tracking.storage.data.Track;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -31,9 +36,7 @@ import java.util.List;
 
 import pub.devrel.easypermissions.EasyPermissions;
 
-/**
- * Created by Rodrigo Lourenço on 07/03/2016.
- */
+//TODO: migrar na seriablizable storage para a persistant storage
 public class TracksFragment extends Fragment implements EasyPermissions.PermissionCallbacks{
 
     TrackItemAdapter mAdapter;
@@ -41,6 +44,9 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
     //Permissions
     private String[] perms = {  Manifest.permission.READ_EXTERNAL_STORAGE,
                                 Manifest.permission.WRITE_EXTERNAL_STORAGE };
+
+    //Storage
+    private PersistentTrackStorage mTrackStorage;
 
     @Nullable
     @Override
@@ -53,26 +59,21 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        List<String> trackFiles = TrackInternalStorage.listStoredTracks(getActivity());
-        String[] tracks = new String[trackFiles.size()];
+        mTrackStorage = new PersistentTrackStorage(getActivity());
 
-        for(int i=0; i < trackFiles.size(); i++) //Remove the file prefix
-            tracks[i] = trackFiles.get(i).replace("track_", "");
+        List<SimplifiedTrack> simplifiedTracks = mTrackStorage.getTracksSessions();
+        String[] tracks = new String[simplifiedTracks.size()];
+
+        for(int i=0; i < simplifiedTracks.size(); i++) //Remove the file prefix
+            tracks[i] = simplifiedTracks.get(i).getSession();
 
         mAdapter = new TrackItemAdapter(getActivity(), tracks);
         ListView list = (ListView) getView().findViewById(R.id.trackListView);
         list.setAdapter(mAdapter);
+
+        mConnectivityManager = (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
     }
 
-    private String[] fetchTracks(){
-        List<String> trackFiles = TrackInternalStorage.listStoredTracks(getActivity());
-        String[] tracks = new String[trackFiles.size()];
-
-        for(int i=0; i < trackFiles.size(); i++) //Remove the file prefix
-            tracks[i] = trackFiles.get(i).replace("track_", "");
-
-        return tracks;
-    }
 
 
     @Override
@@ -97,20 +98,14 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
         String feedback;
 
         if(!EasyPermissions.hasPermissions(getActivity(), perms)) {
-            EasyPermissions.requestPermissions(this, "Some some", Constants.permissions.EXTERNAL_STORAGE, perms);
-            feedback = "Try again.";
+            EasyPermissions.requestPermissions(this, getString(R.string.export_rationale), Constants.permissions.EXTERNAL_STORAGE, perms);
+            feedback = getString(R.string.try_again);
         }else {
 
             Track track;
 
-
-            try {
-                track = TrackInternalStorage.loadTracedTrack(getActivity(), sessionId);
-                feedback = TrackInternalStorage.exportAsGPX(getActivity(), track);
-            } catch (UnableToLoadStoredTrackException e) {
-                e.printStackTrace();
-                feedback = "Unable to find the track";
-            }
+            track = mTrackStorage.getTrack(sessionId);
+            feedback = GPXTrackWriter.exportAsGPX(getActivity(), track);
         }
 
         Toast.makeText(getActivity(), feedback, Toast.LENGTH_SHORT).show();
@@ -132,12 +127,8 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
 
             int i;
             for(i=0; i < values.length; i++){
-                try {
-                    Track t = TrackInternalStorage.loadTracedTrack(context, values[i]);
-                    tracks.put(values[i], t);
-                } catch (UnableToLoadStoredTrackException e) {
-                    e.printStackTrace();
-                }
+                Track t = mTrackStorage.getTrack(values[i]);
+                tracks.put(values[i], t);
             }
 
             setNotifyOnChange(true);
@@ -181,21 +172,21 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
             DecimalFormat df = new DecimalFormat("#.0");
             final Track t = tracks.get(values.get(position));
             sessionView.setText(t.getSessionId());
-            timeView.setText(df.format(t.getElapsedTime())+"ms");
-            distanceView.setText(df.format(t.getTravelledDistance()) + "m");
+            timeView.setText(df.format(t.getElapsedTime())+getString(R.string.millis));
+            distanceView.setText(df.format(t.getTravelledDistance()) + getString(R.string.meters));
 
             rowView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
 
-                    if(EasyPermissions.hasPermissions(getActivity(), perms)) {
+                    if (EasyPermissions.hasPermissions(getActivity(), perms)) {
                         Toast.makeText(context, tracks.get(values.get(position)).getSessionId(), Toast.LENGTH_LONG).show();
 
                         Intent maps = new Intent(context, MapActivity.class);
                         maps.putExtra(Constants.TRACK_KEY, values.get(position));
                         context.startActivity(maps);
 
-                    }else{
+                    } else {
                         EasyPermissions.requestPermissions(
                                 getActivity(),
                                 getString(R.string.export_rationale),
@@ -208,9 +199,15 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
             deleteBtn.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
+
+
                     String handle = values.get(position);
                     String sessionId = tracks.get(values.get(position)).getSessionId();
-                    TrackInternalStorage.removeStoreTrack(context, handle);
+
+                    mTrackStorage.deleteTrackById(sessionId);
+
+                    ((TrackCountListener)getActivity()).updateTrackCount();
+
                     remove(handle);
                 }
             });
@@ -218,20 +215,12 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
             uploadBtn.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    String sessionId = tracks.get(values.get(position)).getSessionId();
 
-
-                    Track track;
-
-                    try {
-
-                        track = TrackInternalStorage.loadTracedTrack(context, values.get(position));
+                    if(isNetworkConnected()) {
+                        Track track = mTrackStorage.getTrack(values.get(position));
                         TRACEStoreApiClient.uploadWholeTrack(context, track);
-
-                    } catch (UnableToLoadStoredTrackException e) {
-                        e.printStackTrace();
-                        Toast.makeText(context, e.getMessage(), Toast.LENGTH_SHORT).show();
-                    }
+                    }else
+                        buildAlertMessageNoConnectivity();
 
                 }
             });
@@ -245,5 +234,38 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
 
             return rowView;
         }
+    }
+
+    /* Devices Management
+    /* Devices Management
+    /* Devices Management
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+    private ConnectivityManager mConnectivityManager;
+
+    private boolean isNetworkConnected(){
+        return mConnectivityManager.getActiveNetworkInfo() != null;
+    }
+
+    private void buildAlertMessageNoConnectivity() {
+
+        final AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+        builder.setMessage(getString(R.string.network_enable_rationale))
+                .setCancelable(false)
+                .setPositiveButton(getString(R.string.yes), new DialogInterface.OnClickListener() {
+                    public void onClick(@SuppressWarnings("unused") final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
+                        startActivity(new Intent(Settings.ACTION_SETTINGS));
+                    }
+                })
+                .setNegativeButton(getString(R.string.no), new DialogInterface.OnClickListener() {
+                    public void onClick(final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
+                        dialog.cancel();
+                    }
+                });
+
+        final AlertDialog alert = builder.create();
+        alert.show();
     }
 }
