@@ -1,6 +1,5 @@
 package org.trace.trackerproto.store;
 
-import android.content.Context;
 import android.util.Log;
 
 import com.google.gson.JsonArray;
@@ -19,7 +18,7 @@ import org.trace.trackerproto.store.exceptions.UnableToPerformLogin;
 import org.trace.trackerproto.store.exceptions.UnableToRequestPostException;
 import org.trace.trackerproto.store.exceptions.UnableToSubmitTrackTokenExpiredException;
 import org.trace.trackerproto.tracking.storage.PersistentTrackStorage;
-import org.trace.trackerproto.tracking.storage.data.SerializableLocation;
+import org.trace.trackerproto.tracking.storage.data.TraceLocation;
 import org.trace.trackerproto.tracking.storage.data.Track;
 
 import java.io.BufferedReader;
@@ -70,11 +69,11 @@ public class HttpClient {
         }
     }
 
-    private String constructTraceTrack(List<SerializableLocation> locations){
+    private String constructTraceTrack(List<TraceLocation> locations){
         JsonObject traceTrack = new JsonObject();
         JsonArray track = new JsonArray();
 
-        for(SerializableLocation location : locations)
+        for(TraceLocation location : locations)
             track.add(location.getSerializableLocationAsJson());
 
         traceTrack.add("track", track);
@@ -174,10 +173,7 @@ public class HttpClient {
             String authToken= extractAuthToken(response);
             Log.d(LOG_TAG, "Login successful with { authToken: '" + authToken + "'}");
             return authToken;
-        } catch (UnableToRequestPostException e) {
-            e.printStackTrace();
-            throw new UnableToPerformLogin();
-        } catch (AuthTokenIsExpiredException e) {
+        } catch (UnableToRequestPostException | AuthTokenIsExpiredException e) {
             e.printStackTrace();
             throw new UnableToPerformLogin();
         }
@@ -194,10 +190,7 @@ public class HttpClient {
             performPostRequest(urlEndpoint, requestProperties, null);
             Log.d(LOG_TAG, "Logout successful");
 
-        } catch (UnableToRequestPostException e) {
-            e.printStackTrace();
-            throw new RemoteTraceException("Logout", e.getMessage());
-        }catch (AuthTokenIsExpiredException e){
+        } catch (UnableToRequestPostException |AuthTokenIsExpiredException e) {
             e.printStackTrace();
             throw new RemoteTraceException("Logout", e.getMessage());
         }
@@ -237,7 +230,7 @@ public class HttpClient {
         }
     }
 
-    private void uploadLocationSequence(String authToken, String session, List<SerializableLocation> locations)
+    private void uploadLocationSequence(String authToken, String session, List<TraceLocation> locations)
             throws RemoteTraceException, AuthTokenIsExpiredException {
 
         String data = constructTraceTrack(locations);
@@ -249,7 +242,7 @@ public class HttpClient {
 
         try {
             String response = performPostRequest(urlEndpoint, requestProperties, data);
-            validateHttpResponse("UploadTrack", response.toString());
+            validateHttpResponse("UploadTrack", response);
         } catch (UnableToRequestPostException e) {
             e.printStackTrace();
             throw new RemoteTraceException("UploadTrack", e.getMessage());

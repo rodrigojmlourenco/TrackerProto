@@ -6,13 +6,14 @@ import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.os.Trace;
 import android.provider.BaseColumns;
 import android.util.Log;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-import org.trace.trackerproto.tracking.storage.data.SerializableLocation;
+import org.trace.trackerproto.tracking.storage.data.TraceLocation;
 import org.trace.trackerproto.tracking.storage.data.SimplifiedTrack;
 import org.trace.trackerproto.tracking.storage.data.Track;
 
@@ -65,7 +66,7 @@ public class PersistentTrackStorage {
      * @param session The session identifier that identifies the track.
      * @param isRemote True if the session identifier is valid, false otherwise. I.e, if the session is not local.
      */
-    public void storeLocation(SerializableLocation location, String session, boolean isRemote){
+    public void storeLocation(TraceLocation location, String session, boolean isRemote){
 
         long trackId;
 
@@ -78,9 +79,8 @@ public class PersistentTrackStorage {
         values.put(TraceEntry.COLUMN_NAME_LATITUDE, location.getLatitude());
         values.put(TraceEntry.COLUMN_NAME_LONGITUDE, location.getLongitude());
         values.put(TraceEntry.COLUMN_NAME_ATTRIBUTES, location.getSecondaryAttributesAsJson().toString());
-        values.put(TraceEntry.COLUMN_NAME_TIMESTAMP, location.getTimestamp());
+        values.put(TraceEntry.COLUMN_NAME_TIMESTAMP, location.getTime());
         values.put(TraceEntry.COLUMN_NAME_TRACK_ID, trackId);
-
 
         db.insert(TraceEntry.TABLE_NAME_TRACES, null, values);
     }
@@ -106,7 +106,7 @@ public class PersistentTrackStorage {
         String selection = TraceEntry.COLUMN_NAME_SESSION+" = ?";
         String[] selectionArgs = { session };
 
-        Cursor c = db.query(true, TraceEntry.TABLE_NAME_TRACKS, projection, selection, selectionArgs, null, null, null, null);
+        Cursor c = db.query(true, TraceEntry.TABLE_NAME_TRACKS, projection, selection, selectionArgs, "", "", "", "");
 
         if(!c.moveToFirst()){
             db.close();
@@ -132,7 +132,7 @@ public class PersistentTrackStorage {
 
         String[] selectionArgs = { session };
 
-        Cursor c = db.rawQuery(ContractHelper.SQL_RAW_QUERY_COMPLETE_TRACKS_2, selectionArgs);
+        Cursor c = db.rawQuery(ContractHelper.SQL_RAW_QUERY_COMPLETE_TRACKS, selectionArgs);
 
         if(!c.moveToFirst()) return null;
 
@@ -141,22 +141,23 @@ public class PersistentTrackStorage {
 
         storedSession  = c.getString(c.getColumnIndex(TraceEntry.COLUMN_NAME_SESSION));
 
-        isClosed= c.getInt(c.getColumnIndex(TraceEntry.COLUMN_NAME_IS_CLOSED)) == 0 ? false : true;
-        isValid = c.getInt(c.getColumnIndex(TraceEntry.COLUMN_NAME_IS_VALID)) == 0 ? false : true;
+        isClosed= c.getInt(c.getColumnIndex(TraceEntry.COLUMN_NAME_IS_CLOSED)) != 0;
+        isValid = c.getInt(c.getColumnIndex(TraceEntry.COLUMN_NAME_IS_VALID)) != 0;
 
         Track track = new Track();
         track.setSessionId(storedSession);
         if(isClosed) track.upload();
         track.setIsValid(isValid);
+        track.setTravelledDistance(c.getDouble(c.getColumnIndex(TraceEntry.COLUMN_NAME_ELAPSED_DISTANCE)));
 
         JsonParser parser = new JsonParser();
-        SerializableLocation location;
+        TraceLocation location;
         do {
-            location = new SerializableLocation();
+            location = new TraceLocation();
 
             location.setLatitude(c.getDouble(c.getColumnIndex(TraceEntry.COLUMN_NAME_LATITUDE)));
             location.setLongitude(c.getDouble(c.getColumnIndex(TraceEntry.COLUMN_NAME_LONGITUDE)));
-            location.setTimestamp(c.getLong(c.getColumnIndex(TraceEntry.COLUMN_NAME_TIMESTAMP)));
+            location.setTime(c.getLong(c.getColumnIndex(TraceEntry.COLUMN_NAME_TIMESTAMP)));
 
             String attributes = c.getString(c.getColumnIndex(TraceEntry.COLUMN_NAME_ATTRIBUTES));
             location.setSecondaryAttributes((JsonObject) parser.parse(attributes));
@@ -199,8 +200,8 @@ public class PersistentTrackStorage {
             do {
                 session = c.getString(c.getColumnIndex(TraceEntry.COLUMN_NAME_SESSION));
 
-                isClosed= c.getInt(c.getColumnIndex(TraceEntry.COLUMN_NAME_IS_CLOSED)) == 1 ? true : false;
-                isValid = c.getInt(c.getColumnIndex(TraceEntry.COLUMN_NAME_IS_VALID)) == 1 ? true : false;
+                isClosed= c.getInt(c.getColumnIndex(TraceEntry.COLUMN_NAME_IS_CLOSED)) == 1;
+                isValid = c.getInt(c.getColumnIndex(TraceEntry.COLUMN_NAME_IS_VALID)) == 1;
 
                 simplifiedTracks.add(new SimplifiedTrack(session, isClosed, isValid));
 
@@ -290,7 +291,35 @@ public class PersistentTrackStorage {
         return count > 0;
     }
 
+    public boolean updateTravelledDistanceAndTime(String session, double distance, double time){
+        int trackId = getTrackId(session);
 
+        if(trackId == -1) return false;
+
+        SQLiteDatabase db = mDBHelper.getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put(TraceEntry.COLUMN_NAME_ELAPSED_DISTANCE, distance);
+        values.put(TraceEntry.COLUMN_NAME_ELAPSED_TIME, time);
+
+        String selection = TraceEntry._ID + "= ?";
+        String[] selectionArgs = {String.valueOf(trackId)};
+
+        int count = db.update(TraceEntry.TABLE_NAME_TRACKS, values, selection, selectionArgs);
+
+        db.close();
+
+        return count > 0;
+    }
+
+
+    /* Delete
+    /* Delete
+    /* Delete
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
     public boolean deleteTrackById(String session){
         int trackId = getTrackId(session);
 
@@ -408,7 +437,7 @@ public class PersistentTrackStorage {
         String SQL_DELETE_TRACES_TABLE =
                 "DROP TABLE IF EXISTS " + TraceEntry.TABLE_NAME_TRACES;
 
-        /*
+
         String SQL_RAW_QUERY_COMPLETE_TRACKS =
                 "SELECT "+
                         TraceEntry.COLUMN_NAME_LATITUDE         + SEPARATOR +
@@ -416,21 +445,10 @@ public class PersistentTrackStorage {
                         TraceEntry.COLUMN_NAME_TIMESTAMP        + SEPARATOR +
                         TraceEntry.COLUMN_NAME_ATTRIBUTES       + SEPARATOR +
                         TraceEntry.COLUMN_NAME_SESSION          + SEPARATOR +
-                        TraceEntry.COLUMN_NAME_SESSION          + SEPARATOR +
-                        TraceEntry.COLUMN_NAME_IS_CLOSED        +
-                        " FROM "+TraceEntry.TABLE_NAME_TRACKS+ " NATURAL JOIN "+ TraceEntry.TABLE_NAME_TRACES +
-                        " WHERE "+TraceEntry.COLUMN_NAME_SESSION + " = ?";
-        */
-
-        String SQL_RAW_QUERY_COMPLETE_TRACKS_2 =
-                "SELECT "+
-                        TraceEntry.COLUMN_NAME_LATITUDE         + SEPARATOR +
-                        TraceEntry.COLUMN_NAME_LONGITUDE        + SEPARATOR +
-                        TraceEntry.COLUMN_NAME_TIMESTAMP        + SEPARATOR +
-                        TraceEntry.COLUMN_NAME_ATTRIBUTES       + SEPARATOR +
-                        TraceEntry.COLUMN_NAME_SESSION          + SEPARATOR +
                         TraceEntry.COLUMN_NAME_IS_CLOSED        + SEPARATOR +
-                        TraceEntry.COLUMN_NAME_IS_VALID         +
+                        TraceEntry.COLUMN_NAME_IS_VALID         + SEPARATOR +
+                        TraceEntry.COLUMN_NAME_ELAPSED_DISTANCE + SEPARATOR +
+                        TraceEntry.COLUMN_NAME_ELAPSED_TIME     +
                         " FROM "+TraceEntry.TABLE_NAME_TRACKS+ " INNER JOIN "+ TraceEntry.TABLE_NAME_TRACES +
                         " ON "+TraceEntry.TABLE_NAME_TRACKS+"."+TraceEntry._ID+"="+TraceEntry.TABLE_NAME_TRACES+"."+TraceEntry.COLUMN_NAME_TRACK_ID+
                         " WHERE "+TraceEntry.COLUMN_NAME_SESSION + " = ?";

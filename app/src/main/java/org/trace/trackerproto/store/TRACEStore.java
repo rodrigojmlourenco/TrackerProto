@@ -25,6 +25,7 @@ import java.security.SecureRandom;
 
 import static us.monoid.web.Resty.content;
 
+//TODO: refractorização no tratamento de AuthTokenExpired
 public class TRACEStore extends IntentService{
 
     private final String LOG_TAG = this.getClass().getSimpleName();
@@ -41,65 +42,54 @@ public class TRACEStore extends IntentService{
         this.mHttpClient = new HttpClient();
     }
 
+    @Override
+    protected void onHandleIntent(Intent intent) {
 
-    private void performSubmitTrack(Intent intent) {
+        intent.hasExtra(Constants.OPERATION_KEY);
 
-        Track track;
-        if(!intent.hasExtra(Constants.TRACK_EXTRA)) return;
-
-        track = intent.getParcelableExtra(Constants.TRACK_EXTRA);
-
-        if(!track.isLocalOnly()) {
-            postUserFeedback("This track has already been uploaded.");
-            return;
-        }else
-            postUserFeedback("Uploading track with session '"+track.getSessionId()+"'...");
-
+        TRACEStoreOperations op;
         try {
-            if(mHttpClient.submitTrackAndCloseSession(authManager.getAuthenticationToken(), track))
-                postUserFeedback("Track successfully posted.");
-            else
-                postUserFeedback("Track was not successfully posted.");
+            op = TRACEStoreOperations.valueOf(intent.getStringExtra(Constants.OPERATION_KEY));
+        }catch (NullPointerException e){
+            Log.e(LOG_TAG, "Un-parseable operation");
+            return;
+        }
 
-        } catch (RemoteTraceException e) {
-            e.printStackTrace();
-            postUserFeedback("Track was not posted because " + e.getMessage());
-
-        } catch (UnableToSubmitTrackTokenExpiredException e){
-
-            login(authManager.getUsername(), authManager.getPassword());
-
-            try {
-
-                if(mHttpClient.submitTrackAndCloseSession(authManager.getAuthenticationToken(), track))
-                    postUserFeedback("Track successfully posted.");
-                else
-                    postUserFeedback("Track was not successfully posted.");
-
-            } catch (RemoteTraceException | UnableToCloseSessionTokenExpiredException | UnableToSubmitTrackTokenExpiredException e1) {
-                e1.printStackTrace();
-                postUserFeedback("Track was not posted because " + e.getMessage());
-            }
-
-        } catch (UnableToCloseSessionTokenExpiredException e) {
-
-            login(authManager.getUsername(), authManager.getPassword());
-
-            try {
-                mHttpClient.closeTrackingSession(authManager.getAuthenticationToken(), track.getSessionId());
-                postUserFeedback("Track successfully posted.");
-            } catch (RemoteTraceException | AuthTokenIsExpiredException e1) {
-                Log.d(LOG_TAG, "Unable to close session '" + track.getSessionId() + "' due to " + e1.getMessage());
-                postUserFeedback("Track was not posted because " + e.getMessage());
-            }
+        switch (op){
+            case login:
+                performLogin(intent);
+                break;
+            case logout:
+                performLogout(intent);
+                break;
+            case submitTrack:
+                performSubmitTrack(intent);
+                break;
+            case initiateSession:
+                try {
+                    performInitiateSession(intent);
+                } catch (RemoteTraceException e) {
+                    e.printStackTrace();
+                    postUserFeedback(e.getMessage());
+                }
+                break;
+            default:
+                Log.e(LOG_TAG, "Unknown operation "+op);
         }
     }
 
+    /* Authentication Management
+    /* Authentication Management
+    /* Authentication Management
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
 
     private boolean login(String username, String password) throws InvalidAuthCredentialsException {
 
+        String authToken;
         boolean success = false;
-        String authToken = "";
 
         try {
 
@@ -108,10 +98,8 @@ public class TRACEStore extends IntentService{
             Log.i(LOG_TAG, "Login was successful");
             success = true;
 
-        } catch (LoginFailedException e) {
-            e.printStackTrace();
-        } catch (UnableToPerformLogin e) {
-            e.printStackTrace();
+        } catch (LoginFailedException | UnableToPerformLogin e) {
+            Log.e(LOG_TAG, e.getMessage());
         }
 
         if(success && authManager.isFirstTime())
@@ -175,12 +163,18 @@ public class TRACEStore extends IntentService{
 
         try {
             mHttpClient.logout(authToken);
-        } catch (RemoteTraceException e) {
-            e.printStackTrace();
-        } catch (AuthTokenIsExpiredException e){
+        } catch (RemoteTraceException | AuthTokenIsExpiredException e) {
             e.printStackTrace();
         }
     }
+
+    /* Tracking Session Management
+    /* Tracking Session Management
+    /* Tracking Session Management
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
 
     public void performInitiateSession(Intent intent) throws RemoteTraceException {
 
@@ -188,20 +182,25 @@ public class TRACEStore extends IntentService{
 
         String session = "";
         String authToken = authManager.getAuthenticationToken();
+        boolean isValid = false;
 
         try {
+
             session = mHttpClient.requestTrackingSession(authToken);
-            TRACEStoreApiClient.setSessionId(session);
+            isValid = true;
+
         } catch (RemoteTraceException e) {
-            e.printStackTrace();
+            Log.e(LOG_TAG, e.getMessage());
         } catch (AuthTokenIsExpiredException e) {
+
             Log.i(LOG_TAG, "Session request failed due to expired authentication token, requesting new one...");
 
             try {
                 login(authManager.getUsername(), authManager.getPassword());
                 session = mHttpClient.requestTrackingSession(authToken);
+                isValid = true;
             } catch (AuthTokenIsExpiredException e1) {
-                e1.printStackTrace();
+                Log.e(LOG_TAG, e.getMessage());
             }
 
         }finally {
@@ -209,64 +208,77 @@ public class TRACEStore extends IntentService{
             if(session.isEmpty()){ //Create fake session
                 Log.i(LOG_TAG, "Unable to acquire session due to connectivity problems, proceeding with fake one...");
                 SecureRandom random = new SecureRandom();
-                session = new BigInteger(130, random).toString(16);
-                TRACEStoreApiClient.setSessionId("local_"+session, false);
+                session = "local_"+new BigInteger(130, random).toString(16);
+                isValid = true;
+            }
+
+            TRACEStoreApiClient.setSessionId(session, isValid);
+        }
+    }
+
+    /* Information Uploading
+    /* Information Uploading
+    /* Information Uploading
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+
+    private void performSubmitTrack(Intent intent) {
+
+        Track track;
+        if(!intent.hasExtra(Constants.TRACK_EXTRA)) return;
+
+        track = intent.getParcelableExtra(Constants.TRACK_EXTRA);
+
+        //Check if the track has already been uploaded, proceed otherwise.
+        if(!track.isLocalOnly()) {
+            postUserFeedback("This track has already been uploaded.");
+            return;
+        }else
+            postUserFeedback("Uploading track with session '"+track.getSessionId()+"'...");
+
+
+        try {
+            if(mHttpClient.submitTrackAndCloseSession(authManager.getAuthenticationToken(), track))
+                postUserFeedback("Track successfully posted.");
+            else
+                postUserFeedback("Track was not successfully posted.");
+
+        } catch (RemoteTraceException e) {
+            Log.e(LOG_TAG, e.getMessage());
+            postUserFeedback("Track was not posted because " + e.getMessage());
+
+        } catch (UnableToSubmitTrackTokenExpiredException e){
+
+            login(authManager.getUsername(), authManager.getPassword());
+
+            try {
+
+                if(mHttpClient.submitTrackAndCloseSession(authManager.getAuthenticationToken(), track))
+                    postUserFeedback("Track successfully posted.");
+                else
+                    postUserFeedback("Track was not successfully posted.");
+
+            } catch (RemoteTraceException | UnableToCloseSessionTokenExpiredException | UnableToSubmitTrackTokenExpiredException e1) {
+                Log.e(LOG_TAG, e.getMessage());
+                postUserFeedback("Track was not posted because " + e.getMessage());
+            }
+
+        } catch (UnableToCloseSessionTokenExpiredException e) {
+
+            login(authManager.getUsername(), authManager.getPassword());
+
+            try {
+                mHttpClient.closeTrackingSession(authManager.getAuthenticationToken(), track.getSessionId());
+                postUserFeedback("Track successfully posted.");
+            } catch (RemoteTraceException | AuthTokenIsExpiredException e1) {
+                Log.d(LOG_TAG, "Unable to close session '" + track.getSessionId() + "' due to " + e1.getMessage());
+                postUserFeedback("Track was not posted because " + e.getMessage());
             }
         }
     }
 
-    public void performTerminateSession(Intent intent){
-        //TODO
-        throw new UnsupportedOperationException("performSubmitLocation");
-    }
-
-    private void performSubmitLocation(Intent intent){
-        //TODO
-        throw new UnsupportedOperationException("performSubmitLocation");
-    }
-
-
-    @Override
-    protected void onHandleIntent(Intent intent) {
-
-        intent.hasExtra(Constants.OPERATION_KEY);
-
-        TRACEStoreOperations op;
-        try {
-            op = TRACEStoreOperations.valueOf(intent.getStringExtra(Constants.OPERATION_KEY));
-        }catch (NullPointerException e){
-            Log.e(LOG_TAG, "Un-parseable operation");
-            return;
-        }
-
-        switch (op){
-            case login:
-                performLogin(intent);
-                break;
-            case logout:
-                performLogout(intent);
-                break;
-            case submitLocation:
-                performSubmitLocation(intent);
-                break;
-            case submitTrack:
-                performSubmitTrack(intent);
-                break;
-            case initiateSession:
-                try {
-                    performInitiateSession(intent);
-                } catch (RemoteTraceException e) {
-                    e.printStackTrace();
-                    //TODO: broadcast the fail to the HomeFragment
-                }
-                break;
-            case terminateSession:
-                performTerminateSession(intent);
-                break;
-            default:
-                Log.e(LOG_TAG, "Unknown operation "+op);
-        }
-    }
 
     /* User Feedback
     /* User Feedback

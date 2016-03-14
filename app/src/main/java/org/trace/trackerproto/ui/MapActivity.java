@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Environment;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 
 import org.mapsforge.core.graphics.Paint;
@@ -22,7 +23,7 @@ import org.mapsforge.map.rendertheme.InternalRenderTheme;
 import org.trace.trackerproto.Constants;
 import org.trace.trackerproto.R;
 import org.trace.trackerproto.tracking.storage.PersistentTrackStorage;
-import org.trace.trackerproto.tracking.storage.data.SerializableLocation;
+import org.trace.trackerproto.tracking.storage.data.TraceLocation;
 import org.trace.trackerproto.tracking.storage.data.Track;
 
 import java.io.File;
@@ -82,7 +83,7 @@ public class MapActivity extends AppCompatActivity implements EasyPermissions.Pe
         super.onStart();
 
         if(mTrack!=null){
-            SerializableLocation start = mTrack.getStartPosition();
+            TraceLocation start = mTrack.getStartPosition();
             this.mapView.getModel().mapViewPosition.setCenter(new LatLong(start.getLatitude(), start.getLongitude()));
             this.mapView.getModel().mapViewPosition.setZoomLevel((byte) 17);
         }else {
@@ -112,7 +113,7 @@ public class MapActivity extends AppCompatActivity implements EasyPermissions.Pe
 
             // set lat lng for the polyline
             List<LatLong> coordinateList = polyline.getLatLongs();
-            for(SerializableLocation loc : mTrack.getTracedTrack())
+            for(TraceLocation loc : mTrack.getTracedTrack())
                 coordinateList.add(new LatLong(loc.getLatitude(), loc.getLongitude()));
 
 
@@ -155,7 +156,7 @@ public class MapActivity extends AppCompatActivity implements EasyPermissions.Pe
                     inputStream = getResources().openRawResource(R.raw.portugal);
                     outputStream = new FileOutputStream(file);
 
-                    int read = 0;
+                    int read;
                     byte[] bytes = new byte[1024];
 
 
@@ -163,8 +164,6 @@ public class MapActivity extends AppCompatActivity implements EasyPermissions.Pe
                         outputStream.write(bytes, 0, read);
                     }
 
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
                 } catch (IOException e) {
                     e.printStackTrace();
                 } finally {
@@ -195,7 +194,7 @@ public class MapActivity extends AppCompatActivity implements EasyPermissions.Pe
 
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         EasyPermissions.onRequestPermissionsResult(requestCode, permissions, grantResults, this);
     }

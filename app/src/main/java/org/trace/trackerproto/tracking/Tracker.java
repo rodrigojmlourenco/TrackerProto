@@ -14,7 +14,7 @@ import org.trace.trackerproto.settings.SettingsManager;
 import org.trace.trackerproto.settings.TrackingProfile;
 import org.trace.trackerproto.store.TRACEStoreApiClient;
 import org.trace.trackerproto.tracking.storage.PersistentTrackStorage;
-import org.trace.trackerproto.tracking.storage.data.SerializableLocation;
+import org.trace.trackerproto.tracking.storage.data.TraceLocation;
 import org.trace.trackerproto.tracking.storage.data.Track;
 import org.trace.trackerproto.tracking.modules.activity.ActivityConstants;
 import org.trace.trackerproto.tracking.modules.activity.ActivityRecognitionModule;
@@ -124,18 +124,28 @@ public class Tracker extends BroadcastReceiver implements CollectorManager{
     @Override
     public void storeLocation(Location location) {
 
+        boolean isValid;
         String session = TRACEStoreApiClient.getSessionId();
+
+        if(session == null || session.isEmpty()) return;
+
+        isValid = TRACEStoreApiClient.isValidSession();
 
         if(track == null) {
             track = new Track(session, location);
-            track.setIsValid(session != null && !session.isEmpty());
+            track.setIsValid(isValid);
         }else
             track.addTracedLocation(location, (mCurrentActivity == null ? "" : mCurrentActivity.toString()));
 
         mTrackPersistentStorage.storeLocation(
-                new SerializableLocation(location),
+                new TraceLocation(location),
                 session,
                 TRACEStoreApiClient.isValidSession());
+
+        mTrackPersistentStorage.updateTravelledDistanceAndTime(
+                session,
+                track.getTravelledDistance(),
+                track.getElapsedTime());
 
         synchronized (mLocationLock) {
             mCurrentLocation = location;

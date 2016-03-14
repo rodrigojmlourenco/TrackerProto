@@ -15,7 +15,7 @@ public class Track implements Serializable, Parcelable{
 
     private String sessionId;
     private long startTime, stopTime;
-    private LinkedList<SerializableLocation> tracedTrack;
+    private LinkedList<TraceLocation> tracedTrack;
     private double elapsedDistance;
 
     private boolean isLocalOnly;
@@ -32,7 +32,7 @@ public class Track implements Serializable, Parcelable{
 
         elapsedDistance = 0;
 
-        tracedTrack.add(new SerializableLocation(location));
+        tracedTrack.add(new TraceLocation(location));
 
         isLocalOnly = true;
 
@@ -52,7 +52,7 @@ public class Track implements Serializable, Parcelable{
         isLocalOnly = in.readByte() != 0;
         isValid = in.readByte() != 0;
         tracedTrack = new LinkedList<>();
-        in.readTypedList(tracedTrack, SerializableLocation.CREATOR);
+        in.readTypedList(tracedTrack, TraceLocation.CREATOR);
     }
 
     public static final Creator<Track> CREATOR = new Creator<Track>() {
@@ -71,22 +71,22 @@ public class Track implements Serializable, Parcelable{
 
         stopTime = location.getTime();
 
-        SerializableLocation og = tracedTrack.getLast();
+        TraceLocation og = tracedTrack.getLast();
         Location aux = new Location(og.getProvider());
         aux.setLatitude(og.getLatitude());
         aux.setLongitude(og.getLongitude());
 
         elapsedDistance += aux.distanceTo(location);
 
-        tracedTrack.add(new SerializableLocation(location));
+        tracedTrack.add(new TraceLocation(location));
     }
 
-    public void addTracedLocation(SerializableLocation location){
+    public void addTracedLocation(TraceLocation location){
 
         if(tracedTrack.isEmpty())
-            startTime = location.getTimestamp();
+            startTime = location.getTime();
 
-        stopTime = location.getTimestamp();
+        stopTime = location.getTime();
         //TODO: update elapsedDistance;
         tracedTrack.add(location);
     }
@@ -95,14 +95,14 @@ public class Track implements Serializable, Parcelable{
 
         stopTime = location.getTime();
 
-        SerializableLocation og = tracedTrack.getLast();
+        TraceLocation og = tracedTrack.getLast();
         Location aux = new Location(og.getProvider());
         aux.setLatitude(og.getLatitude());
         aux.setLongitude(og.getLongitude());
 
         elapsedDistance += aux.distanceTo(location);
 
-        SerializableLocation loc = new SerializableLocation(location);
+        TraceLocation loc = new TraceLocation(location);
         loc.setActivityMode(activity);
 
         tracedTrack.add(loc);
@@ -120,7 +120,7 @@ public class Track implements Serializable, Parcelable{
         return stopTime;
     }
 
-    public LinkedList<SerializableLocation> getTracedTrack() {
+    public LinkedList<TraceLocation> getTracedTrack() {
         return tracedTrack;
     }
 
@@ -144,11 +144,11 @@ public class Track implements Serializable, Parcelable{
         this.sessionId = sessionId;
     }
 
-    public SerializableLocation getStartPosition(){
+    public TraceLocation getStartPosition(){
         return tracedTrack.getFirst();
     }
 
-    public SerializableLocation getFinalPosition(){
+    public TraceLocation getFinalPosition(){
         return tracedTrack.getLast();
     }
 
@@ -167,6 +167,10 @@ public class Track implements Serializable, Parcelable{
 
     public void setIsValid(boolean isValid) {
         this.isValid = isValid;
+    }
+
+    public void setTravelledDistance(double distance){
+        this.elapsedDistance = distance;
     }
 
     @Override

@@ -7,7 +7,7 @@ import android.util.Log;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
-import org.trace.trackerproto.tracking.storage.data.SerializableLocation;
+import org.trace.trackerproto.tracking.storage.data.TraceLocation;
 import org.trace.trackerproto.tracking.storage.data.Track;
 
 import java.io.BufferedReader;
@@ -32,14 +32,12 @@ public class GPXTrackWriter {
             FileOutputStream fos = context.openFileOutput(sessionId+GPX_EXTENSION, Context.MODE_PRIVATE);
             fos.write(gpx.getBytes());
             fos.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    private static String getAdditionalInfo(SerializableLocation location){
+    private static String getAdditionalInfo(TraceLocation location){
         Gson gson = new Gson();
         JsonObject jsonObject = new JsonObject();
         jsonObject.addProperty("speed", location.getSpeed());
@@ -50,7 +48,7 @@ public class GPXTrackWriter {
         return gson.toJson(jsonObject);
     }
 
-    private static String locationToGpx(SerializableLocation location){
+    private static String locationToGpx(TraceLocation location){
 
         String gpx;
         double latitude, longitude;
@@ -61,7 +59,7 @@ public class GPXTrackWriter {
 
         gpx ="\t\t\t<trkpt lat=\""+latitude+"\" lon=\""+longitude+"\">\n";
         gpx+="\t\t\t\t<ele>"+location.getAltitude()+"</ele>\n";
-        gpx+="\t\t\t\t<time>"+df.format(new Date(location.getTimestamp()))+"</time>\n";
+        gpx+="\t\t\t\t<time>"+df.format(new Date(location.getTime()))+"</time>\n";
         gpx+="\t\t\t\t<cmt>"+getAdditionalInfo(location)+"</cmt>\n";
         gpx+="\t\t\t</trkpt>";
 
@@ -89,7 +87,7 @@ public class GPXTrackWriter {
         String gpx = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>";
         gpx += "<gpx>\n\t<trk><name>"+t.getSessionId()+"</name>\t\t<trkseg>\n";
 
-        for(SerializableLocation location : t.getTracedTrack())
+        for(TraceLocation location : t.getTracedTrack())
             gpx += locationToGpx(location)+"\n";
 
         gpx+="\t\t</trkseg>\t</trk>\n</gpx>";
