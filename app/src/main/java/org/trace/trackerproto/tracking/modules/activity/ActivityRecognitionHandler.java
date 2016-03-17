@@ -33,8 +33,6 @@ public class ActivityRecognitionHandler extends IntentService {
     @Override
     protected void onHandleIntent(Intent intent) {
 
-        Log.d(TAG, "onHandleIntent");
-
         ActivityRecognitionResult result = ActivityRecognitionResult.extractResult(intent);
 
 
@@ -44,14 +42,14 @@ public class ActivityRecognitionHandler extends IntentService {
         ArrayList<DetectedActivity> detectedActivities = (ArrayList) result.getProbableActivities();
 
         // Log each activity.
-        Log.i(TAG, "activities detected");
+        /*Log.i(TAG, "activities detected");
         for (DetectedActivity da: detectedActivities) {
 
             Log.i(TAG, ActivityConstants.getActivityString(
                             getApplicationContext(),
                             da.getType()) + " " + da.getConfidence() + "%"
             );
-        }
+        }*/
 
         // Broadcast the list of detected activities.
         Intent localIntent = new Intent(Constants.COLLECT_ACTION);

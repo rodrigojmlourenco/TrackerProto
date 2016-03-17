@@ -1,9 +1,9 @@
 package org.trace.trackerproto.tracking.filter;
 
-import android.location.Location;
 import android.os.Bundle;
 import android.util.Log;
 
+import org.trace.trackerproto.tracking.storage.data.TraceLocation;
 import org.trace.trackerproto.tracking.utils.LocationUtils;
 
 import java.util.ArrayList;
@@ -27,10 +27,19 @@ public class HeuristicBasedFilter {
         this.heuristicsMap.put(rule.getClass(), heuristics.indexOf(rule));
     }
 
-    public boolean isValidLocation(Location location){
+    public boolean isValidLocation(TraceLocation location){
 
         for(HeuristicRule r : heuristics)
             if(r.isOutlier(location))
+                return false;
+
+        return true;
+    }
+
+    public boolean isValidLocation(TraceLocation current, TraceLocation previous){
+
+        for(HeuristicRule r : heuristics)
+            if(r.isOutlier(current, previous))
                 return false;
 
         return true;
@@ -46,10 +55,14 @@ public class HeuristicBasedFilter {
 
         String LOG_TAG = "Outlier";
 
-        boolean isOutlier(Location location);
+        boolean isOutlier(TraceLocation location);
 
-        boolean isOutlier(Location location, Location previous);
+        boolean isOutlier(TraceLocation location, TraceLocation previous);
+
+        boolean isOutlier(TraceLocation current, TraceLocation previous, TraceLocation earlierThan);
     }
+
+
 
     /**
      * Considers locations to be outliers whenever the location's accuracy
@@ -65,7 +78,7 @@ public class HeuristicBasedFilter {
         }
 
         @Override
-        public boolean isOutlier(Location location) {
+        public boolean isOutlier(TraceLocation location) {
 
             boolean isOutlier = location.getAccuracy() > accuracyThreshold;
 
@@ -75,10 +88,16 @@ public class HeuristicBasedFilter {
         }
 
         @Override
-        public boolean isOutlier(Location location, Location previous) {
+        public boolean isOutlier(TraceLocation location, TraceLocation previous) {
             return  isOutlier(location);
         }
+
+        @Override
+        public boolean isOutlier(TraceLocation current, TraceLocation previous, TraceLocation earlierThan) {
+            return isOutlier(current);
+        }
     }
+
 
     /**
      * Considers locations to be outliers whenever the location's speed
@@ -93,7 +112,7 @@ public class HeuristicBasedFilter {
         }
 
         @Override
-        public boolean isOutlier(Location location) {
+        public boolean isOutlier(TraceLocation location) {
 
             boolean isOutlier = location.getSpeed() > speedThreshold;
 
@@ -103,8 +122,13 @@ public class HeuristicBasedFilter {
         }
 
         @Override
-        public boolean isOutlier(Location location, Location previous) {
+        public boolean isOutlier(TraceLocation location, TraceLocation previous) {
             return  isOutlier(location);
+        }
+
+        @Override
+        public boolean isOutlier(TraceLocation current, TraceLocation previous, TraceLocation earlierThan) {
+            return isOutlier(current);
         }
     }
 
@@ -121,7 +145,7 @@ public class HeuristicBasedFilter {
         }
 
         @Override
-        public boolean isOutlier(Location location) {
+        public boolean isOutlier(TraceLocation location) {
 
             boolean isOutlier;
             Bundle extras = location.getExtras();
@@ -136,8 +160,13 @@ public class HeuristicBasedFilter {
         }
 
         @Override
-        public boolean isOutlier(Location location, Location previous) {
+        public boolean isOutlier(TraceLocation location, TraceLocation previous) {
             return  isOutlier(location);
+        }
+
+        @Override
+        public boolean isOutlier(TraceLocation current, TraceLocation previous, TraceLocation earlierThan) {
+            return isOutlier(current);
         }
     }
 
@@ -155,18 +184,30 @@ public class HeuristicBasedFilter {
         }
 
         @Override
-        public boolean isOutlier(Location location) {
-            return false;
+        public boolean isOutlier(TraceLocation location) {
+
+            throw new UnsupportedOperationException("CalculatedSpeedBasedHeuristicRule can only be applied with at least two locations.");
         }
 
         @Override
-        public boolean isOutlier(Location location, Location previous) {
+        public boolean isOutlier(TraceLocation location, TraceLocation previous) {
+            boolean isOutlier;
             long timeDeltaNanos = location.getElapsedRealtimeNanos() - previous.getElapsedRealtimeNanos();
             float travelledDistance = previous.distanceTo(location);
 
             float speedMS = travelledDistance / (TimeUnit.SECONDS.convert(timeDeltaNanos, TimeUnit.DAYS.NANOSECONDS));
 
-            return speedMS > speedThreshold;
+            isOutlier = speedMS > speedThreshold;
+
+            if(isOutlier)
+                Log.i(LOG_TAG, "Calculated speed is too high");
+
+            return isOutlier;
+        }
+
+        @Override
+        public boolean isOutlier(TraceLocation current, TraceLocation previous, TraceLocation earlierThanPrevious) {
+            return isOutlier(current, previous);
         }
     }
 
@@ -178,13 +219,61 @@ public class HeuristicBasedFilter {
     public static class OverlappingLocationHeuristicRule implements HeuristicRule {
 
         @Override
-        public boolean isOutlier(Location location) {
-            return false;
+        public boolean isOutlier(TraceLocation location) {
+            throw new UnsupportedOperationException(OverlappingLocationHeuristicRule.class.getSimpleName()+" can only be applied with at least two locations.");
+
         }
 
         @Override
-        public boolean isOutlier(Location location, Location previous) {
-            return LocationUtils.areOverlappingLocations(previous,location);
+        public boolean isOutlier(TraceLocation location, TraceLocation previous) {
+            boolean isOutlier =
+                    LocationUtils.areOverlappingLocations(previous,location)
+                        && location.getAccuracy() > previous.getAccuracy();
+
+
+
+            if(isOutlier)
+                Log.i(LOG_TAG, "Overlapping locations");
+
+            return isOutlier;
+        }
+
+        @Override
+        public boolean isOutlier(TraceLocation current, TraceLocation previous, TraceLocation earlierThan) {
+            boolean isOutlier =
+                    LocationUtils.areOverlappingLocations(previous,current)
+                            && current.getAccuracy() > previous.getAccuracy();
+
+
+
+            if(isOutlier)
+                Log.i(LOG_TAG, "Overlapping locations");
+
+            return isOutlier;
         }
     }
+
+    public static class UnrealisticPassThroughSpeed implements HeuristicRule{
+
+        private String errorMessage =
+                getClass().getSimpleName()+" can only be applied with at least three known locations.";
+
+        @Override
+        public boolean isOutlier(TraceLocation location) {
+            throw new UnsupportedOperationException(errorMessage);
+        }
+
+        @Override
+        public boolean isOutlier(TraceLocation location, TraceLocation previous) {
+            throw new UnsupportedOperationException(errorMessage);
+        }
+
+        @Override
+        public boolean isOutlier(TraceLocation current, TraceLocation previous, TraceLocation earlierThan) {
+            return false;
+        }
+    }
+
+    //TODO: converter as locations em TraceLocations
+    //TODO: os ultimos 2 devem ser casos especias uma vez que não correspondem necessáriamente ao modelo dos restantes.!!!
 }

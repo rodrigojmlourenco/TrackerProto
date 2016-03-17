@@ -1,6 +1,5 @@
 package org.trace.trackerproto.tracking.storage.data;
 
-import android.location.Location;
 import android.os.Parcel;
 import android.os.Parcelable;
 
@@ -20,23 +19,6 @@ public class Track implements Serializable, Parcelable{
 
     private boolean isLocalOnly;
     private boolean isValid = false;
-
-    public Track(String sessionId, Location location){
-
-        this.sessionId = sessionId;
-
-        tracedTrack = new LinkedList<>();
-
-        startTime = location.getTime();
-        stopTime  = location.getTime();
-
-        elapsedDistance = 0;
-
-        tracedTrack.add(new TraceLocation(location));
-
-        isLocalOnly = true;
-
-    }
 
     public Track(){
         tracedTrack = new LinkedList<>();
@@ -67,20 +49,6 @@ public class Track implements Serializable, Parcelable{
         }
     };
 
-    public void addTracedLocation(Location location){
-
-        stopTime = location.getTime();
-
-        TraceLocation og = tracedTrack.getLast();
-        Location aux = new Location(og.getProvider());
-        aux.setLatitude(og.getLatitude());
-        aux.setLongitude(og.getLongitude());
-
-        elapsedDistance += aux.distanceTo(location);
-
-        tracedTrack.add(new TraceLocation(location));
-    }
-
     public void addTracedLocation(TraceLocation location){
 
         if(tracedTrack.isEmpty())
@@ -91,33 +59,8 @@ public class Track implements Serializable, Parcelable{
         tracedTrack.add(location);
     }
 
-    public void addTracedLocation(Location location, String activity){
-
-        stopTime = location.getTime();
-
-        TraceLocation og = tracedTrack.getLast();
-        Location aux = new Location(og.getProvider());
-        aux.setLatitude(og.getLatitude());
-        aux.setLongitude(og.getLongitude());
-
-        elapsedDistance += aux.distanceTo(location);
-
-        TraceLocation loc = new TraceLocation(location);
-        loc.setActivityMode(activity);
-
-        tracedTrack.add(loc);
-    }
-
     public String getSessionId() {
         return sessionId;
-    }
-
-    public long getStartTime() {
-        return startTime;
-    }
-
-    public long getStopTime() {
-        return stopTime;
     }
 
     public LinkedList<TraceLocation> getTracedTrack() {
@@ -150,15 +93,6 @@ public class Track implements Serializable, Parcelable{
 
     public TraceLocation getFinalPosition(){
         return tracedTrack.getLast();
-    }
-
-
-    public void setStartTime(long startTime) {
-        this.startTime = startTime;
-    }
-
-    public void setStopTime(long stopTime) {
-        this.stopTime = stopTime;
     }
 
     public boolean isValid() {

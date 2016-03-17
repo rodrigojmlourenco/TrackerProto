@@ -27,6 +27,7 @@ import android.widget.ListView;
 
 import org.trace.trackerproto.R;
 import org.trace.trackerproto.store.TRACEStoreApiClient;
+import org.trace.trackerproto.store.auth.AuthenticationManager;
 import org.trace.trackerproto.tracking.TRACETracker;
 import org.trace.trackerproto.tracking.storage.PersistentTrackStorage;
 import org.trace.trackerproto.ui.slidingmenu.adapter.NavDrawerListAdapter;
@@ -175,6 +176,9 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
         // Settings
         navDrawerItems.add(new NavDrawerItem(navMenuTitles[2], navMenuIcons.getResourceId(2, -1)));
 
+        //LogOut
+        navDrawerItems.add(new NavDrawerItem(navMenuTitles[3], navMenuIcons.getResourceId(3, -1)));
+
         // Recycle the typed array
         navMenuIcons.recycle();
 
@@ -302,6 +306,10 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
             case 2:
                 fragment = new SettingsFragment();
                 break;
+            case 3:
+                buildLogoutDialogAlert();
+                break;
+
             default:
                 break;
         }
@@ -439,5 +447,30 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
     @Override
     public void updateTrackCount(){
         navDrawerItems.get(1).setCount(String.valueOf(mTrackStorage.getTracksCount()));
+    }
+
+
+    /* Logout
+    /* Logout
+    /* Logout
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+    private void buildLogoutDialogAlert() {
+
+        new AlertDialog.Builder(this)
+                .setTitle(getString(R.string.logout))
+                .setMessage(getString(R.string.logout_rationale))
+                .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        AuthenticationManager.clearCredentials(MainActivity.this);
+                        Intent logoutIntent = new Intent(MainActivity.this, LoginActivity.class);
+                        startActivity(logoutIntent);
+                    }
+                })
+                .setNegativeButton(R.string.no, null)
+                .show();
     }
 }

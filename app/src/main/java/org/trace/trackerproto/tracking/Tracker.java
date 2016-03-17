@@ -13,12 +13,11 @@ import org.trace.trackerproto.Constants;
 import org.trace.trackerproto.settings.SettingsManager;
 import org.trace.trackerproto.settings.TrackingProfile;
 import org.trace.trackerproto.store.TRACEStoreApiClient;
-import org.trace.trackerproto.tracking.storage.PersistentTrackStorage;
-import org.trace.trackerproto.tracking.storage.data.TraceLocation;
-import org.trace.trackerproto.tracking.storage.data.Track;
 import org.trace.trackerproto.tracking.modules.activity.ActivityConstants;
 import org.trace.trackerproto.tracking.modules.activity.ActivityRecognitionModule;
 import org.trace.trackerproto.tracking.modules.location.FusedLocationModule;
+import org.trace.trackerproto.tracking.storage.PersistentTrackStorage;
+import org.trace.trackerproto.tracking.storage.data.TraceLocation;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -32,7 +31,6 @@ public class Tracker extends BroadcastReceiver implements CollectorManager{
     private Context mContext;
     private GoogleClientManager mGoogleMan;
 
-    private Track track = null;
     private Location mCurrentLocation = null;
     private final Object mLocationLock = new Object();
 
@@ -40,13 +38,14 @@ public class Tracker extends BroadcastReceiver implements CollectorManager{
     private final Object mLock = new Object();
 
     //Location Modules
+    private double travelledDistance = 0;
     private LinkedList<Location> mLocationTrace;
     private FusedLocationModule mFusedLocationModule = null;
 
 
     //Activity Modules
     private DetectedActivity mCurrentActivity = null;
-    private  LinkedList<DetectedActivity> mActivityTrace;
+    private LinkedList<DetectedActivity> mActivityTrace;
     private ActivityRecognitionModule mActivityRecognitionModule = null;
 
     //Outlier Filters Parameters
@@ -74,8 +73,6 @@ public class Tracker extends BroadcastReceiver implements CollectorManager{
         mActivityTrace = new LinkedList<>();
 
         mTrackPersistentStorage = new PersistentTrackStorage(mContext);
-
-        Log.d("STORAGE", "Tracks stored: "+String.valueOf(mTrackPersistentStorage.getTracksCount()));
     }
 
     protected static Tracker getTracker(Context ctx){
@@ -124,56 +121,32 @@ public class Tracker extends BroadcastReceiver implements CollectorManager{
     @Override
     public void storeLocation(Location location) {
 
-        boolean isValid;
         String session = TRACEStoreApiClient.getSessionId();
+        boolean isValid = TRACEStoreApiClient.isValidSession();
 
         if(session == null || session.isEmpty()) return;
 
-        isValid = TRACEStoreApiClient.isValidSession();
+        TraceLocation tLocation = new TraceLocation(location);
+        tLocation.setActivityMode((mCurrentActivity == null ? "" : mCurrentActivity.toString()));
+        mTrackPersistentStorage.storeLocation(tLocation, session, isValid);
 
-        if(track == null) {
-            track = new Track(session, location);
-            track.setIsValid(isValid);
-        }else
-            track.addTracedLocation(location, (mCurrentActivity == null ? "" : mCurrentActivity.toString()));
 
-        mTrackPersistentStorage.storeLocation(
-                new TraceLocation(location),
-                session,
-                TRACEStoreApiClient.isValidSession());
-
-        mTrackPersistentStorage.updateTravelledDistanceAndTime(
-                session,
-                track.getTravelledDistance(),
-                track.getElapsedTime());
-
-        synchronized (mLocationLock) {
-            mCurrentLocation = location;
-        }
     }
 
 
     public void startLocationUpdates(){
         if(mFusedLocationModule ==null) init();
 
-        track = null;
-
+        travelledDistance = 0;
         mFusedLocationModule.startTracking();
-
     }
 
     public void stopLocationUpdates(){
-
         mFusedLocationModule.stopTracking();
-
-        if(track == null) return;
-
-        track.setSessionId(TRACEStoreApiClient.getSessionId());
     }
 
     public void startActivityUpdates(){
         if(mActivityRecognitionModule ==null) init();
-
         mActivityRecognitionModule.startTracking();
     }
 
@@ -182,23 +155,28 @@ public class Tracker extends BroadcastReceiver implements CollectorManager{
     }
 
 
-    private void onHandleLocation(Location location){
-        Log.e("onHandle", "Location:" + location.toString());
+    private void onHandleLocation(TraceLocation location){
 
-        mLocationTrace.add(location);
-        storeLocation(location);
+        String session  = TRACEStoreApiClient.getSessionId();
+        boolean isValid = TRACEStoreApiClient.isValidSession();
 
-        DetectedActivity activity = null;
-        synchronized (mLock){
-            if(mCurrentActivity != null)
-                activity = mCurrentActivity;
+        //Store
+        location.setActivityMode(mCurrentActivity==null?"":mCurrentActivity.toString());
+        mTrackPersistentStorage.storeLocation(location, session, isValid);
+
+        //Update the current location
+        synchronized (mLocationLock){
+
+            travelledDistance += mCurrentLocation.distanceTo(location);
+
+            mCurrentLocation = location;
         }
 
-        TRACEStoreApiClient.uploadTrackingInfo(location, activity);
+        //Update the travelled distance
+        mTrackPersistentStorage.updateTravelledDistanceAndTime(session, travelledDistance, 0);
     }
 
     private void onHandleDetectedActivity(ArrayList<DetectedActivity> detectedActivities){
-        Log.e("onHandle", detectedActivities.toString());
 
         if(detectedActivities.isEmpty()) return;
 
@@ -224,7 +202,7 @@ public class Tracker extends BroadcastReceiver implements CollectorManager{
 
         if(intent.hasExtra(Constants.LOCATION_EXTRA)) {
 
-            Location location = intent.getParcelableExtra(Constants.LOCATION_EXTRA);
+            TraceLocation location = intent.getParcelableExtra(Constants.LOCATION_EXTRA);
             onHandleLocation(location);
 
         }else if(intent.hasExtra(Constants.ACTIVITY_EXTRA)) {

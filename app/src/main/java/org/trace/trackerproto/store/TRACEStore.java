@@ -200,7 +200,7 @@ public class TRACEStore extends IntentService{
                 session = mHttpClient.requestTrackingSession(authToken);
                 isValid = true;
             } catch (AuthTokenIsExpiredException e1) {
-                Log.e(LOG_TAG, e.getMessage());
+                Log.e(LOG_TAG, e1.getMessage());
             }
 
         }finally {

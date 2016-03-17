@@ -93,11 +93,13 @@ public class ActivityRecognitionModule implements ModuleInterface, ResultCallbac
 
     @Override
     public void onResult(@NonNull Status status) {
+        /*
         if (status.isSuccess()) {
             Log.i(LOG_TAG, "Success adding or removing activity detection: " + status.getStatusMessage());
         } else {
             Log.e(LOG_TAG, "Error adding or removing activity detection: " + status.getStatusMessage());
         }
+        */
     }
 
 

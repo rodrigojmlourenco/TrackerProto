@@ -14,7 +14,7 @@ import org.trace.trackerproto.tracking.filter.HeuristicBasedFilter;
  */
 public class TrackingProfile {
 
-    //Fused Location Module
+    //Fused TraceLocationModule
     private int locationDisplacementThreshold   = 2; //meters
     private long locationInterval               = 3500;
     private long locationFastInterval           = 1500;

@@ -13,7 +13,9 @@ import com.google.android.gms.location.LocationServices;
 
 import org.trace.trackerproto.Constants;
 import org.trace.trackerproto.tracking.filter.HeuristicBasedFilter;
+import org.trace.trackerproto.tracking.filter.OutlierFilteringLocationQueue;
 import org.trace.trackerproto.tracking.modules.ModuleInterface;
+import org.trace.trackerproto.tracking.storage.data.TraceLocation;
 
 
 public class FusedLocationModule implements LocationListener, ModuleInterface {
@@ -29,13 +31,15 @@ public class FusedLocationModule implements LocationListener, ModuleInterface {
 
     // Tracking Parameters
     private long mInterval = 10000,
-                 mFastInterval = 5000;
+            mFastInterval = 5000;
 
     private int mPriority = LocationRequest.PRIORITY_HIGH_ACCURACY;
 
     private float mMinimumDisplacement = 2f; //meters
 
     // Outlier Detection Filters && Parameters
+    private OutlierFilteringLocationQueue mLocationQueue;
+
     private HeuristicBasedFilter mOutlierDetector;
     private float mMinimumAccuracy  = 40f;
     private float mMaximumSpeed     = 55.56f;
@@ -45,10 +49,14 @@ public class FusedLocationModule implements LocationListener, ModuleInterface {
         this.mContext = ctx;
         this.mGoogleApiClient = client;
 
-        mOutlierDetector = new HeuristicBasedFilter();
-        mOutlierDetector.addNewHeuristic(new HeuristicBasedFilter.AccuracyBasedHeuristicRule(mMinimumAccuracy));
+        this.mLocationQueue = new OutlierFilteringLocationQueue(mContext);
+        this.mLocationQueue.addHeuristicRule(new HeuristicBasedFilter.AccuracyBasedHeuristicRule(mMinimumAccuracy));
+        this.mLocationQueue.addHeuristicRule(new HeuristicBasedFilter.SpeedBasedHeuristicRule(mMaximumSpeed));
+        this.mLocationQueue.addHeuristicRule(new HeuristicBasedFilter.OverlappingLocationHeuristicRule());
+        //mOutlierDetector = new HeuristicBasedFilter();
+        //mOutlierDetector.addNewHeuristic(new HeuristicBasedFilter.AccuracyBasedHeuristicRule(mMinimumAccuracy));
         //mOutlierDetector.addNewHeuristic(new HeuristicBasedFilter.SatelliteBasedHeuristicRule(4));
-        mOutlierDetector.addNewHeuristic(new HeuristicBasedFilter.SpeedBasedHeuristicRule(mMaximumSpeed));
+        //mOutlierDetector.addNewHeuristic(new HeuristicBasedFilter.SpeedBasedHeuristicRule(mMaximumSpeed));
     }
 
     public long getInterval() {
@@ -85,12 +93,14 @@ public class FusedLocationModule implements LocationListener, ModuleInterface {
 
     public void setMinimumAccuracy(float mMinimumAccuracy) {
         this.mMinimumAccuracy = mMinimumAccuracy;
-        mOutlierDetector.updateHeuristic(new HeuristicBasedFilter.AccuracyBasedHeuristicRule(mMinimumAccuracy));
+        //TODO: handle this
+        //mOutlierDetector.updateHeuristic(new HeuristicBasedFilter.AccuracyBasedHeuristicRule(mMinimumAccuracy));
     }
 
     public void setMaximumSpeed(float mMaximumSpeed) {
         this.mMaximumSpeed = mMaximumSpeed;
-        mOutlierDetector.updateHeuristic(new HeuristicBasedFilter.SpeedBasedHeuristicRule(mMaximumSpeed));
+        //TODO: handle this
+        //mOutlierDetector.updateHeuristic(new HeuristicBasedFilter.SpeedBasedHeuristicRule(mMaximumSpeed));
     }
 
     public void setMinimumSatellites(float mMinimumSatellites) {
@@ -114,13 +124,18 @@ public class FusedLocationModule implements LocationListener, ModuleInterface {
     @Override
     public void onLocationChanged(Location location) {
 
+        mLocationQueue.addLocation(new TraceLocation(location));
+
+        /*
         if(mOutlierDetector.isValidLocation(location)) {
             // Broadcast the location
             Intent localIntent = new Intent(Constants.COLLECT_ACTION);
             localIntent.putExtra(Constants.LOCATION_EXTRA, location);
             LocalBroadcastManager.getInstance(mContext).sendBroadcast(localIntent);
+
         }else
             Log.i(LOG_TAG, "Location discarded as it was identified as an outlier.");
+        */
 
     }
 
@@ -136,6 +151,8 @@ public class FusedLocationModule implements LocationListener, ModuleInterface {
     public void startTracking() {
         if (!isTracking) {
 
+            mLocationQueue.clearQueue();
+
             LocationServices.FusedLocationApi.requestLocationUpdates(
                     this.mGoogleApiClient,
                     createLocationRequest(),
@@ -149,7 +166,9 @@ public class FusedLocationModule implements LocationListener, ModuleInterface {
     public void stopTracking() {
         if(isTracking) {
             LocationServices.FusedLocationApi.removeLocationUpdates(this.mGoogleApiClient, this);
+            mLocationQueue.clearAndStoreQueue();
             isTracking = false;
+
         }
     }
 }

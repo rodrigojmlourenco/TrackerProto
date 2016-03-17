@@ -79,6 +79,16 @@ public class AuthenticationManager {
         return !(prefs.contains(Constants.USERNAME_KEY) && prefs.contains(Constants.PASSWORD_KEY));
     }
 
+    public static boolean clearCredentials(Context context){
+        SharedPreferences.Editor editor =
+                context.getSharedPreferences(AUTH_SETTINGS_KEY, Context.MODE_PRIVATE).edit();
+
+        editor.clear();
+        editor.commit();
+
+        return true;
+    }
+
 
     public void storeAuthenticationToken(String token){
         SharedPreferences.Editor editor =
