@@ -10,7 +10,7 @@ import java.util.LinkedList;
  * @version 1.0
  * @author Rodrigo Lourenço
  */
-public class Track implements Serializable, Parcelable{
+public class Track implements Parcelable{
 
     private String sessionId;
     private long startTime, stopTime;

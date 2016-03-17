@@ -161,13 +161,14 @@ public class Tracker extends BroadcastReceiver implements CollectorManager{
         boolean isValid = TRACEStoreApiClient.isValidSession();
 
         //Store
-        location.setActivityMode(mCurrentActivity==null?"":mCurrentActivity.toString());
+        location.setActivityMode(mCurrentActivity);
         mTrackPersistentStorage.storeLocation(location, session, isValid);
 
         //Update the current location
         synchronized (mLocationLock){
 
-            travelledDistance += mCurrentLocation.distanceTo(location);
+            if(mCurrentLocation != null)
+                travelledDistance += mCurrentLocation.distanceTo(location);
 
             mCurrentLocation = location;
         }

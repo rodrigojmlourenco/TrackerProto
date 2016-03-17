@@ -71,7 +71,7 @@ public class TRACEStoreApiClient {
     public static void uploadWholeTrack(Context context, Track track){
         Intent mI = new Intent(context, TRACEStore.class);
         mI.putExtra(Constants.OPERATION_KEY, TRACEStoreOperations.submitTrack.toString());
-        mI.putExtra(Constants.TRACK_EXTRA, ((Parcelable)track));
+        mI.putExtra(Constants.TRACK_EXTRA, track);
         context.startService(mI);
     }
 }

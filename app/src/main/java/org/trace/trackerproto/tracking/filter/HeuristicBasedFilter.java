@@ -195,7 +195,7 @@ public class HeuristicBasedFilter {
             long timeDeltaNanos = location.getElapsedRealtimeNanos() - previous.getElapsedRealtimeNanos();
             float travelledDistance = previous.distanceTo(location);
 
-            float speedMS = travelledDistance / (TimeUnit.SECONDS.convert(timeDeltaNanos, TimeUnit.DAYS.NANOSECONDS));
+            float speedMS = travelledDistance / (TimeUnit.SECONDS.convert(timeDeltaNanos, TimeUnit.NANOSECONDS));
 
             isOutlier = speedMS > speedThreshold;
 
@@ -252,28 +252,4 @@ public class HeuristicBasedFilter {
             return isOutlier;
         }
     }
-
-    public static class UnrealisticPassThroughSpeed implements HeuristicRule{
-
-        private String errorMessage =
-                getClass().getSimpleName()+" can only be applied with at least three known locations.";
-
-        @Override
-        public boolean isOutlier(TraceLocation location) {
-            throw new UnsupportedOperationException(errorMessage);
-        }
-
-        @Override
-        public boolean isOutlier(TraceLocation location, TraceLocation previous) {
-            throw new UnsupportedOperationException(errorMessage);
-        }
-
-        @Override
-        public boolean isOutlier(TraceLocation current, TraceLocation previous, TraceLocation earlierThan) {
-            return false;
-        }
-    }
-
-    //TODO: converter as locations em TraceLocations
-    //TODO: os ultimos 2 devem ser casos especias uma vez que não correspondem necessáriamente ao modelo dos restantes.!!!
 }

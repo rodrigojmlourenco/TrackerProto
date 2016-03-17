@@ -29,7 +29,7 @@ import java.util.NoSuchElementException;
  */
 public class OutlierFilteringLocationQueue {
 
-    public static final int QUEUE_MAX_SIZE = 3;
+    public static final int QUEUE_MAX_SIZE = 2;
     private static final String LOG_TAG = "Outlier";
 
     private final Object mLock = new Object();
@@ -38,6 +38,7 @@ public class OutlierFilteringLocationQueue {
     private final Context mContext;
 
     private HeuristicBasedFilter mOutlierFilter;
+    private UnrealisticPassThroughSpeedOutlierFilter mUnrealisticPassThroughSpeedOutlierFilter;
 
 
     public OutlierFilteringLocationQueue(Context context){
@@ -46,7 +47,7 @@ public class OutlierFilteringLocationQueue {
         this.mContext = context;
 
         this.mOutlierFilter = new HeuristicBasedFilter();
-
+        this.mUnrealisticPassThroughSpeedOutlierFilter = new UnrealisticPassThroughSpeedOutlierFilter();
     }
 
 
@@ -98,11 +99,22 @@ public class OutlierFilteringLocationQueue {
         //Step 1b - Run the complex filters (i.e. the TripZoom filters)
         //These have to be directly handled in the code, as they do not necessarily imply the the
         //current location is the outlier, but previous location may be as well.
+        synchronized (mLock){
+            if(mLocationQueue.size() >= QUEUE_MAX_SIZE){
 
+                int index = mLocationQueue.size() - 1;
 
+                if(mUnrealisticPassThroughSpeedOutlierFilter.isOutlier(
+                        location,
+                        mLocationQueue.get(index),
+                        mLocationQueue.get(index-1))){
 
+                    mLocationQueue.remove(index);
+                }
+            }
+        }
 
-        Log.i(LOG_TAG, "Location was accepted as valid...");
+        Log.i(LOG_TAG, "Location was accepted as valid... "+location.toString());
 
 
         //Step 2 -  Add the location to the queue
@@ -146,6 +158,10 @@ public class OutlierFilteringLocationQueue {
      */
     public void clearAndStoreQueue(){
         synchronized (mLock) {
+
+            if(mLocationQueue.isEmpty())
+                return;
+
             do {
 
                 broadcastLocation(mLocationQueue.removeFirst());

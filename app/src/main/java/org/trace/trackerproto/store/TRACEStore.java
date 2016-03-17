@@ -200,7 +200,7 @@ public class TRACEStore extends IntentService{
                 session = mHttpClient.requestTrackingSession(authToken);
                 isValid = true;
             } catch (AuthTokenIsExpiredException e1) {
-                Log.e(LOG_TAG, e1.getMessage());
+                Log.e(LOG_TAG, ""+e1.getMessage());
             }
 
         }finally {
@@ -209,7 +209,7 @@ public class TRACEStore extends IntentService{
                 Log.i(LOG_TAG, "Unable to acquire session due to connectivity problems, proceeding with fake one...");
                 SecureRandom random = new SecureRandom();
                 session = "local_"+new BigInteger(130, random).toString(16);
-                isValid = true;
+                isValid = false;
             }
 
             TRACEStoreApiClient.setSessionId(session, isValid);

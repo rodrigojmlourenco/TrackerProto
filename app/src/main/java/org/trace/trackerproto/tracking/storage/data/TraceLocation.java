@@ -5,9 +5,12 @@ import android.os.Build;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import com.google.android.gms.location.DetectedActivity;
 import com.google.gson.JsonObject;
 
 import org.trace.trackerproto.Constants;
+import org.trace.trackerproto.TrackerProto;
+import org.trace.trackerproto.tracking.modules.activity.ActivityConstants;
 
 import java.io.Serializable;
 
@@ -28,23 +31,32 @@ public class TraceLocation extends Location{
 
 
     protected TraceLocation(Parcel in) {
+
         super("unknown");
-        setLatitude(in.readDouble());
-        setLongitude(in.readDouble());
-        setAltitude(in.readDouble());
-        setTime(in.readLong());
 
+        double latitude  = in.readDouble();
+        double longitude = in.readDouble();
+        double altitude  = in.readDouble();
+        long time = in.readLong();
         long elapsedNanos = in.readLong();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-            setElapsedRealtimeNanos(elapsedNanos);
-        }
+        float accuracy  = in.readFloat();
+        float speed     = in.readFloat();
+        float bearing   = in.readFloat();
+        String provider = in.readString();
+        String activity = in.readString();
 
-        setAccuracy(in.readFloat());
-        setSpeed(in.readFloat());
-        setBearing(in.readFloat());
-        setProvider(in.readString());
-        activityMode = in.readString();
-        activityMode = in.readString();
+        setLatitude(latitude);
+        setLongitude(longitude);
+        setTime(time);
+        setAccuracy(accuracy);
+        setBearing(bearing);
+        setAltitude(altitude);
+        setSpeed(speed);
+        setProvider(provider);
+        setActivityMode(activity);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1)
+            setElapsedRealtimeNanos(elapsedNanos);
     }
 
     public static final Creator<TraceLocation> CREATOR = new Creator<TraceLocation>() {
@@ -74,6 +86,20 @@ public class TraceLocation extends Location{
 
     public void setActivityMode(String activityMode) {
         this.activityMode = activityMode;
+    }
+
+    public void setActivityMode(DetectedActivity activity){
+
+        JsonObject jsonActivity = new JsonObject();
+        if(activity == null){
+            jsonActivity.addProperty("type", "unknown");
+            jsonActivity.addProperty("confidence", 100);
+        }else{
+            jsonActivity.addProperty("type", ActivityConstants.getActivityString(TrackerProto.getInstance(), activity.getType()));
+            jsonActivity.addProperty("confidence", activity.getConfidence());
+        }
+
+        this.activityMode = jsonActivity.toString();
     }
 
     public JsonObject getSerializableLocationAsJson(){
