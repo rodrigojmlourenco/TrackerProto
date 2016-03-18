@@ -39,11 +39,11 @@ import org.mapsforge.map.layer.overlay.Marker;
 import org.mapsforge.map.layer.renderer.TileRendererLayer;
 import org.mapsforge.map.reader.MapFile;
 import org.mapsforge.map.rendertheme.InternalRenderTheme;
-import org.trace.trackerproto.Constants;
+import org.trace.tracking.Constants;
 import org.trace.trackerproto.R;
-import org.trace.trackerproto.store.TRACEStoreApiClient;
-import org.trace.trackerproto.store.TRACEStoreReceiver;
-import org.trace.trackerproto.tracking.TRACETracker;
+import org.trace.tracking.TRACETracker;
+import org.trace.tracking.store.TRACEStoreApiClient;
+import org.trace.tracking.store.TRACEStoreReceiver;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -238,11 +238,11 @@ public class HomeFragment extends Fragment
 
     @Override
     public void onSaveInstanceState(Bundle outState) {
-        outState.putBoolean(Constants.home.SERVICE_BOUND_KEY, isBound);
-        outState.putBoolean(Constants.home.TRACKING_STATE_KEY, isTracking);
-        outState.putInt(Constants.home.MARKER_INDEX_KEY, -1);
-        //outState.putInt(Constants.home.MARKER_INDEX_KEY, mMarkerIndex);
-        if(mCurrentLocation != null) outState.putParcelable(Constants.home.LAST_LOCATION_KEY, mCurrentLocation);
+        outState.putBoolean(FragmentStateKeys.SERVICE_BOUND_KEY, isBound);
+        outState.putBoolean(FragmentStateKeys.TRACKING_STATE_KEY, isTracking);
+        outState.putInt(FragmentStateKeys.MARKER_INDEX_KEY, -1);
+        //outState.putInt(FragmentStateKeys.MARKER_INDEX_KEY, mMarkerIndex);
+        if(mCurrentLocation != null) outState.putParcelable(FragmentStateKeys.LAST_LOCATION_KEY, mCurrentLocation);
 
         super.onSaveInstanceState(outState);
     }
@@ -250,18 +250,18 @@ public class HomeFragment extends Fragment
     private void updateValuesFromBundle(Bundle inState){
         if(inState != null){
 
-            if(inState.containsKey(Constants.home.SERVICE_BOUND_KEY))
-                isBound = inState.getBoolean(Constants.home.SERVICE_BOUND_KEY);
+            if(inState.containsKey(FragmentStateKeys.SERVICE_BOUND_KEY))
+                isBound = inState.getBoolean(FragmentStateKeys.SERVICE_BOUND_KEY);
 
-            if(inState.containsKey(Constants.home.TRACKING_STATE_KEY))
-                isTracking = inState.getBoolean(Constants.home.TRACKING_STATE_KEY);
+            if(inState.containsKey(FragmentStateKeys.TRACKING_STATE_KEY))
+                isTracking = inState.getBoolean(FragmentStateKeys.TRACKING_STATE_KEY);
 
-            if(inState.containsKey(Constants.home.LAST_LOCATION_KEY))
-                mCurrentLocation = inState.getParcelable(Constants.home.LAST_LOCATION_KEY);
+            if(inState.containsKey(FragmentStateKeys.LAST_LOCATION_KEY))
+                mCurrentLocation = inState.getParcelable(FragmentStateKeys.LAST_LOCATION_KEY);
 
 
-            if(inState.containsKey(Constants.home.MARKER_INDEX_KEY))
-                mMarkerIndex = inState.getInt(Constants.home.MARKER_INDEX_KEY);
+            if(inState.containsKey(FragmentStateKeys.MARKER_INDEX_KEY))
+                mMarkerIndex = inState.getInt(FragmentStateKeys.MARKER_INDEX_KEY);
 
         }
     }
@@ -661,4 +661,18 @@ public class HomeFragment extends Fragment
         }
     }
 
+
+    /* State Keys
+    /* State Keys
+    /* State Keys
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+    public interface FragmentStateKeys {
+        String MARKER_INDEX_KEY = "MARKER_INDEX_KEY";
+        String SERVICE_BOUND_KEY ="BOUND_TRACKER_SERVICE";
+        String TRACKING_STATE_KEY = "TRACKING_TRACKER_SERVICE";
+        String LAST_LOCATION_KEY = "LAST_LOCATION";
+    }
 }

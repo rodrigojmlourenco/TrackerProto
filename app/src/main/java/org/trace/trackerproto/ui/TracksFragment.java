@@ -20,13 +20,13 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import org.trace.trackerproto.Constants;
+import org.trace.tracking.Constants;
 import org.trace.trackerproto.R;
-import org.trace.trackerproto.store.TRACEStoreApiClient;
-import org.trace.trackerproto.tracking.storage.GPXTrackWriter;
-import org.trace.trackerproto.tracking.storage.PersistentTrackStorage;
-import org.trace.trackerproto.tracking.storage.data.SimplifiedTrack;
-import org.trace.trackerproto.tracking.storage.data.Track;
+import org.trace.tracking.store.TRACEStoreApiClient;
+import org.trace.tracking.storage.GPXTrackWriter;
+import org.trace.tracking.storage.PersistentTrackStorage;
+import org.trace.tracking.storage.data.SimplifiedTrack;
+import org.trace.tracking.storage.data.Track;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;

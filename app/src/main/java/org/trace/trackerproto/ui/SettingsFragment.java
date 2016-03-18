@@ -16,8 +16,8 @@ import android.widget.Toast;
 import com.google.android.gms.location.LocationRequest;
 
 import org.trace.trackerproto.R;
-import org.trace.trackerproto.settings.SettingsManager;
-import org.trace.trackerproto.settings.TrackingProfile;
+import org.trace.tracking.settings.SettingsManager;
+import org.trace.tracking.settings.TrackingProfile;
 
 /**
  * Created by Rodrigo Lourenço on 07/03/2016.

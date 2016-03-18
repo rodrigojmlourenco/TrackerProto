@@ -15,9 +15,9 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import org.trace.trackerproto.Constants;
+import org.trace.tracking.Constants;
 import org.trace.trackerproto.R;
-import org.trace.trackerproto.store.TRACEStoreApiClient;
+import org.trace.tracking.store.TRACEStoreApiClient;
 
 public class LoginActivity extends AppCompatActivity {
 

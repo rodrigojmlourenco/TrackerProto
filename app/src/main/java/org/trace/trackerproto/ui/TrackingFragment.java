@@ -5,7 +5,7 @@ package org.trace.trackerproto.ui;
  */
 public interface TrackingFragment {
 
-    public boolean isTracking();
+    boolean isTracking();
 
-    public void stopTracking();
+    void stopTracking();
 }

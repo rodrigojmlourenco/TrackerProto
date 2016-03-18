@@ -20,14 +20,13 @@ import org.mapsforge.map.layer.overlay.Polyline;
 import org.mapsforge.map.layer.renderer.TileRendererLayer;
 import org.mapsforge.map.reader.MapFile;
 import org.mapsforge.map.rendertheme.InternalRenderTheme;
-import org.trace.trackerproto.Constants;
+import org.trace.tracking.Constants;
 import org.trace.trackerproto.R;
-import org.trace.trackerproto.tracking.storage.PersistentTrackStorage;
-import org.trace.trackerproto.tracking.storage.data.TraceLocation;
-import org.trace.trackerproto.tracking.storage.data.Track;
+import org.trace.tracking.storage.PersistentTrackStorage;
+import org.trace.tracking.storage.data.TraceLocation;
+import org.trace.tracking.storage.data.Track;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;

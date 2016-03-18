@@ -5,5 +5,5 @@ package org.trace.trackerproto.ui;
  */
 public interface MapViewFragment {
 
-    public void cleanMap();
+    void cleanMap();
 }

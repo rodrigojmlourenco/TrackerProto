@@ -26,10 +26,10 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 
 import org.trace.trackerproto.R;
-import org.trace.trackerproto.store.TRACEStoreApiClient;
-import org.trace.trackerproto.store.auth.AuthenticationManager;
-import org.trace.trackerproto.tracking.TRACETracker;
-import org.trace.trackerproto.tracking.storage.PersistentTrackStorage;
+import org.trace.tracking.store.TRACEStoreApiClient;
+import org.trace.tracking.store.auth.AuthenticationManager;
+import org.trace.tracking.TRACETracker;
+import org.trace.tracking.storage.PersistentTrackStorage;
 import org.trace.trackerproto.ui.slidingmenu.adapter.NavDrawerListAdapter;
 import org.trace.trackerproto.ui.slidingmenu.model.NavDrawerItem;
 
