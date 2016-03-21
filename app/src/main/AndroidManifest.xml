@@ -27,9 +27,9 @@
         <service
             android:name="org.trace.tracking.store.TRACEStore"
             android:exported="false" />
-        <service android:name="org.trace.tracking.TRACETracker" />
+        <service android:name="org.trace.tracking.tracker.TRACETracker" />
         <service
-            android:name="org.trace.tracking.modules.activity.ActivityRecognitionHandler"
+            android:name="org.trace.tracking.tracker.modules.activity.ActivityRecognitionHandler"
             android:exported="false" />
 
         <activity

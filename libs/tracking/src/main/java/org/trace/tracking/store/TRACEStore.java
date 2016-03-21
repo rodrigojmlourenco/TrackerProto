@@ -9,8 +9,6 @@ import android.util.Log;
 import android.widget.Toast;
 
 import org.trace.tracking.Constants;
-import org.trace.tracking.storage.data.Track;
-import org.trace.tracking.store.api.TRACEStoreOperations;
 import org.trace.tracking.store.auth.AuthenticationManager;
 import org.trace.tracking.store.exceptions.AuthTokenIsExpiredException;
 import org.trace.tracking.store.exceptions.InvalidAuthCredentialsException;
@@ -19,6 +17,8 @@ import org.trace.tracking.store.exceptions.RemoteTraceException;
 import org.trace.tracking.store.exceptions.UnableToCloseSessionTokenExpiredException;
 import org.trace.tracking.store.exceptions.UnableToPerformLogin;
 import org.trace.tracking.store.exceptions.UnableToSubmitTrackTokenExpiredException;
+import org.trace.tracking.store.remote.HttpClient;
+import org.trace.tracking.tracker.storage.data.Track;
 
 import java.math.BigInteger;
 import java.security.SecureRandom;
@@ -43,11 +43,11 @@ public class TRACEStore extends IntentService{
     @Override
     protected void onHandleIntent(Intent intent) {
 
-        intent.hasExtra(Constants.OPERATION_KEY);
+        intent.hasExtra(Constants.store.OPERATION_KEY);
 
-        TRACEStoreOperations op;
+        Operations op;
         try {
-            op = TRACEStoreOperations.valueOf(intent.getStringExtra(Constants.OPERATION_KEY));
+            op = Operations.valueOf(intent.getStringExtra(Constants.store.OPERATION_KEY));
         }catch (NullPointerException e){
             Log.e(LOG_TAG, "Un-parseable operation");
             return;
@@ -124,8 +124,8 @@ public class TRACEStore extends IntentService{
         boolean isFirst = authManager.isFirstTime(), success = false;
 
         if(isFirst){
-            username = intent.getStringExtra(Constants.USERNAME_KEY);
-            password = intent.getStringExtra(Constants.PASSWORD_KEY);
+            username = intent.getStringExtra(Constants.store.USERNAME_KEY);
+            password = intent.getStringExtra(Constants.store.PASSWORD_KEY);
         }else{
             username = authManager.getUsername();
             password = authManager.getPassword();
@@ -148,9 +148,9 @@ public class TRACEStore extends IntentService{
             }
 
 
-        Intent loginI = new Intent(Constants.LOGIN_ACTION)
-                .putExtra(Constants.SUCCESS_LOGIN_KEY, success)
-                .putExtra(Constants.LOGIN_ERROR_MSG_KEY, error);
+        Intent loginI = new Intent(Constants.store.LOGIN_ACTION)
+                .putExtra(Constants.store.SUCCESS_LOGIN_KEY, success)
+                .putExtra(Constants.store.LOGIN_ERROR_MSG_KEY, error);
 
         sendBroadcast(loginI);
 
@@ -213,7 +213,7 @@ public class TRACEStore extends IntentService{
                 isValid = false;
             }
 
-            TRACEStoreApiClient.setSessionId(session, isValid);
+            Client.setSessionId(session, isValid);
         }
     }
 
@@ -228,9 +228,9 @@ public class TRACEStore extends IntentService{
     private void performSubmitTrack(Intent intent) {
 
         Track track;
-        if(!intent.hasExtra(Constants.TRACK_EXTRA)) return;
+        if(!intent.hasExtra(Constants.store.TRACK_EXTRA)) return;
 
-        track = intent.getParcelableExtra(Constants.TRACK_EXTRA);
+        track = intent.getParcelableExtra(Constants.store.TRACK_EXTRA);
 
         //Check if the track has already been uploaded, proceed otherwise.
         if(!track.isLocalOnly()) {
@@ -308,6 +308,128 @@ public class TRACEStore extends IntentService{
         @Override
         public void run() {
             Toast.makeText(mContext, message, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /* Supported Operations
+    /* Supported Operations
+    /* Supported Operations
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+    public enum Operations {
+        login,
+        logout,
+        initiateSession,
+        submitTrack,
+        unknown
+    }
+
+    /**
+     * This class operates as an abstraction layer over the communication between the application
+     * and corresponding activities and the TRACEStore IntentService. All the methods provided are static.
+     * <br>
+     * <emph>Note: </emph> The employed design pattern greatly differs with the one employed in the TRACETracker.Client.
+     */
+    public static class Client {
+
+        private static final String LOG_TAG = "TRACEStore";
+
+        private static String sessionId;
+        private static boolean isValid;
+
+        protected static void setSessionId(String session){
+            sessionId = session;
+            isValid = true;
+        }
+
+        protected static void setSessionId(String session, boolean valid){
+            sessionId = session;
+            isValid = valid;
+        }
+
+        /**
+         * Checks if the current session identifier is a valid one, i.e. one generated by the  TRACEStore
+         * server.
+         * @return True if the current session identifier is valid, false otherwise.
+         */
+        public static  boolean isValidSession(){
+            return isValid;
+        }
+
+        /**
+         * Returns the current session identifier. This session identifier should be used to uniquely
+         * identify a traced track.
+         * @return The session identifier.
+         */
+        public static String getSessionId(){
+            return sessionId;
+        }
+
+        /**
+         * The method initiates communication with the TraceStore service, as to perform login.
+         * <br>
+         * The results of this operation are then broadcasted under the Constants.LOGIN_ACTION action,
+         * with two payloads Constants.SUCCESS_LOGIN_KEY and Constants.LOGIN_ERROR_MSG_KEY. The first
+         * is a boolean denoting if the operation was successful, and the second corresponds to the
+         * error message.
+         *
+         * @param context The current context
+         * @param username The user's username
+         * @param password The user's password
+         */
+        public static void requestLogin(Context context, String username, String password){
+            Intent mI = new Intent(context, TRACEStore.class);
+            mI.putExtra(Constants.store.OPERATION_KEY, Operations.login.toString());
+            mI.putExtra(Constants.store.USERNAME_KEY, username);
+            mI.putExtra(Constants.store.PASSWORD_KEY, password);
+            context.startService(mI);
+        }
+
+        /**
+         * Signs-outs the current user.
+         * @param context The current context.
+         */
+        public static void requestLogout(Context context){
+            Intent mI = new Intent(context, TRACEStore.class);
+            mI.putExtra(Constants.store.OPERATION_KEY, Operations.logout.toString());
+            context.startService(mI);
+        }
+
+        /**
+         * Requests for a new tracking session to be initiated if possible.
+         * @param context The current context.
+         */
+        public static void requestInitiateSession(Context context){
+            Intent mI = new Intent(context, TRACEStore.class);
+            mI.putExtra(Constants.store.OPERATION_KEY, Operations.initiateSession.toString());
+            context.startService(mI);
+        }
+
+        /**
+         * Checks if this is the user has ever performed login.
+         * @param context The current context.
+         * @return True if the user has never logged in, false otherwise.
+         */
+        public static boolean isFirstTime(Context context){
+            return AuthenticationManager.isFirstTime(context);
+        }
+
+        /**
+         * Uploads a complete track. It is important to note that the method was designed to handle
+         * the possibility of the track being a local track, i.e. it is not associated with a valid
+         * session identifier from the server's standpoint. Therefore, if the session identifier is
+         * not a valid one, this method handles the track's session identifier renewal.
+         * @param context The current context.
+         * @param track The Track to be uploaded.
+         * @see Track
+         */
+        public static void uploadWholeTrack(Context context, Track track){
+            Intent mI = new Intent(context, TRACEStore.class);
+            mI.putExtra(Constants.store.OPERATION_KEY, Operations.submitTrack.toString());
+            mI.putExtra(Constants.store.TRACK_EXTRA, track);
+            context.startService(mI);
         }
     }
 }

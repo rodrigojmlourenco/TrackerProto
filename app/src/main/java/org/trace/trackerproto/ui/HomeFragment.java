@@ -9,15 +9,12 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
-import android.graphics.Bitmap;
-import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Messenger;
 import android.support.annotation.Nullable;
-import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
@@ -27,22 +24,16 @@ import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.Toast;
 
-import org.osmdroid.DefaultResourceProxyImpl;
-import org.osmdroid.ResourceProxy;
 import org.osmdroid.api.IMapController;
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
 import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.MapView;
-import org.osmdroid.views.overlay.ItemizedIconOverlay;
-import org.osmdroid.views.overlay.OverlayItem;
 import org.trace.trackerproto.R;
 import org.trace.tracking.Constants;
-import org.trace.tracking.TRACETracker;
-import org.trace.tracking.store.TRACEStoreApiClient;
+import org.trace.tracking.store.TRACEStore;
+import org.trace.tracking.tracker.TRACETracker;
 import org.trace.tracking.store.TRACEStoreReceiver;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -81,7 +72,7 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
 
             @Override
             public void onReceive(Context context, Intent intent) {
-                mCurrentLocation = intent.getParcelableExtra(Constants.BROADCAST_LOCATION_EXTRA);
+                mCurrentLocation = intent.getParcelableExtra(Constants.tracker.BROADCAST_LOCATION_EXTRA);
 
 
                 if(mCurrentLocation!=null)
@@ -93,7 +84,7 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
         };
 
         IntentFilter locationFilter = new IntentFilter();
-        locationFilter.addAction(Constants.BROADCAST_LOCATION_ACTION);
+        locationFilter.addAction(Constants.tracker.BROADCAST_LOCATION_ACTION);
 
         LocalBroadcastManager.getInstance(getActivity())
                 .registerReceiver(mLocationReceiver, locationFilter);
@@ -305,14 +296,14 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
 
     Messenger mService = null;
 
-    private TRACETracker.TRACETrackerClient client = null;
+    private TRACETracker.Client client = null;
 
     private ServiceConnection mConnection = new ServiceConnection() {
 
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             mService= new Messenger(service);
-            client  = new TRACETracker.TRACETrackerClient(mService);
+            client  = new TRACETracker.Client(getActivity(), mService);
             isBound = true;
         }
 
@@ -350,7 +341,7 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
             isTracking = false;
             toggleButtons(isBound, false);
 
-            Toast.makeText(getActivity(), TRACEStoreApiClient.getSessionId(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(getActivity(), TRACEStore.Client.getSessionId(), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -361,7 +352,7 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
 
 
     private void startTrackingOnClick(){
-        TRACEStoreApiClient.requestInitiateSession(getActivity());
+        TRACEStore.Client.requestInitiateSession(getActivity());
 
         if (EasyPermissions.hasPermissions(getActivity(), Constants.permissions.TRACKING_PERMISSIONS)) {
 

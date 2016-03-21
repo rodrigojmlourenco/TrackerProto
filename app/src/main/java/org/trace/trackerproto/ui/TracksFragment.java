@@ -23,11 +23,11 @@ import android.widget.Toast;
 import org.trace.trackerproto.ProtoConstants;
 import org.trace.tracking.Constants;
 import org.trace.trackerproto.R;
-import org.trace.tracking.store.TRACEStoreApiClient;
-import org.trace.tracking.storage.GPXTrackWriter;
-import org.trace.tracking.storage.PersistentTrackStorage;
-import org.trace.tracking.storage.data.SimplifiedTrack;
-import org.trace.tracking.storage.data.Track;
+import org.trace.tracking.store.TRACEStore;
+import org.trace.tracking.tracker.storage.GPXTrackWriter;
+import org.trace.tracking.tracker.storage.PersistentTrackStorage;
+import org.trace.tracking.tracker.storage.data.SimplifiedTrack;
+import org.trace.tracking.tracker.storage.data.Track;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -219,7 +219,7 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
 
                     if(isNetworkConnected()) {
                         Track track = mTrackStorage.getTrack(values.get(position));
-                        TRACEStoreApiClient.uploadWholeTrack(context, track);
+                        TRACEStore.Client.uploadWholeTrack(context, track);
                     }else
                         buildAlertMessageNoConnectivity();
 

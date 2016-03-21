@@ -10,6 +10,7 @@ import org.trace.tracking.Constants;
  */
 public class AuthenticationManager {
 
+    public static final String AUTH_TOKEN = "auth_token";
     private static final String AUTH_SETTINGS_KEY = "auth_settings";
 
 
@@ -26,14 +27,14 @@ public class AuthenticationManager {
         SharedPreferences prefs =
                 context.getSharedPreferences(AUTH_SETTINGS_KEY, Context.MODE_PRIVATE);
 
-        return prefs.getString(Constants.USERNAME_KEY, "");
+        return prefs.getString(Constants.store.USERNAME_KEY, "");
     }
 
     public String getPassword(){
         SharedPreferences prefs =
                 context.getSharedPreferences(AUTH_SETTINGS_KEY, Context.MODE_PRIVATE);
 
-        return prefs.getString(Constants.PASSWORD_KEY, "");
+        return prefs.getString(Constants.store.PASSWORD_KEY, "");
     }
 
     public void storeCredentials(String username, String password){
@@ -41,8 +42,8 @@ public class AuthenticationManager {
         SharedPreferences.Editor editor =
                 context.getSharedPreferences(AUTH_SETTINGS_KEY, Context.MODE_PRIVATE).edit();
 
-        editor.putString(Constants.USERNAME_KEY, username);
-        editor.putString(Constants.PASSWORD_KEY, password);
+        editor.putString(Constants.store.USERNAME_KEY, username);
+        editor.putString(Constants.store.PASSWORD_KEY, password);
         editor.commit();
 
     }
@@ -52,7 +53,7 @@ public class AuthenticationManager {
         SharedPreferences prefs =
                 context.getSharedPreferences(AUTH_SETTINGS_KEY, Context.MODE_PRIVATE);
 
-        return prefs == null || !(prefs.contains(Constants.USERNAME_KEY) && prefs.contains(Constants.PASSWORD_KEY));
+        return prefs == null || !(prefs.contains(Constants.store.USERNAME_KEY) && prefs.contains(Constants.store.PASSWORD_KEY));
 
     }
 
@@ -62,7 +63,7 @@ public class AuthenticationManager {
 
         if(prefs == null) return true;
 
-        return !(prefs.contains(Constants.USERNAME_KEY) && prefs.contains(Constants.PASSWORD_KEY));
+        return !(prefs.contains(Constants.store.USERNAME_KEY) && prefs.contains(Constants.store.PASSWORD_KEY));
     }
 
     public static boolean clearCredentials(Context context){
@@ -80,20 +81,20 @@ public class AuthenticationManager {
         SharedPreferences.Editor editor =
                 context.getSharedPreferences(AUTH_SETTINGS_KEY, Context.MODE_PRIVATE).edit();
 
-        editor.putString(Constants.AUTH_TOKEN, token);
+        editor.putString(AUTH_TOKEN, token);
         editor.commit();
     }
 
     public String getAuthenticationToken(){
         return context.getSharedPreferences(AUTH_SETTINGS_KEY, Context.MODE_PRIVATE)
-                .getString(Constants.AUTH_TOKEN, "");
+                .getString(AUTH_TOKEN, "");
     }
 
     public void clearAuthenticationToken(){
         SharedPreferences.Editor editor =
                 context.getSharedPreferences(AUTH_SETTINGS_KEY, Context.MODE_PRIVATE).edit();
 
-        editor.remove(Constants.AUTH_TOKEN);
+        editor.remove(AUTH_TOKEN);
         editor.commit();
     }
 }

@@ -16,8 +16,8 @@ import android.widget.Toast;
 import com.google.android.gms.location.LocationRequest;
 
 import org.trace.trackerproto.R;
-import org.trace.tracking.settings.SettingsManager;
-import org.trace.tracking.settings.TrackingProfile;
+import org.trace.tracking.tracker.settings.SettingsManager;
+import org.trace.tracking.tracker.settings.TrackingProfile;
 
 /**
  * Created by Rodrigo Lourenço on 07/03/2016.
@@ -94,7 +94,7 @@ public class SettingsFragment extends Fragment {
         locationPriorityLabel.setText(priorityToLabel(mTrackingProfile.getLocationTrackingPriority()));
         locationSpeedInput.setText(String.format("%.2f", ms2kmh(mTrackingProfile.getLocationMaximumSpeed())));
         ////// Activity Recognition Inputs
-        activityIntervalInput.setText(String.valueOf(mTrackingProfile.getArInterval()));
+        activityIntervalInput.setText(String.valueOf(mTrackingProfile.getActivityInterval()));
         activityConfidenceSeekbar.setProgress(mTrackingProfile.getActivityMinimumConfidence());
         activityConfidenceLabel.setText(mTrackingProfile.getActivityMinimumConfidence()+"%");
         ///// Uploading Inputs

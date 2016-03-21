@@ -17,7 +17,7 @@ import android.widget.Toast;
 
 import org.trace.tracking.Constants;
 import org.trace.trackerproto.R;
-import org.trace.tracking.store.TRACEStoreApiClient;
+import org.trace.tracking.store.TRACEStore;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -52,7 +52,7 @@ public class LoginActivity extends AppCompatActivity {
                     String username = usernameForm.getText().toString();
                     String password = passwordForm.getText().toString();
 
-                    TRACEStoreApiClient.requestLogin(LoginActivity.this, username, password);
+                    TRACEStore.Client.requestLogin(LoginActivity.this, username, password);
                 }else
                     buildAlertMessageNoConnectivity();
 
@@ -72,8 +72,8 @@ public class LoginActivity extends AppCompatActivity {
             @Override
             public void onReceive(Context context, Intent intent) {
 
-                if(intent.hasExtra(Constants.SUCCESS_LOGIN_KEY)
-                        && intent.getBooleanExtra(Constants.SUCCESS_LOGIN_KEY, false)) {
+                if(intent.hasExtra(Constants.store.SUCCESS_LOGIN_KEY)
+                        && intent.getBooleanExtra(Constants.store.SUCCESS_LOGIN_KEY, false)) {
                     Toast.makeText(LoginActivity.this, "Login successful", Toast.LENGTH_LONG).show();
 
                     Intent mainActivity = new Intent(LoginActivity.this, MainActivity.class);
@@ -86,7 +86,7 @@ public class LoginActivity extends AppCompatActivity {
         };
 
         IntentFilter filter = new IntentFilter();
-        filter.addAction(Constants.LOGIN_ACTION);
+        filter.addAction(Constants.store.LOGIN_ACTION);
         registerReceiver(mReceiver, filter);
     }
 

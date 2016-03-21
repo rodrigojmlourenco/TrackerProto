@@ -8,7 +8,7 @@ import org.trace.tracking.Constants;
 
 
 /**
- * Created by Rodrigo Lourenço on 15/02/2016.
+ * <emph>Note:</emph> Soon to be deprecated. Avoid its use.
  */
 public class TRACEStoreReceiver extends BroadcastReceiver {
 

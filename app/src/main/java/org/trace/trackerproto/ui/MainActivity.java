@@ -30,9 +30,9 @@ import org.trace.trackerproto.R;
 import org.trace.trackerproto.ui.slidingmenu.adapter.NavDrawerListAdapter;
 import org.trace.trackerproto.ui.slidingmenu.model.NavDrawerItem;
 import org.trace.tracking.Constants;
-import org.trace.tracking.TRACETracker;
-import org.trace.tracking.storage.PersistentTrackStorage;
-import org.trace.tracking.store.TRACEStoreApiClient;
+import org.trace.tracking.store.TRACEStore;
+import org.trace.tracking.tracker.TRACETracker;
+import org.trace.tracking.tracker.storage.PersistentTrackStorage;
 import org.trace.tracking.store.auth.AuthenticationManager;
 
 import java.util.ArrayList;
@@ -64,15 +64,15 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
         mTrackStorage = new PersistentTrackStorage(this);
 
         //Force Login if it's the first time
-        /*if(TRACEStoreApiClient.isFirstTime(this)){
+        /*if(Client.isFirstTime(this)){
             Intent forceLogin = new Intent(this, LoginActivity.class);
             startActivity(forceLogin);
         }else{
-            TRACEStoreApiClient.requestLogin(this, "", "");
+            Client.requestLogin(this, "", "");
 
         }*/
 
-        TRACEStoreApiClient.requestLogin(this, "", "");
+        TRACEStore.Client.requestLogin(this, "", "");
         setupSlidingMenu(savedInstanceState);
 
     }
@@ -88,14 +88,14 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
 
     private boolean isBound = false;
     private Messenger mService = null;
-    private TRACETracker.TRACETrackerClient mTrakerClient = null;
+    private TRACETracker.Client mTrakerClient = null;
 
     private ServiceConnection mConnection = new ServiceConnection() {
 
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             mService= new Messenger(service);
-            mTrakerClient = new TRACETracker.TRACETrackerClient(mService);
+            mTrakerClient = new TRACETracker.Client(MainActivity.this, mService);
         }
 
         @Override
@@ -127,7 +127,7 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
         }
 
         if(isFinishing())
-            TRACEStoreApiClient.requestLogout(MainActivity.this);
+            TRACEStore.Client.requestLogout(MainActivity.this);
 
         if(mCurrentFragment instanceof MapViewFragment){
             ((MapViewFragment)mCurrentFragment).cleanMap();

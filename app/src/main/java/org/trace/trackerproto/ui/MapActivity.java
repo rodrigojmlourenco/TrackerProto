@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.location.Location;
 import android.os.Bundle;
 
 import org.osmdroid.api.IMapController;
@@ -15,14 +14,12 @@ import org.osmdroid.bonuspack.routing.RoadManager;
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
 import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.MapView;
-import org.osmdroid.views.overlay.OverlayItem;
 import org.osmdroid.views.overlay.PathOverlay;
-import org.osmdroid.views.overlay.ScaleBarOverlay;
 import org.trace.trackerproto.ProtoConstants;
 import org.trace.trackerproto.R;
-import org.trace.tracking.storage.PersistentTrackStorage;
-import org.trace.tracking.storage.data.TraceLocation;
-import org.trace.tracking.storage.data.Track;
+import org.trace.tracking.tracker.storage.PersistentTrackStorage;
+import org.trace.tracking.tracker.storage.data.TraceLocation;
+import org.trace.tracking.tracker.storage.data.Track;
 
 import java.util.ArrayList;
 
