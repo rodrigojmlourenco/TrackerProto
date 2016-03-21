@@ -69,8 +69,11 @@ public class TRACEStore extends IntentService{
                 } catch (RemoteTraceException e) {
                     e.printStackTrace();
                     postUserFeedback(e.getMessage());
+                } catch (InvalidAuthCredentialsException e){
+                    //TODO: broadcast something that enables the application to re-login
                 }
                 break;
+
             default:
                 Log.e(LOG_TAG, "Unknown operation "+op);
         }

@@ -9,11 +9,11 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.IBinder;
 import android.os.Messenger;
 import android.support.annotation.Nullable;
@@ -24,45 +24,33 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.Toast;
 
-import org.mapsforge.core.graphics.Bitmap;
-import org.mapsforge.core.model.LatLong;
-import org.mapsforge.map.android.graphics.AndroidGraphicFactory;
-import org.mapsforge.map.android.util.AndroidUtil;
-import org.mapsforge.map.android.view.MapView;
-import org.mapsforge.map.datastore.MapDataStore;
-import org.mapsforge.map.layer.cache.TileCache;
-import org.mapsforge.map.layer.overlay.Marker;
-import org.mapsforge.map.layer.renderer.TileRendererLayer;
-import org.mapsforge.map.reader.MapFile;
-import org.mapsforge.map.rendertheme.InternalRenderTheme;
-import org.trace.tracking.Constants;
+import org.osmdroid.DefaultResourceProxyImpl;
+import org.osmdroid.ResourceProxy;
+import org.osmdroid.api.IMapController;
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
+import org.osmdroid.util.GeoPoint;
+import org.osmdroid.views.MapView;
+import org.osmdroid.views.overlay.ItemizedIconOverlay;
+import org.osmdroid.views.overlay.OverlayItem;
 import org.trace.trackerproto.R;
+import org.trace.tracking.Constants;
 import org.trace.tracking.TRACETracker;
 import org.trace.tracking.store.TRACEStoreApiClient;
 import org.trace.tracking.store.TRACEStoreReceiver;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import pub.devrel.easypermissions.AfterPermissionGranted;
 import pub.devrel.easypermissions.EasyPermissions;
 
-/**
- * Created by Rodrigo Lourenço on 07/03/2016.
- */
-public class HomeFragment extends Fragment
-        implements EasyPermissions.PermissionCallbacks, TrackingFragment, MapViewFragment{
+public class HomeFragment extends Fragment implements TrackingFragment, MapViewFragment{
 
 
     private final String[] mSupportedBroadcastActions =
@@ -71,14 +59,10 @@ public class HomeFragment extends Fragment
 
     //UI Elements
     private ImageButton lastLocationBtn, toggleTrackingBtn;
-    private FrameLayout mapLayout;
 
     //State
     boolean isBound = false;
     boolean isTracking = false;
-
-
-
 
     //Location Listening
     private Location mCurrentLocation;
@@ -99,10 +83,12 @@ public class HomeFragment extends Fragment
             public void onReceive(Context context, Intent intent) {
                 mCurrentLocation = intent.getParcelableExtra(Constants.BROADCAST_LOCATION_EXTRA);
 
+
                 if(mCurrentLocation!=null)
                     focusOnMap(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
                 else
                     scheduleFocusTask(1);
+
             }
         };
 
@@ -115,9 +101,7 @@ public class HomeFragment extends Fragment
 
         mLocationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
 
-        setupForgeMaps();
-
-
+        setupOSMDroidMap();
     }
 
     @Nullable
@@ -129,7 +113,6 @@ public class HomeFragment extends Fragment
         registerBroadcastReceiver(mSupportedBroadcastActions);
 
         //Setup UI and respective OnClickListeners
-        this.mapLayout          = (FrameLayout) rootView.findViewById(R.id.mapContainerLayout);
         this.lastLocationBtn    = (ImageButton) rootView.findViewById(R.id.lastLocationBtn);
         this.toggleTrackingBtn  = (ImageButton) rootView.findViewById(R.id.toggleTrackingBtn);
         this.lastLocationBtn.setBackgroundResource(R.drawable.responsive_location_bg);
@@ -146,7 +129,7 @@ public class HomeFragment extends Fragment
                         EasyPermissions.requestPermissions(
                                 getActivity(),
                                 getString(R.string.tracking_rationale),
-                                Constants.permissions.TRACKING,
+                                Constants.permissions.FOCUS_ON_MAP,
                                 Constants.permissions.TRACKING_PERMISSIONS);
                 }else{
                     buildAlertMessageNoGps();
@@ -201,20 +184,11 @@ public class HomeFragment extends Fragment
     @Override
     public void onResume() {
         super.onResume();
-
-        //Force Login if it's the first time
-        if(TRACEStoreApiClient.isFirstTime(getActivity())){
-            Intent forceLogin = new Intent(getActivity(), LoginActivity.class);
-            startActivity(forceLogin);
-        }else{
-            TRACEStoreApiClient.requestLogin(getActivity(), "", "");
-        }
     }
 
     @Override
     public void onStop() {
         super.onStop();
-        //this.mapView.destroyAll();
     }
 
     @Override
@@ -260,8 +234,10 @@ public class HomeFragment extends Fragment
                 mCurrentLocation = inState.getParcelable(FragmentStateKeys.LAST_LOCATION_KEY);
 
 
+            /* TODO: handle after osmdroid migration
             if(inState.containsKey(FragmentStateKeys.MARKER_INDEX_KEY))
                 mMarkerIndex = inState.getInt(FragmentStateKeys.MARKER_INDEX_KEY);
+            */
 
         }
     }
@@ -349,28 +325,6 @@ public class HomeFragment extends Fragment
     };
 
 
-    /* Permissions
-     ***********************************************************************************************
-     ***********************************************************************************************
-     ***********************************************************************************************
-     */
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        // Forward results to EasyPermissions
-        EasyPermissions.onRequestPermissionsResult(requestCode, permissions, grantResults, this);
-    }
-
-    @Override
-    public void onPermissionsGranted(int requestCode, List<String> perms) {
-
-    }
-
-    @Override
-    public void onPermissionsDenied(int requestCode, List<String> perms) {
-
-    }
-
     /* Tracking Fragment
     /* Tracking Fragment
     /* Tracking Fragment
@@ -385,6 +339,11 @@ public class HomeFragment extends Fragment
     }
 
     @Override
+    public void startTracking() {
+        startTrackingOnClick();
+    }
+
+    @Override
     public void stopTracking() {
         if (client != null) {
             client.stopTracking();
@@ -393,6 +352,11 @@ public class HomeFragment extends Fragment
 
             Toast.makeText(getActivity(), TRACEStoreApiClient.getSessionId(), Toast.LENGTH_SHORT).show();
         }
+    }
+
+    @Override
+    public void focusOnCurrentLocation() {
+        scheduleFocusTask(0);
     }
 
 
@@ -422,179 +386,53 @@ public class HomeFragment extends Fragment
     }
 
 
-    /* Tracking Fragment
+    /* OSM Droid Maps
+    /* OSM Droid Maps
+    /* OSM Droid Maps
      ***********************************************************************************************
      ***********************************************************************************************
      ***********************************************************************************************
      */
 
-    private static final String MAPFILE = "lisbon.map";
+    public final static GeoPoint CENTER_MAP = new GeoPoint(38.7368192, -9.138705);
 
-    private MapView mapView;
-    private TileCache tileCache;
-    private TileRendererLayer tileRendererLayer;
-
-    private void setupForgeMaps(){
-
-        AndroidGraphicFactory.createInstance(getActivity().getApplication());
-
-        this.mapView = new MapView(getActivity());
-        mapLayout.addView(this.mapView);
-
-        this.mapView.setClickable(true);
-        this.mapView.getMapScaleBar().setVisible(true);
-        this.mapView.setBuiltInZoomControls(false);
-        this.mapView.getMapZoomControls().setZoomLevelMin((byte) 10);
-        this.mapView.getMapZoomControls().setZoomLevelMax((byte) 20);
-
-        // create a tile cache of suitable size
-        this.tileCache = AndroidUtil.createTileCache(getActivity(), "mapcache",
-                mapView.getModel().displayModel.getTileSize(), 1f,
-                this.mapView.getModel().frameBufferModel.getOverdrawFactor());
+    private MapView osmMapView;
 
 
-        int zoom;
-        LatLong pinpoint;
-        Marker marker = null;
-        if(mCurrentLocation == null){
-            pinpoint = new LatLong(38.7368192, -9.138705);
-            zoom = 12;
+    private void setupOSMDroidMap(){
+
+        if(EasyPermissions.hasPermissions(getActivity(), Constants.permissions.EXTERNAL_STORAGE_PERMISSIONS)) {
+            osmMapView = (MapView) getActivity().findViewById(R.id.mapContainerLayout);
+            osmMapView.setTileSource(TileSourceFactory.MAPNIK);
+
+            IMapController mapController = osmMapView.getController();
+            mapController.setZoom(12);
+            GeoPoint startPoint = CENTER_MAP;
+            mapController.setCenter(startPoint);
         }else{
-            pinpoint = new LatLong(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
-            zoom = 16;
-        }
-
-
-        this.mapView.getModel().mapViewPosition.setCenter(pinpoint);
-        this.mapView.getModel().mapViewPosition.setZoomLevel((byte) zoom);
-
-        File map;
-
-        try {
-            map = getMapFile();
-            if (map == null) return;
-        }catch (FileNotFoundException e){ //TODO: create better exception
-            e.printStackTrace();
-            return;
-        }
-
-
-        MapDataStore mapDataStore = new MapFile(map);
-        this.tileRendererLayer = new TileRendererLayer(tileCache, mapDataStore,
-                this.mapView.getModel().mapViewPosition, false, true, AndroidGraphicFactory.INSTANCE);
-        tileRendererLayer.setXmlRenderTheme(InternalRenderTheme.OSMARENDER);
-
-        // only once a layer is associated with a mapView the rendering starts
-        this.mapView.getLayerManager().getLayers().add(tileRendererLayer);
-
-        if(marker != null)
-            this.mapView.getLayerManager().getLayers().add(marker);
-
-        this.mapView.getMapZoomControls().hide();
-
-        if (mCurrentLocation!=null)
-            focusOnMap(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
-
-    }
-
-    private int mMarkerIndex = -1;
-    private void focusOnMap(double latitude, double longitude){
-
-        if(getActivity()== null || (getActivity() != null && getActivity().isFinishing())) return;
-
-        LatLong position =  new LatLong(latitude, longitude);
-
-        //Center
-        this.mapView.getModel().mapViewPosition.setCenter(position);
-        this.mapView.getModel().mapViewPosition.setZoomLevel((byte) 16);
-
-        //Add Marker
-        try {
-            if (mMarkerIndex != -1)
-                this.mapView.getLayerManager().getLayers().remove(mMarkerIndex);
-        }catch (ArrayIndexOutOfBoundsException e){
-            e.printStackTrace();
-        }
-
-        Marker marker = generateMarker(position);
-
-        if(marker != null){
-            this.mapView.getLayerManager().getLayers().add(marker);
-            mMarkerIndex = this.mapView.getLayerManager().getLayers().indexOf(marker);
-        }
-    }
-
-    private File getMapFile() throws  FileNotFoundException{
-
-        if(!EasyPermissions.hasPermissions(getActivity(), Constants.permissions.EXTERNAL_STORAGE_PERMISSIONS)){
             EasyPermissions.requestPermissions(
                     getActivity(),
-                    "Some some",
-                    Constants.permissions.EXTERNAL_STORAGE,
+                    getString(R.string.export_rationale),
+                    Constants.permissions.DRAW_MAPS,
                     Constants.permissions.EXTERNAL_STORAGE_PERMISSIONS);
-        }else {
-
-            File file;
-            InputStream inputStream = null;
-            OutputStream outputStream = null;
-
-            file = new File(Environment.getExternalStorageDirectory(), MAPFILE);
-
-            if (!file.exists()) {
-
-
-                try {
-                    inputStream = getResources().openRawResource(R.raw.portugal);
-                    outputStream = new FileOutputStream(file);
-
-                    int read = 0;
-                    byte[] bytes = new byte[1024];
-
-
-                    while ((read = inputStream.read(bytes)) != -1) {
-                        outputStream.write(bytes, 0, read);
-                    }
-
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } finally {
-                    if (inputStream != null) {
-                        try {
-                            inputStream.close();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    if (outputStream != null) {
-                        try {
-                            // outputStream.flush();
-                            outputStream.close();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-
-                    }
-                }
-            }
-
-            return new File(Environment.getExternalStorageDirectory(), MAPFILE);
         }
-
-        return null;
     }
 
-    private Marker generateMarker(LatLong position){
+    @AfterPermissionGranted(Constants.permissions.DRAW_MAPS)
+    private void redrawOSMDroidMap(){
+        Log.e("PERMISSIONS!", "@HomeFragment redraw the map");
+    }
 
-        Drawable drawable = ContextCompat.getDrawable(getActivity(), R.drawable.ic_pin3);
+    private void focusOnMap(double latitude, double longitude){
 
-        Bitmap icon = drawable==null? null : AndroidGraphicFactory.convertToBitmap(drawable);
+        GeoPoint center = new GeoPoint(latitude, longitude);
 
-        return icon == null ? null : new Marker(position, icon, 1 * icon.getWidth() / 2, -1 * icon.getHeight() / 2);
-
+        IMapController mapController = osmMapView.getController();
+        mapController.setZoom(20);
+        mapController.setCenter(center);
 
     }
+
 
     /* Devices Management
     /* Devices Management
@@ -646,13 +484,6 @@ public class HomeFragment extends Fragment
         mMarkerWorker.schedule(new FocusTask(), time, TimeUnit.SECONDS);
     }
 
-    @Override
-    public void cleanMap() {
-        if(this.mapView != null)
-            this.mapView.destroyAll();
-    }
-
-
     private class FocusTask implements Runnable {
 
         @Override
@@ -661,6 +492,24 @@ public class HomeFragment extends Fragment
         }
     }
 
+
+    /* Map View Fragment
+    /* Map View Fragment
+    /* Map View Fragment
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+    @Override
+    public void cleanMap() {
+        /*if(this.mapView != null)
+            this.mapView.destroyAll();*/
+    }
+
+    @Override
+    public void redrawMap() {
+        setupOSMDroidMap();
+    }
 
     /* State Keys
     /* State Keys

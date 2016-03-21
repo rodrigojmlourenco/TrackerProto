@@ -20,6 +20,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.trace.trackerproto.ProtoConstants;
 import org.trace.tracking.Constants;
 import org.trace.trackerproto.R;
 import org.trace.tracking.store.TRACEStoreApiClient;
@@ -51,8 +52,7 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        View rootView = inflater.inflate(R.layout.fragment_tracks, container, false);
-        return rootView;
+        return inflater.inflate(R.layout.fragment_tracks, container, false);
     }
 
     @Override
@@ -182,8 +182,9 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
                     if (EasyPermissions.hasPermissions(getActivity(), perms)) {
                         Toast.makeText(context, tracks.get(values.get(position)).getSessionId(), Toast.LENGTH_LONG).show();
 
+
                         Intent maps = new Intent(context, MapActivity.class);
-                        maps.putExtra(Constants.TRACK_KEY, values.get(position));
+                        maps.putExtra(ProtoConstants.extras.TRACK_KEY_EXTRA, values.get(position));
                         context.startActivity(maps);
 
                     } else {

@@ -75,7 +75,11 @@ public class LoginActivity extends AppCompatActivity {
                 if(intent.hasExtra(Constants.SUCCESS_LOGIN_KEY)
                         && intent.getBooleanExtra(Constants.SUCCESS_LOGIN_KEY, false)) {
                     Toast.makeText(LoginActivity.this, "Login successful", Toast.LENGTH_LONG).show();
+
+                    Intent mainActivity = new Intent(LoginActivity.this, MainActivity.class);
+                    startActivity(mainActivity);
                     finish();
+
                 }else
                     Toast.makeText(LoginActivity.this, "Login failed", Toast.LENGTH_LONG).show();
             }

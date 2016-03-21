@@ -2,9 +2,11 @@ package org.trace.trackerproto;
 
 import android.Manifest;
 
-public final class Constants {
+public final class ProtoConstants {
 
-
+    public interface extras {
+        String TRACK_KEY_EXTRA = "org.trace.intent.extra.TRACK_KEY_EXTRA";
+    }
 
     public interface home {
         String MARKER_INDEX_KEY = "MARKER_INDEX_KEY";

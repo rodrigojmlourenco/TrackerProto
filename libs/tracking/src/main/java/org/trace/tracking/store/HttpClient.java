@@ -178,7 +178,7 @@ public class HttpClient {
             return authToken;
         } catch (UnableToRequestPostException | AuthTokenIsExpiredException e) {
             e.printStackTrace();
-            throw new UnableToPerformLogin();
+            throw new UnableToPerformLogin(e.getMessage());
         }
     }
 

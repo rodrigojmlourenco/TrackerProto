@@ -29,10 +29,10 @@
 
     <!-- Nav Drawer Menu Items -->
     <string-array name="nav_drawer_items">
-        <item >Home</item>
-        <item >Tracks</item>
-        <item >Settings</item>
-        <item >Logout</item>
+        <item>Home</item>
+        <item>Tracks</item>
+        <item>Settings</item>
+        <item>Logout</item>
     </string-array>
 
     <!-- Nav Drawer List Item Icons -->
@@ -43,4 +43,8 @@
         <item>@drawable/ic_settings</item>
         <item>@drawable/ic_logout</item>
     </array>
+    <string name="title_activity_osmdroid_map">OSMDroidMapActivity</string>
+    <string name="title_activity_dynamic_init">DynamicInitActivity</string>
+    <string name="here">Here</string>
+    <string name="current_position">Current Position</string>
 </resources>

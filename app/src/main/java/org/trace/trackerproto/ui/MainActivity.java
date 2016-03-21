@@ -15,6 +15,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Messenger;
 import android.os.PersistableBundle;
+import android.support.annotation.NonNull;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
@@ -26,17 +27,19 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 
 import org.trace.trackerproto.R;
-import org.trace.tracking.store.TRACEStoreApiClient;
-import org.trace.tracking.store.auth.AuthenticationManager;
-import org.trace.tracking.TRACETracker;
-import org.trace.tracking.storage.PersistentTrackStorage;
 import org.trace.trackerproto.ui.slidingmenu.adapter.NavDrawerListAdapter;
 import org.trace.trackerproto.ui.slidingmenu.model.NavDrawerItem;
+import org.trace.tracking.Constants;
+import org.trace.tracking.TRACETracker;
+import org.trace.tracking.storage.PersistentTrackStorage;
+import org.trace.tracking.store.TRACEStoreApiClient;
+import org.trace.tracking.store.auth.AuthenticationManager;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import pub.devrel.easypermissions.AfterPermissionGranted;
 import pub.devrel.easypermissions.EasyPermissions;
 
 //TODO: update the count of navdraweritem on delete or create track
@@ -48,6 +51,8 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
     //Storage
     private PersistentTrackStorage mTrackStorage;
 
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -58,7 +63,18 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
 
         mTrackStorage = new PersistentTrackStorage(this);
 
+        //Force Login if it's the first time
+        /*if(TRACEStoreApiClient.isFirstTime(this)){
+            Intent forceLogin = new Intent(this, LoginActivity.class);
+            startActivity(forceLogin);
+        }else{
+            TRACEStoreApiClient.requestLogin(this, "", "");
+
+        }*/
+
+        TRACEStoreApiClient.requestLogin(this, "", "");
         setupSlidingMenu(savedInstanceState);
+
     }
 
 
@@ -149,6 +165,7 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
 
 
 
+    @SuppressWarnings("deprecation")
     private void setupSlidingMenu(Bundle savedInstanceState){
 
 
@@ -166,7 +183,7 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
         mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
         mDrawerList = (ListView) findViewById(R.id.list_slidermenu);
 
-        navDrawerItems = new ArrayList<NavDrawerItem>();
+        navDrawerItems = new ArrayList<>();
 
         // adding nav drawer items to array
         // Home
@@ -209,6 +226,7 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
                 invalidateOptionsMenu();
             }
         };
+
         mDrawerLayout.setDrawerListener(mDrawerToggle);
 
         if (savedInstanceState == null) {
@@ -269,16 +287,59 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
         mDrawerToggle.onConfigurationChanged(newConfig);
     }
 
+    /* Permissions
+    /* Permissions
+    /* Permissions
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+    @Override
+    public void onRequestPermissionsResult(int requestCode,@NonNull String[] permissions,@NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        // Forward results to EasyPermissions
+        EasyPermissions.onRequestPermissionsResult(requestCode, permissions, grantResults, this);
+    }
+
+
     @Override
     public void onPermissionsGranted(int requestCode, List<String> perms) {
-
+        Log.e("PERMISSIONS!", "Permissions granted but on the mainActivity");
     }
+
 
     @Override
     public void onPermissionsDenied(int requestCode, List<String> perms) {
-
+        Log.e("PERMISSIONS!", "Permissions denied but on the mainActivity");
     }
 
+    @AfterPermissionGranted(Constants.permissions.DRAW_MAPS)
+    private void redrawOSMDroidMap(){
+        if(mCurrentFragment != null && mCurrentFragment instanceof MapViewFragment){
+            ((MapViewFragment)mCurrentFragment).redrawMap();
+        }
+    }
+
+    @AfterPermissionGranted(Constants.permissions.FOCUS_ON_MAP)
+    private void focusOnMap(){
+        if(mCurrentFragment != null && mCurrentFragment instanceof TrackingFragment){
+            ((TrackingFragment)mCurrentFragment).focusOnCurrentLocation();
+        }
+    }
+
+    @AfterPermissionGranted(Constants.permissions.TRACKING)
+    private void startTracking(){
+        if(mCurrentFragment != null && mCurrentFragment instanceof TrackingFragment){
+            ((TrackingFragment)mCurrentFragment).startTracking();
+        }
+    }
+
+    /*
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
     private class SlideMenuClickListener implements ListView.OnItemClickListener{
 
         @Override
