@@ -395,6 +395,7 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
         if(EasyPermissions.hasPermissions(getActivity(), Constants.permissions.EXTERNAL_STORAGE_PERMISSIONS)) {
             osmMapView = (MapView) getActivity().findViewById(R.id.mapContainerLayout);
             osmMapView.setTileSource(TileSourceFactory.MAPNIK);
+            osmMapView.setMultiTouchControls(true);
 
             IMapController mapController = osmMapView.getController();
             mapController.setZoom(12);
