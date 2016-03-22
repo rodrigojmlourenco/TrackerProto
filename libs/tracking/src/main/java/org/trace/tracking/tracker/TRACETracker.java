@@ -201,7 +201,7 @@ public class TRACETracker extends Service {
         /**
          * Initiates the location and activity tracking modules.
          * <br>
-         * <emph>Note:</emph> It is important to assure in API version above 23, that the ACCESS_FINE_LOCATION
+         * <br><b>Note:</b> It is important to assure in API version above 23, that the ACCESS_FINE_LOCATION
          * and ACCESS_COARSE_LOCATION have been granted, and otherwise, request them.
          */
         public void startTracking(){
@@ -212,7 +212,7 @@ public class TRACETracker extends Service {
         /**
          * Initiates the location and activity tracking modules.
          * <br>
-         * <emph>Note:</emph> It is important to assure in API version above 23, that the ACCESS_FINE_LOCATION
+         * <br><b>Note:</b> It is important to assure in API version above 23, that the ACCESS_FINE_LOCATION
          * and ACCESS_COARSE_LOCATION have been granted, and otherwise, request them.
          */
         public static void startTracking(Messenger messenger){
@@ -242,7 +242,7 @@ public class TRACETracker extends Service {
          * through the LocalBroadcastManager with the Constants.BROADCAST_LOCATION_ACTION, and
          * under the Constants.BROADCAST_LOCATION_EXTRA extra.
          * <br>
-         * <emph>Note:</emph> It is important to assure in API version above 23, that the ACCESS_FINE_LOCATION
+         * <br><b>Note:</b> It is important to assure in API version above 23, that the ACCESS_FINE_LOCATION
          * and ACCESS_COARSE_LOCATION have been granted, and otherwise, request them.
          * <br>
          * <pre>
@@ -273,7 +273,7 @@ public class TRACETracker extends Service {
          * through the LocalBroadcastManager with the Constants.BROADCAST_LOCATION_ACTION, and
          * under the Constants.BROADCAST_LOCATION_EXTRA extra.
          * <br>
-         * <emph>Note:</emph> It is important to assure in API version above 23, that the ACCESS_FINE_LOCATION
+         * <br><b>Note:</b> It is important to assure in API version above 23, that the ACCESS_FINE_LOCATION
          * and ACCESS_COARSE_LOCATION have been granted, and otherwise, request them.
          * <br>
          * <pre>
@@ -423,7 +423,7 @@ public class TRACETracker extends Service {
          * Exports the track identified by its session identifier to external storage. The track
          * is exported as a gpx file, which conforms to the GPS Exchange Format.
          *
-         * <emph>Note:</emph> It is important to assure in API version above 23, that the READ and
+         * <br><b>Note:</b> It is important to assure in API version above 23, that the READ and
          * WRITE permissions for external storage have been granted.
          *
          * @param sessionId The track's identifier.
@@ -439,7 +439,7 @@ public class TRACETracker extends Service {
          * Exports the track identified by its session identifier to external storage. The track
          * is exported as a gpx file, which conforms to the GPS Exchange Format.
          *
-         * <emph>Note:</emph> It is important to assure in API version above 23, that the READ and
+         * <br><b>Note:</b> It is important to assure in API version above 23, that the READ and
          * WRITE permissions for external storage have been granted.
          *
          * @param sessionId The track's identifier.
