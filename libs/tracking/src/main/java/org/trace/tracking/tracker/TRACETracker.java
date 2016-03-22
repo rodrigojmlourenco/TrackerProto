@@ -174,6 +174,12 @@ public class TRACETracker extends Service {
         //Tracking Settings
         private SettingsManager mSettingsManager;
 
+        /**
+         * Future versions of this class with contemplate only static access methods.
+         * @param context
+         * @param messenger
+         */
+        @Deprecated
         public Client(Context context, Messenger messenger){
             this.mContext = context;
             this.mService = messenger;
@@ -203,7 +209,10 @@ public class TRACETracker extends Service {
          * <br>
          * <br><b>Note:</b> It is important to assure in API version above 23, that the ACCESS_FINE_LOCATION
          * and ACCESS_COARSE_LOCATION have been granted, and otherwise, request them.
+         * <br>
+         * Future versions of this class with contemplate only static access methods.
          */
+        @Deprecated
         public void startTracking(){
             Message msg = Message.obtain(null, TRACETrackerOperations.TRACK_ACTION);
             sendRequest(msg);
@@ -222,7 +231,10 @@ public class TRACETracker extends Service {
 
         /**
          * Stops the location and activity tracking modules.
+         * <br>
+         *     Future versions of this class with contemplate only static access methods.
          */
+        @Deprecated
         public void stopTracking(){
             Message msg = Message.obtain(null, TRACETrackerOperations.UNTRACK_ACTION);
             sendRequest(msg);
@@ -261,7 +273,11 @@ public class TRACETracker extends Service {
          *     LocalBroadcastManager.getInstance(this).registerReceiver(mLocationReceiver, locationFilter);
          *     }
          * </pre>
+         * <br>
+         *     Future versions of this class with contemplate only static access methods.
+         *
          */
+        @Deprecated
         public void getLastLocation(){
             Message msg = Message.obtain(null, TRACETrackerOperations.LAST_LOCATION_ACTION);
             sendRequest(msg);
@@ -301,11 +317,13 @@ public class TRACETracker extends Service {
         /**
          * Updates the tracking profile settings. These define the sampling rates used, how outliers
          * are identified, among other information.
+         * <br> Future versions of this class with contemplate only static access methods.
          *
          * @param profile The tracking profile.
          *
          * @see TrackingProfile
          */
+        @Deprecated
         public void updateTrackingProfile(TrackingProfile profile){
             mSettingsManager.saveTrackingProfile(profile);
         }
@@ -325,9 +343,11 @@ public class TRACETracker extends Service {
 
         /**
          * Fetches the current tracking profile.
+         * <br> Future versions of this class with contemplate only static access methods.
          * @return The current TrackingProfile
          * @see TrackingProfile
          */
+        @Deprecated
         public TrackingProfile getCurrentTrackingProfile(){
             return mSettingsManager.getTrackingProfile();
         }
@@ -345,9 +365,11 @@ public class TRACETracker extends Service {
 
         /**
          * Fetches all the stored tracks as a list of SimplifiedTracks
+         * <br> Future versions of this class with contemplate only static access methods.
          * @return SimplifiedTrack list
          * @see SimplifiedTrack
          */
+        @Deprecated
         public List<SimplifiedTrack> getAllStoredTracks(){
             return mTrackStorage.getTracksSessions();
         }
@@ -364,11 +386,13 @@ public class TRACETracker extends Service {
 
         /**
          * Fetches a track identified by its session identifier as a complete track.
+         * <br> Future versions of this class with contemplate only static access methods.
          * @param sessionId The track's identifier
          * @return The Track
          *
          * @see Track
          */
+        @Deprecated
         public Track getStoredTrack(String sessionId){
             return mTrackStorage.getTrack(sessionId);
         }
@@ -387,8 +411,10 @@ public class TRACETracker extends Service {
 
         /**
          * Fetches the number of tracks currently stored in memory.
+         * <br> Future versions of this class with contemplate only static access methods.
          * @return The number of stored tracks.
          */
+        @Deprecated
         public int getStoredTracksCount(){
             return  mTrackStorage.getTracksCount();
         }
@@ -404,8 +430,10 @@ public class TRACETracker extends Service {
 
         /**
          * Removes the track identified by its session identifier from memory.
+         * <br> Future versions of this class with contemplate only static access methods.
          * @param sessionId The track's session identifier.
          */
+        @Deprecated
         public void deleteStoredTrack(String sessionId){
             mTrackStorage.deleteTrackById(sessionId);
         }
@@ -422,12 +450,14 @@ public class TRACETracker extends Service {
         /**
          * Exports the track identified by its session identifier to external storage. The track
          * is exported as a gpx file, which conforms to the GPS Exchange Format.
+         * <br> Future versions of this class with contemplate only static access methods.
          *
          * <br><b>Note:</b> It is important to assure in API version above 23, that the READ and
          * WRITE permissions for external storage have been granted.
          *
          * @param sessionId The track's identifier.
          */
+        @Deprecated
         public void exportStoredTrackToExternalMemory(String sessionId){
             Track t = mTrackStorage.getTrack(sessionId);
 
@@ -442,14 +472,10 @@ public class TRACETracker extends Service {
          * <br><b>Note:</b> It is important to assure in API version above 23, that the READ and
          * WRITE permissions for external storage have been granted.
          *
-         * @param sessionId The track's identifier.
+         * @param track The track to be exported
          */
-        public static void exportStoredTrackToExternalMemory(Context context, String sessionId){
-            PersistentTrackStorage storage = new PersistentTrackStorage(context);
-            Track t = storage.getTrack(sessionId);
-
-            if(t != null)
-                GPXTrackWriter.exportAsGPX(context, t);
+        public static String exportStoredTrackToExternalMemory(Context context, Track track){
+            return GPXTrackWriter.exportAsGPX(context, track);
         }
     }
 }

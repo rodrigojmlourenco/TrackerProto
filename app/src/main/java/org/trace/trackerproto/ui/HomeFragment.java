@@ -422,6 +422,8 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
         mapController.setZoom(20);
         mapController.setCenter(center);
 
+        osmMapView.invalidate();
+
     }
 
 

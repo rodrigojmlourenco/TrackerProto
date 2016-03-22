@@ -31,9 +31,9 @@ import org.trace.trackerproto.ui.slidingmenu.adapter.NavDrawerListAdapter;
 import org.trace.trackerproto.ui.slidingmenu.model.NavDrawerItem;
 import org.trace.tracking.Constants;
 import org.trace.tracking.store.TRACEStore;
+import org.trace.tracking.store.auth.AuthenticationManager;
 import org.trace.tracking.tracker.TRACETracker;
 import org.trace.tracking.tracker.storage.PersistentTrackStorage;
-import org.trace.tracking.store.auth.AuthenticationManager;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -49,7 +49,6 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
     private Fragment mCurrentFragment = null;
 
     //Storage
-    private PersistentTrackStorage mTrackStorage;
 
 
 
@@ -60,17 +59,6 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
 
         if(savedInstanceState!=null)
             updateState(savedInstanceState);
-
-        mTrackStorage = new PersistentTrackStorage(this);
-
-        //Force Login if it's the first time
-        /*if(Client.isFirstTime(this)){
-            Intent forceLogin = new Intent(this, LoginActivity.class);
-            startActivity(forceLogin);
-        }else{
-            Client.requestLogin(this, "", "");
-
-        }*/
 
         TRACEStore.Client.requestLogin(this, "", "");
         setupSlidingMenu(savedInstanceState);
@@ -189,7 +177,8 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
         // Home
         navDrawerItems.add(new NavDrawerItem(navMenuTitles[0], navMenuIcons.getResourceId(0, -1)));
         // Tracks
-        navDrawerItems.add(new NavDrawerItem(navMenuTitles[1], navMenuIcons.getResourceId(1, -1), true, String.valueOf(mTrackStorage.getTracksCount())));
+        int count = TRACETracker.Client.getStoredTracksCount(this);
+        navDrawerItems.add(new NavDrawerItem(navMenuTitles[1], navMenuIcons.getResourceId(1, -1), true, String.valueOf(count)));
         // Settings
         navDrawerItems.add(new NavDrawerItem(navMenuTitles[2], navMenuIcons.getResourceId(2, -1)));
 
@@ -507,7 +496,8 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
 
     @Override
     public void updateTrackCount(){
-        navDrawerItems.get(1).setCount(String.valueOf(mTrackStorage.getTracksCount()));
+        int count = TRACETracker.Client.getStoredTracksCount(this);
+        navDrawerItems.get(1).setCount(String.valueOf(count));
     }
 
 

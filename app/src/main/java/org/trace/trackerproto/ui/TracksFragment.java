@@ -107,9 +107,8 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
 
             Track track;
 
-            //track = mTrackStorage.getTrack(sessionId); OLD
             track = TRACETracker.Client.getStoredTrack(getActivity(), sessionId);
-            feedback = GPXTrackWriter.exportAsGPX(getActivity(), track);
+            feedback = TRACETracker.Client.exportStoredTrackToExternalMemory(getActivity(), track);
         }
 
         Toast.makeText(getActivity(), feedback, Toast.LENGTH_SHORT).show();
