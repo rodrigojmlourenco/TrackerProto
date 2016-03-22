@@ -24,6 +24,7 @@ import org.trace.trackerproto.ProtoConstants;
 import org.trace.tracking.Constants;
 import org.trace.trackerproto.R;
 import org.trace.tracking.store.TRACEStore;
+import org.trace.tracking.tracker.TRACETracker;
 import org.trace.tracking.tracker.storage.GPXTrackWriter;
 import org.trace.tracking.tracker.storage.PersistentTrackStorage;
 import org.trace.tracking.tracker.storage.data.SimplifiedTrack;
@@ -46,9 +47,6 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
     private String[] perms = {  Manifest.permission.READ_EXTERNAL_STORAGE,
                                 Manifest.permission.WRITE_EXTERNAL_STORAGE };
 
-    //Storage
-    private PersistentTrackStorage mTrackStorage;
-
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -59,9 +57,14 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        /* Old Version Using PersistentTrackStorage
         mTrackStorage = new PersistentTrackStorage(getActivity());
 
         List<SimplifiedTrack> simplifiedTracks = mTrackStorage.getTracksSessions();
+        String[] tracks = new String[simplifiedTracks.size()];
+        */
+        //new Version
+        List<SimplifiedTrack> simplifiedTracks = TRACETracker.Client.getAllStoredTracks(getActivity());
         String[] tracks = new String[simplifiedTracks.size()];
 
         for(int i=0; i < simplifiedTracks.size(); i++) //Remove the file prefix
@@ -104,7 +107,8 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
 
             Track track;
 
-            track = mTrackStorage.getTrack(sessionId);
+            //track = mTrackStorage.getTrack(sessionId); OLD
+            track = TRACETracker.Client.getStoredTrack(getActivity(), sessionId);
             feedback = GPXTrackWriter.exportAsGPX(getActivity(), track);
         }
 
@@ -127,7 +131,8 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
 
             int i;
             for(i=0; i < values.length; i++){
-                Track t = mTrackStorage.getTrack(values[i]);
+                //Track t = mTrackStorage.getTrack(values[i]);
+                Track t = TRACETracker.Client.getStoredTrack(getActivity(), values[i]);
                 tracks.put(values[i], t);
             }
 
@@ -205,9 +210,10 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
                     String handle = values.get(position);
                     String sessionId = tracks.get(values.get(position)).getSessionId();
 
-                    mTrackStorage.deleteTrackById(sessionId);
+                    //mTrackStorage.deleteTrackById(sessionId);
+                    TRACETracker.Client.deleteStoredTrack(getActivity(), sessionId);
 
-                    ((TrackCountListener)getActivity()).updateTrackCount();
+                            ((TrackCountListener) getActivity()).updateTrackCount();
 
                     remove(handle);
                 }
@@ -218,7 +224,8 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
                 public void onClick(View v) {
 
                     if(isNetworkConnected()) {
-                        Track track = mTrackStorage.getTrack(values.get(position));
+                        //Track track = mTrackStorage.getTrack(values.get(position));
+                        Track track = TRACETracker.Client.getStoredTrack(getActivity(), values.get(position));
                         TRACEStore.Client.uploadWholeTrack(context, track);
                     }else
                         buildAlertMessageNoConnectivity();

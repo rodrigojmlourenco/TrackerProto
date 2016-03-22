@@ -190,6 +190,14 @@ public class TRACETracker extends Service {
             }
         }
 
+        private static void sendRequest(Messenger messenger, Message msg){
+            try {
+                messenger.send(msg);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        }
+
         /**
          * Initiates the location and activity tracking modules.
          * <br>
@@ -202,11 +210,30 @@ public class TRACETracker extends Service {
         }
 
         /**
+         * Initiates the location and activity tracking modules.
+         * <br>
+         * <emph>Note:</emph> It is important to assure in API version above 23, that the ACCESS_FINE_LOCATION
+         * and ACCESS_COARSE_LOCATION have been granted, and otherwise, request them.
+         */
+        public static void startTracking(Messenger messenger){
+            Message msg = Message.obtain(null, TRACETrackerOperations.TRACK_ACTION);
+            sendRequest(messenger, msg);
+        }
+
+        /**
          * Stops the location and activity tracking modules.
          */
         public void stopTracking(){
             Message msg = Message.obtain(null, TRACETrackerOperations.UNTRACK_ACTION);
             sendRequest(msg);
+        }
+
+        /**
+         * Stops the location and activity tracking modules.
+         */
+        public static void stopTracking(Messenger messenger){
+            Message msg = Message.obtain(null, TRACETrackerOperations.UNTRACK_ACTION);
+            sendRequest(messenger, msg);
         }
 
         /**
@@ -241,6 +268,37 @@ public class TRACETracker extends Service {
         }
 
         /**
+         * Request the most current location. Because the communication is made with the service
+         * this method does not actually returns the location. Instead, the location is broadcasted
+         * through the LocalBroadcastManager with the Constants.BROADCAST_LOCATION_ACTION, and
+         * under the Constants.BROADCAST_LOCATION_EXTRA extra.
+         * <br>
+         * <emph>Note:</emph> It is important to assure in API version above 23, that the ACCESS_FINE_LOCATION
+         * and ACCESS_COARSE_LOCATION have been granted, and otherwise, request them.
+         * <br>
+         * <pre>
+         *     {@code
+         *     mLocationReceiver = new BroadcastReceiver(){
+         *      {@literal @}Override
+         *      public void onReceive(Context context, Intent intent) {
+         *          Location mCurrentLocation = intent.getParcelableExtra(Constants.tracker.BROADCAST_LOCATION_EXTRA);
+         *          //Do something with the location
+         *          }
+         *     };
+         *
+         *     IntentFilter locationFilter = new IntentFilter();
+         *     locationFilter.addAction(Constants.tracker.BROADCAST_LOCATION_ACTION);
+         *
+         *     LocalBroadcastManager.getInstance(this).registerReceiver(mLocationReceiver, locationFilter);
+         *     }
+         * </pre>
+         */
+        public static void getLastLocation(Messenger messenger){
+            Message msg = Message.obtain(null, TRACETrackerOperations.LAST_LOCATION_ACTION);
+            sendRequest(messenger, msg);
+        }
+
+        /**
          * Updates the tracking profile settings. These define the sampling rates used, how outliers
          * are identified, among other information.
          *
@@ -253,12 +311,35 @@ public class TRACETracker extends Service {
         }
 
         /**
+         * Updates the tracking profile settings. These define the sampling rates used, how outliers
+         * are identified, among other information.
+         *
+         * @param profile The tracking profile.
+         *
+         * @see TrackingProfile
+         */
+        public static void updateTrackingProfile(Context context, TrackingProfile profile){
+            SettingsManager settingsManager = SettingsManager.getInstance(context);
+            settingsManager.saveTrackingProfile(profile);
+        }
+
+        /**
          * Fetches the current tracking profile.
          * @return The current TrackingProfile
          * @see TrackingProfile
          */
         public TrackingProfile getCurrentTrackingProfile(){
             return mSettingsManager.getTrackingProfile();
+        }
+
+        /**
+         * Fetches the current tracking profile.
+         * @return The current TrackingProfile
+         * @see TrackingProfile
+         */
+        public static TrackingProfile getCurrentTrackingProfile(Context context){
+            SettingsManager settingsManager = SettingsManager.getInstance(context);
+            return settingsManager.getTrackingProfile();
         }
 
 
@@ -269,6 +350,16 @@ public class TRACETracker extends Service {
          */
         public List<SimplifiedTrack> getAllStoredTracks(){
             return mTrackStorage.getTracksSessions();
+        }
+
+        /**
+         * Fetches all the stored tracks as a list of SimplifiedTracks
+         * @return SimplifiedTrack list
+         * @see SimplifiedTrack
+         */
+        public static List<SimplifiedTrack> getAllStoredTracks(Context context){
+            PersistentTrackStorage storage = new PersistentTrackStorage(context);
+            return storage.getTracksSessions();
         }
 
         /**
@@ -283,6 +374,18 @@ public class TRACETracker extends Service {
         }
 
         /**
+         * Fetches a track identified by its session identifier as a complete track.
+         * @param sessionId The track's identifier
+         * @return The Track
+         *
+         * @see Track
+         */
+        public static Track getStoredTrack(Context context, String sessionId){
+            PersistentTrackStorage storage = new PersistentTrackStorage(context);
+            return storage.getTrack(sessionId);
+        }
+
+        /**
          * Fetches the number of tracks currently stored in memory.
          * @return The number of stored tracks.
          */
@@ -291,11 +394,29 @@ public class TRACETracker extends Service {
         }
 
         /**
+         * Fetches the number of tracks currently stored in memory.
+         * @return The number of stored tracks.
+         */
+        public static int getStoredTracksCount(Context context){
+            PersistentTrackStorage storage = new PersistentTrackStorage(context);
+            return  storage.getTracksCount();
+        }
+
+        /**
          * Removes the track identified by its session identifier from memory.
          * @param sessionId The track's session identifier.
          */
         public void deleteStoredTrack(String sessionId){
             mTrackStorage.deleteTrackById(sessionId);
+        }
+
+        /**
+         * Removes the track identified by its session identifier from memory.
+         * @param sessionId The track's session identifier.
+         */
+        public static void deleteStoredTrack(Context context, String sessionId){
+            PersistentTrackStorage storage = new PersistentTrackStorage(context);
+            storage.deleteTrackById(sessionId);
         }
 
         /**
@@ -312,6 +433,23 @@ public class TRACETracker extends Service {
 
             if(t != null)
                 GPXTrackWriter.exportAsGPX(mContext, t);
+        }
+
+        /**
+         * Exports the track identified by its session identifier to external storage. The track
+         * is exported as a gpx file, which conforms to the GPS Exchange Format.
+         *
+         * <emph>Note:</emph> It is important to assure in API version above 23, that the READ and
+         * WRITE permissions for external storage have been granted.
+         *
+         * @param sessionId The track's identifier.
+         */
+        public static void exportStoredTrackToExternalMemory(Context context, String sessionId){
+            PersistentTrackStorage storage = new PersistentTrackStorage(context);
+            Track t = storage.getTrack(sessionId);
+
+            if(t != null)
+                GPXTrackWriter.exportAsGPX(context, t);
         }
     }
 }

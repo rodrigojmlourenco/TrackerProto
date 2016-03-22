@@ -16,15 +16,15 @@ import android.widget.Toast;
 import com.google.android.gms.location.LocationRequest;
 
 import org.trace.trackerproto.R;
-import org.trace.tracking.tracker.settings.SettingsManager;
+import org.trace.tracking.tracker.TRACETracker;
 import org.trace.tracking.tracker.settings.TrackingProfile;
 
-/**
+ /**
  * Created by Rodrigo Lourenço on 07/03/2016.
  */
 public class SettingsFragment extends Fragment {
 
-    private SettingsManager mSettingsManager;
+    //private SettingsManager mSettingsManager;
     private TrackingProfile mTrackingProfile;
 
     //
@@ -54,8 +54,8 @@ public class SettingsFragment extends Fragment {
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        mSettingsManager = SettingsManager.getInstance(getActivity());
-        mTrackingProfile = mSettingsManager.getTrackingProfile();
+        //mSettingsManager = SettingsManager.getInstance(getActivity());
+        mTrackingProfile = TRACETracker.Client.getCurrentTrackingProfile(getActivity());
 
         //Location
         setupLocationSettings();
@@ -190,7 +190,8 @@ public class SettingsFragment extends Fragment {
                 mTrackingProfile.setWifiOnly(wifiOnly);
                 mTrackingProfile.setOnDemandOnly(onDemandOnly);
 
-                mSettingsManager.saveTrackingProfile(mTrackingProfile);
+                //mSettingsManager.saveTrackingProfile(mTrackingProfile);
+                TRACETracker.Client.updateTrackingProfile(getActivity(), mTrackingProfile);
 
                 String message = "Settings saved. They will take effect on the next tracking session.";
                 Toast.makeText(getActivity(), message, Toast.LENGTH_LONG).show();
