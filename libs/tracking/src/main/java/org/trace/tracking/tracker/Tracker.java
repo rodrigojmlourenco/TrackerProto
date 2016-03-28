@@ -6,11 +6,13 @@ import android.content.Intent;
 import android.location.Location;
 import android.util.Log;
 
+import com.google.android.gms.location.DetectedActivity;
 import com.google.android.gms.location.LocationServices;
 
 import org.trace.tracking.Constants;
 import org.trace.tracking.store.TRACEStore;
 import org.trace.tracking.tracker.google.GoogleClientManager;
+import org.trace.tracking.tracker.modules.activity.ActivityConstants;
 import org.trace.tracking.tracker.modules.activity.ActivityRecognitionModule;
 import org.trace.tracking.tracker.modules.location.FusedLocationModule;
 import org.trace.tracking.tracker.settings.SettingsManager;

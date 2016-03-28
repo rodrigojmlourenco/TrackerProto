@@ -11,6 +11,7 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.ActivityRecognition;
+import com.google.android.gms.location.DetectedActivity;
 
 import org.trace.tracking.tracker.exceptions.GoogleApiClientDisconnectedException;
 import org.trace.tracking.tracker.modules.ModuleInterface;
