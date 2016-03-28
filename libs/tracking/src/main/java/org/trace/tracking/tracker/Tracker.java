@@ -6,17 +6,15 @@ import android.content.Intent;
 import android.location.Location;
 import android.util.Log;
 
-import com.google.android.gms.location.DetectedActivity;
 import com.google.android.gms.location.LocationServices;
 
 import org.trace.tracking.Constants;
 import org.trace.tracking.store.TRACEStore;
-import org.trace.tracking.tracker.settings.SettingsManager;
-import org.trace.tracking.tracker.settings.TrackingProfile;
 import org.trace.tracking.tracker.google.GoogleClientManager;
-import org.trace.tracking.tracker.modules.activity.ActivityConstants;
 import org.trace.tracking.tracker.modules.activity.ActivityRecognitionModule;
 import org.trace.tracking.tracker.modules.location.FusedLocationModule;
+import org.trace.tracking.tracker.settings.SettingsManager;
+import org.trace.tracking.tracker.settings.TrackingProfile;
 import org.trace.tracking.tracker.storage.PersistentTrackStorage;
 import org.trace.tracking.tracker.storage.data.TraceLocation;
 
@@ -179,7 +177,7 @@ public class Tracker extends BroadcastReceiver implements CollectorManager {
                 aux = activity;
 
         if(aux.getConfidence() < mMinimumActivityConfidence) {
-            String activityName = ActivityConstants.getActivityString(aux.getType());
+            String activityName = ActivityRecognitionModule.getActivityString(aux.getType());
             Log.d(LOG_TAG, "Confidence on the activity '"+activityName+"' is too low, keeping the previous...");
             return;
         }
@@ -197,10 +195,10 @@ public class Tracker extends BroadcastReceiver implements CollectorManager {
             TraceLocation location = intent.getParcelableExtra(Constants.tracker.LOCATION_EXTRA);
             onHandleLocation(location);
 
-        }else if(intent.hasExtra(Constants.tracker.ACTIVITY_EXTRA)) {
+        }else if(intent.hasExtra(TrackingConstants.ActivityRecognition.ACTIVITY_EXTRA)) {
 
             ArrayList<DetectedActivity> updatedActivities =
-                    intent.getParcelableArrayListExtra(Constants.tracker.ACTIVITY_EXTRA);
+                    intent.getParcelableArrayListExtra(TrackingConstants.ActivityRecognition.ACTIVITY_EXTRA);
 
             onHandleDetectedActivity(updatedActivities);
         }

@@ -7,6 +7,8 @@ import android.support.v4.content.LocalBroadcastManager;
 import com.google.android.gms.location.ActivityRecognitionResult;
 import com.google.android.gms.location.DetectedActivity;
 
+import org.trace.tracking.tracker.TrackingConstants;
+
 import java.util.ArrayList;
 
 /**
@@ -38,19 +40,9 @@ public class ActivityRecognitionHandler extends IntentService {
         // 0 and 100.
         ArrayList<DetectedActivity> detectedActivities = (ArrayList) result.getProbableActivities();
 
-        // Log each activity.
-        /*Log.i(TAG, "activities detected");
-        for (DetectedActivity da: detectedActivities) {
-
-            Log.i(TAG, ActivityConstants.getActivityString(
-                            getApplicationContext(),
-                            da.getType()) + " " + da.getConfidence() + "%"
-            );
-        }*/
-
         // Broadcast the list of detected activities.
-        Intent localIntent = new Intent(ActivityConstants.COLLECT_ACTION);
-        localIntent.putExtra(ActivityConstants.ACTIVITY_EXTRA, detectedActivities);
+        Intent localIntent = new Intent(TrackingConstants.ActivityRecognition.COLLECT_ACTION);
+        localIntent.putExtra(TrackingConstants.ActivityRecognition.ACTIVITY_EXTRA, detectedActivities);
         LocalBroadcastManager.getInstance(this).sendBroadcast(localIntent);
     }
 }

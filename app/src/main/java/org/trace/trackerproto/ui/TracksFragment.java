@@ -205,16 +205,25 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
                 @Override
                 public void onClick(View v) {
 
+                    new android.app.AlertDialog.Builder(getActivity())
+                            .setTitle("Delete track")
+                            .setMessage("Are you sure you want to delete this track?")
+                            .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    String handle = values.get(position);
+                                    String sessionId = tracks.get(values.get(position)).getSessionId();
 
-                    String handle = values.get(position);
-                    String sessionId = tracks.get(values.get(position)).getSessionId();
+                                    TRACETracker.Client.deleteStoredTrack(getActivity(), sessionId);
 
-                    //mTrackStorage.deleteTrackById(sessionId);
-                    TRACETracker.Client.deleteStoredTrack(getActivity(), sessionId);
+                                    ((TrackCountListener) getActivity()).updateTrackCount();
 
-                            ((TrackCountListener) getActivity()).updateTrackCount();
+                                    remove(handle);
+                                }
+                            })
+                            .setNegativeButton(R.string.no, null)
+                            .show();
 
-                    remove(handle);
                 }
             });
 

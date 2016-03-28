@@ -55,10 +55,11 @@ public class TRACETracker extends Service {
 
         Log.d(LOG_TAG, "onBind");
 
-        LocalBroadcastManager.getInstance(this)
-                .registerReceiver(mTracker, new IntentFilter(Constants.tracker.COLLECT_ACTION));
+        LocalBroadcastManager
+                .getInstance(this)
+                .registerReceiver(mTracker, new IntentFilter(TrackingConstants.ActivityRecognition.COLLECT_ACTION));
 
-        registerReceiver(mTracker, new IntentFilter(Constants.tracker.COLLECT_ACTION));
+        //registerReceiver(mTracker, new IntentFilter(tActivityConstants.COLLECT_ACTION));
 
         return mMessenger.getBinder();
     }

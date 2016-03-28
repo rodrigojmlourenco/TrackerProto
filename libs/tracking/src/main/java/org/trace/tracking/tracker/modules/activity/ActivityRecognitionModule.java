@@ -110,4 +110,31 @@ public class ActivityRecognitionModule implements ModuleInterface, ResultCallbac
     public void setMinimumConfidence(int minimumConfidence) {
         this.minimumConfidence = minimumConfidence;
     }
+
+    /**
+     * Returns a human readable String corresponding to a detected activity type.
+     */
+    public static String getActivityString(int detectedActivityType) {
+
+        switch(detectedActivityType) {
+            case DetectedActivity.IN_VEHICLE:
+                return "Vehicle";
+            case DetectedActivity.ON_BICYCLE:
+                return "Cycling";
+            case DetectedActivity.ON_FOOT:
+                return "On Foot";
+            case DetectedActivity.RUNNING:
+                return "Running";
+            case DetectedActivity.STILL:
+                return "Still";
+            case DetectedActivity.TILTING:
+                return "Tilting";
+            case DetectedActivity.UNKNOWN:
+                return "Unknown";
+            case DetectedActivity.WALKING:
+                return "Walking";
+            default:
+                return "Unknown";
+        }
+    }
 }

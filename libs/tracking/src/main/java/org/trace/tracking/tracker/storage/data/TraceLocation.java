@@ -8,8 +8,7 @@ import com.google.android.gms.location.DetectedActivity;
 import com.google.gson.JsonObject;
 
 import org.trace.tracking.Constants;
-
-import org.trace.tracking.tracker.modules.activity.ActivityConstants;
+import org.trace.tracking.tracker.modules.activity.ActivityRecognitionModule;
 
 
 public class TraceLocation extends Location{
@@ -92,7 +91,7 @@ public class TraceLocation extends Location{
             jsonActivity.addProperty("type", "unknown");
             jsonActivity.addProperty("confidence", 100);
         }else{
-            jsonActivity.addProperty("type", ActivityConstants.getActivityString(activity.getType()));
+            jsonActivity.addProperty("type", ActivityRecognitionModule.getActivityString(activity.getType()));
             jsonActivity.addProperty("confidence", activity.getConfidence());
         }
 

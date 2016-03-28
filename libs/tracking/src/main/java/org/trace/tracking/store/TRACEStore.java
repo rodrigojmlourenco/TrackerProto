@@ -40,6 +40,7 @@ public class TRACEStore extends IntentService{
         this.mHttpClient = new HttpClient(this);
     }
 
+
     @Override
     protected void onHandleIntent(Intent intent) {
 
@@ -232,12 +233,14 @@ public class TRACEStore extends IntentService{
 
         track = intent.getParcelableExtra(Constants.store.TRACK_EXTRA);
 
+        /*
         //Check if the track has already been uploaded, proceed otherwise.
         if(!track.isLocalOnly()) {
             postUserFeedback("This track has already been uploaded.");
             return;
         }else
             postUserFeedback("Uploading track with session '"+track.getSessionId()+"'...");
+        */
 
 
         try {
