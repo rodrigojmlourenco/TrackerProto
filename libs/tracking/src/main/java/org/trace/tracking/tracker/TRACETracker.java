@@ -15,6 +15,7 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import org.trace.tracking.Constants;
+import org.trace.tracking.tracker.modules.activity.ActivityConstants;
 import org.trace.tracking.tracker.settings.SettingsManager;
 import org.trace.tracking.tracker.settings.TrackingProfile;
 import org.trace.tracking.tracker.storage.GPXTrackWriter;
@@ -56,9 +57,9 @@ public class TRACETracker extends Service {
         Log.d(LOG_TAG, "onBind");
 
         LocalBroadcastManager.getInstance(this)
-                .registerReceiver(mTracker, new IntentFilter(Constants.tracker.COLLECT_ACTION));
+                .registerReceiver(mTracker, new IntentFilter(ActivityConstants.COLLECT_ACTION));
 
-        registerReceiver(mTracker, new IntentFilter(Constants.tracker.COLLECT_ACTION));
+        registerReceiver(mTracker, new IntentFilter(ActivityConstants.COLLECT_ACTION));
 
         return mMessenger.getBinder();
     }
