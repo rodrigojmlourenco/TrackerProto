@@ -195,10 +195,11 @@ public class Tracker extends BroadcastReceiver implements CollectorManager {
             TraceLocation location = intent.getParcelableExtra(Constants.tracker.LOCATION_EXTRA);
             onHandleLocation(location);
 
-        }else if(intent.hasExtra(TrackingConstants.ActivityRecognition.ACTIVITY_EXTRA)) {
+
+        }else if(intent.hasExtra(ActivityConstants.ACTIVITY_EXTRA)) {
 
             ArrayList<DetectedActivity> updatedActivities =
-                    intent.getParcelableArrayListExtra(TrackingConstants.ActivityRecognition.ACTIVITY_EXTRA);
+                    intent.getParcelableArrayListExtra(ActivityConstants.ACTIVITY_EXTRA);
 
             onHandleDetectedActivity(updatedActivities);
         }

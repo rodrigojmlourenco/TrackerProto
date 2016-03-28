@@ -5,7 +5,7 @@
       <module fileurl="file://$PROJECT_DIR$/TrackerProto.iml" filepath="$PROJECT_DIR$/TrackerProto.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
       <module fileurl="file://$PROJECT_DIR$/libs/libs.iml" filepath="$PROJECT_DIR$/libs/libs.iml" />
-      <module fileurl="file://$PROJECT_DIR$/lib/tracking/tracking.iml" filepath="$PROJECT_DIR$/lib/tracking/tracking.iml" />
+      <module fileurl="file://$PROJECT_DIR$/libs/tracking/tracking.iml" filepath="$PROJECT_DIR$/libs/tracking/tracking.iml" />
     </modules>
   </component>
 </project>

@@ -223,7 +223,6 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
                             })
                             .setNegativeButton(R.string.no, null)
                             .show();
-
                 }
             });
 
