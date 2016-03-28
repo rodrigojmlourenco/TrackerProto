@@ -122,10 +122,10 @@ public class GPXTrackWriter {
         return response;
     }
 
-    public static String exportAsGPX(Context context, Track track) {
+    public static String exportAsGPX(Context context, final Track track) {
 
         String response;
-        File gpxTrack =
+        final File gpxTrack =
                 new File(Environment.getExternalStoragePublicDirectory(
                         Environment.DIRECTORY_DOCUMENTS),
                         "gpx_"+track.getSessionId()+".gpx");
@@ -133,8 +133,19 @@ public class GPXTrackWriter {
         if(gpxTrack.exists() && !isEmptyFile(gpxTrack)) {
             response = "Already exported, skipping its creation";
             Log.e("STORAGE", "Already exported, skipping its creation");
-        }else
-            response = trackToGPXFile(track, gpxTrack);
+        }else {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    trackToGPXFile(track, gpxTrack);
+                }
+            }).start();
+
+            //TODO: a track pode não ter sido exported com sucesso!
+            return "Track successfully exported to your documents folder.";
+        }
+
+
 
         return response;
     }

@@ -216,6 +216,7 @@ public class HttpClient {
     }
 
 
+    @Deprecated
     public void closeTrackingSession(String authToken, String session) throws RemoteTraceException, AuthTokenIsExpiredException {
 
         String urlEndpoint = "/auth/close";
@@ -232,7 +233,7 @@ public class HttpClient {
         }
     }
 
-    private void uploadLocationSequence(String authToken, String session, List<TraceLocation> locations)
+    private void uploadCompleteTrackSequence(String authToken, String session, List<TraceLocation> locations)
             throws RemoteTraceException, AuthTokenIsExpiredException {
 
         String data = constructTraceTrack(locations);
@@ -251,8 +252,8 @@ public class HttpClient {
         }
     }
 
-    public boolean submitTrackAndCloseSession(String authToken, Track track)
-            throws RemoteTraceException, UnableToCloseSessionTokenExpiredException, UnableToSubmitTrackTokenExpiredException {
+    public boolean submitTrack(String authToken, Track track)
+            throws RemoteTraceException, UnableToSubmitTrackTokenExpiredException {
 
 
 
@@ -264,9 +265,6 @@ public class HttpClient {
         if(!track.isValid()){
             Log.d(LOG_TAG, "Session is local, requesting a valid session before proceeding...");
 
-
-
-
             try {
                 session = requestTrackingSession(authToken);
 
@@ -275,28 +273,26 @@ public class HttpClient {
                 if(!storage.updateTrackSession(localSession, session))
                     return false;
 
-
             } catch (AuthTokenIsExpiredException e) {
-                throw new UnableToCloseSessionTokenExpiredException();
+                throw new UnableToSubmitTrackTokenExpiredException();
             }
+
         }else{
             session = track.getSessionId();
         }
 
-
-
-
         try {
-            uploadLocationSequence(authToken, session, track.getTracedTrack());
 
+            uploadCompleteTrackSequence(authToken, session, track.getTracedTrack());
 
+            /* @Deprecated - Remote operation is now atomic and closed the session.
             try {
                 closeTrackingSession(authToken, session);
                 storage.uploadTrack(session);
             } catch (AuthTokenIsExpiredException e1) {
                 throw new UnableToCloseSessionTokenExpiredException();
             }
-
+            */
 
         } catch (AuthTokenIsExpiredException e) {
             e.printStackTrace();

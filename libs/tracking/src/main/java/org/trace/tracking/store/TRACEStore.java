@@ -244,7 +244,7 @@ public class TRACEStore extends IntentService{
 
 
         try {
-            if(mHttpClient.submitTrackAndCloseSession(authManager.getAuthenticationToken(), track))
+            if(mHttpClient.submitTrack(authManager.getAuthenticationToken(), track))
                 postUserFeedback("Track successfully posted.");
             else
                 postUserFeedback("Track was not successfully posted.");
@@ -259,27 +259,16 @@ public class TRACEStore extends IntentService{
 
             try {
 
-                if(mHttpClient.submitTrackAndCloseSession(authManager.getAuthenticationToken(), track))
+                if(mHttpClient.submitTrack(authManager.getAuthenticationToken(), track))
                     postUserFeedback("Track successfully posted.");
                 else
                     postUserFeedback("Track was not successfully posted.");
 
-            } catch (RemoteTraceException | UnableToCloseSessionTokenExpiredException | UnableToSubmitTrackTokenExpiredException e1) {
+            } catch (RemoteTraceException | UnableToSubmitTrackTokenExpiredException e1) {
                 Log.e(LOG_TAG, e.getMessage());
                 postUserFeedback("Track was not posted because " + e.getMessage());
             }
 
-        } catch (UnableToCloseSessionTokenExpiredException e) {
-
-            login(authManager.getUsername(), authManager.getPassword());
-
-            try {
-                mHttpClient.closeTrackingSession(authManager.getAuthenticationToken(), track.getSessionId());
-                postUserFeedback("Track successfully posted.");
-            } catch (RemoteTraceException | AuthTokenIsExpiredException e1) {
-                Log.d(LOG_TAG, "Unable to close session '" + track.getSessionId() + "' due to " + e1.getMessage());
-                postUserFeedback("Track was not posted because " + e.getMessage());
-            }
         }
     }
 
