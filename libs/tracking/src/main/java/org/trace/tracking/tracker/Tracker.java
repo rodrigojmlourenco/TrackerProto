@@ -203,8 +203,6 @@ public class Tracker extends BroadcastReceiver implements CollectorManager {
 
             onHandleDetectedActivity(updatedActivities);
         }
-
-
     }
 
     private boolean isFreshLocation(Location location){
