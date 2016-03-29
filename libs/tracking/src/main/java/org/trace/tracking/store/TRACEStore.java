@@ -30,7 +30,6 @@ public class TRACEStore extends IntentService{
 
     private final AuthenticationManager authManager;
 
-
     private final HttpClient mHttpClient;
 
     public TRACEStore() {
@@ -87,6 +86,7 @@ public class TRACEStore extends IntentService{
      ***********************************************************************************************
      */
 
+    @Deprecated
     private boolean login(String username, String password) throws InvalidAuthCredentialsException {
 
         String authToken;
@@ -106,8 +106,11 @@ public class TRACEStore extends IntentService{
         if(success && authManager.isFirstTime())
             authManager.storeCredentials(username, password);
 
-
         return success;
+    }
+
+    private void federatedLogin(){
+
     }
 
     private void performLogin(Intent intent){
@@ -149,8 +152,8 @@ public class TRACEStore extends IntentService{
 
 
         Intent loginI = new Intent(TrackingConstants.store.LOGIN_ACTION)
-                .putExtra(TrackingConstants.store.SUCCESS_LOGIN_KEY, success)
-                .putExtra(TrackingConstants.store.LOGIN_ERROR_MSG_KEY, error);
+                .putExtra(TrackingConstants.store.SUCCESS_LOGIN_EXTRA, success)
+                .putExtra(TrackingConstants.store.LOGIN_ERROR_MSG_EXTRA, error);
 
         sendBroadcast(loginI);
 
@@ -362,7 +365,7 @@ public class TRACEStore extends IntentService{
          * The method initiates communication with the TraceStore service, as to perform login.
          * <br>
          * The results of this operation are then broadcasted under the TrackingConstants.LOGIN_ACTION action,
-         * with two payloads TrackingConstants.SUCCESS_LOGIN_KEY and TrackingConstants.LOGIN_ERROR_MSG_KEY. The first
+         * with two payloads TrackingConstants.SUCCESS_LOGIN_EXTRA and TrackingConstants.LOGIN_ERROR_MSG_EXTRA. The first
          * is a boolean denoting if the operation was successful, and the second corresponds to the
          * error message.
          *
@@ -370,6 +373,7 @@ public class TRACEStore extends IntentService{
          * @param username The user's username
          * @param password The user's password
          */
+        @Deprecated
         public static void requestLogin(Context context, String username, String password){
             Intent mI = new Intent(context, TRACEStore.class);
             mI.putExtra(TrackingConstants.store.OPERATION_KEY, Operations.login.toString());
@@ -382,6 +386,7 @@ public class TRACEStore extends IntentService{
          * Signs-outs the current user.
          * @param context The current context.
          */
+        @Deprecated
         public static void requestLogout(Context context){
             Intent mI = new Intent(context, TRACEStore.class);
             mI.putExtra(TrackingConstants.store.OPERATION_KEY, Operations.logout.toString());
@@ -392,6 +397,7 @@ public class TRACEStore extends IntentService{
          * Requests for a new tracking session to be initiated if possible.
          * @param context The current context.
          */
+        @Deprecated
         public static void requestInitiateSession(Context context){
             Intent mI = new Intent(context, TRACEStore.class);
             mI.putExtra(TrackingConstants.store.OPERATION_KEY, Operations.initiateSession.toString());
@@ -403,6 +409,7 @@ public class TRACEStore extends IntentService{
          * @param context The current context.
          * @return True if the user has never logged in, false otherwise.
          */
+        @Deprecated
         public static boolean isFirstTime(Context context){
             return AuthenticationManager.isFirstTime(context);
         }
@@ -416,10 +423,53 @@ public class TRACEStore extends IntentService{
          * @param track The Track to be uploaded.
          * @see Track
          */
+        @Deprecated
         public static void uploadWholeTrack(Context context, Track track){
             Intent mI = new Intent(context, TRACEStore.class);
             mI.putExtra(TrackingConstants.store.OPERATION_KEY, Operations.submitTrack.toString());
             mI.putExtra(TrackingConstants.store.TRACK_EXTRA, track);
+            context.startService(mI);
+        }
+
+        /**
+         *
+         * @param context
+         * @param idToken
+         */
+        @Deprecated
+        public static void federatedLogin(Context context, String idToken /* maybe grant type*/){
+            Intent mI = new Intent(context, TRACEStore.class);
+            mI.putExtra(TrackingConstants.store.OPERATION_KEY, Operations.login);
+            mI.putExtra(TrackingConstants.store.ID_TOKEN_KEY, idToken);
+            context.startService(mI);
+        }
+
+
+        /**
+         * Requests for a new tracking session to be initiated if possible.
+         * @param context The current context.
+         */
+        public static void requestInitiateSession(Context context, String authToken){
+            Intent mI = new Intent(context, TRACEStore.class);
+            mI.putExtra(TrackingConstants.store.OPERATION_KEY, Operations.initiateSession.toString());
+            context.startService(mI);
+        }
+
+
+        /**
+         * Uploads a complete track. It is important to note that the method was designed to handle
+         * the possibility of the track being a local track, i.e. it is not associated with a valid
+         * session identifier from the server's standpoint. Therefore, if the session identifier is
+         * not a valid one, this method handles the track's session identifier renewal.
+         * @param context The current context.
+         * @param track The Track to be uploaded.
+         * @see Track
+         */
+        public static void uploadWholeTrack(Context context, String authToken, Track track){
+            Intent mI = new Intent(context, TRACEStore.class);
+            mI.putExtra(TrackingConstants.store.OPERATION_KEY, Operations.submitTrack.toString());
+            mI.putExtra(TrackingConstants.store.TRACK_EXTRA, track);
+            mI.putExtra(TrackingConstants.store.AUTH_TOKEN_EXTRA, authToken);
             context.startService(mI);
         }
     }

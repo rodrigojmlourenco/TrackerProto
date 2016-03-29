@@ -8,6 +8,7 @@ import org.trace.tracking.TrackingConstants;
 /**
  * TODO: THIS IS NOT SECURE!! Use Android recommended APIs
  */
+@Deprecated
 public class AuthenticationManager {
 
     public static final String AUTH_TOKEN = "auth_token";

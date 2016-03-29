@@ -26,13 +26,15 @@ public final class TrackingConstants {
 
         String TRACK_EXTRA = "org.trace.store.extras.TRACK";
         String LOGIN_ACTION = "org.trace.intent.LOGIN";
-        String SUCCESS_LOGIN_KEY = "org.trace.intent.SUCCESS_LOGIN";
-        String LOGIN_ERROR_MSG_KEY = "org.trace.intent.LOGIN_ERROR";
+        String SUCCESS_LOGIN_EXTRA = "org.trace.intent.SUCCESS_LOGIN";
+        String LOGIN_ERROR_MSG_EXTRA = "org.trace.intent.LOGIN_ERROR";
 
 
-        String OPERATION_KEY = "action";
-        String USERNAME_KEY = "username";
-        String PASSWORD_KEY = "password";
+        String OPERATION_KEY    = "action";
+        String USERNAME_KEY     = "username";
+        String PASSWORD_KEY     = "password";
+        String ID_TOKEN_KEY     = "id_token";
+        String AUTH_TOKEN_EXTRA = "auth_token";
     }
 
     public interface location {

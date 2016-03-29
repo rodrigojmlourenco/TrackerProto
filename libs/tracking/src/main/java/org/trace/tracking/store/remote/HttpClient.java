@@ -12,7 +12,6 @@ import org.trace.tracking.store.exceptions.AuthTokenIsExpiredException;
 import org.trace.tracking.store.exceptions.InvalidAuthCredentialsException;
 import org.trace.tracking.store.exceptions.LoginFailedException;
 import org.trace.tracking.store.exceptions.RemoteTraceException;
-import org.trace.tracking.store.exceptions.UnableToCloseSessionTokenExpiredException;
 import org.trace.tracking.store.exceptions.UnableToPerformLogin;
 import org.trace.tracking.store.exceptions.UnableToRequestPostException;
 import org.trace.tracking.store.exceptions.UnableToSubmitTrackTokenExpiredException;
@@ -160,11 +159,32 @@ public class HttpClient {
     }
 
 
+
     public String login(String username, String password) throws UnableToPerformLogin, LoginFailedException {
 
         String urlEndpoint ="/auth/login";
         JsonObject requestProperties = new JsonObject();
         String dataUrlParameters = "username="+username+"&password="+password;
+
+        requestProperties.addProperty(http.CONTENT_TYPE, "application/x-www-form-urlencoded");
+        requestProperties.addProperty(http.CONTENT_LENGTH, Integer.toString(dataUrlParameters.getBytes().length));
+        requestProperties.addProperty(http.CONTENT_LANGUAGE, "en-US,en,pt");
+
+        try {
+            String response = performPostRequest(urlEndpoint, requestProperties, dataUrlParameters);
+            String authToken= extractAuthToken(response);
+            Log.d(LOG_TAG, "Login successful with { authToken: '" + authToken + "'}");
+            return authToken;
+        } catch (UnableToRequestPostException | AuthTokenIsExpiredException e) {
+            e.printStackTrace();
+            throw new UnableToPerformLogin(e.getMessage());
+        }
+    }
+
+    public String federatedLogin(String idToken) throws UnableToPerformLogin, LoginFailedException {
+        String urlEndpoint ="/auth/login";
+        JsonObject requestProperties = new JsonObject();
+        String dataUrlParameters = "token="+idToken;
 
         requestProperties.addProperty(http.CONTENT_TYPE, "application/x-www-form-urlencoded");
         requestProperties.addProperty(http.CONTENT_LENGTH, Integer.toString(dataUrlParameters.getBytes().length));

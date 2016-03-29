@@ -28,7 +28,7 @@ import com.google.android.gms.common.api.Status;
 
 import org.trace.trackerproto.R;
 import org.trace.tracking.TrackingConstants;
-import org.trace.tracking.store.TRACEStore;
+import org.trace.tracking.store.TraceAuthenticationManager;
 
 public class LoginActivity extends AppCompatActivity implements GoogleApiClient.OnConnectionFailedListener {
 
@@ -37,12 +37,15 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
 
     private BroadcastReceiver mReceiver;
 
+    private TraceAuthenticationManager mAuthManager;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
+        mAuthManager = TraceAuthenticationManager.getAuthenticationManager(this);
         mConnectivityManager = (ConnectivityManager) this.getSystemService(Context.CONNECTIVITY_SERVICE);
 
         // TRACEStore Service callbacks
@@ -50,23 +53,30 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
             @Override
             public void onReceive(Context context, Intent intent) {
 
-                if(intent.hasExtra(TrackingConstants.store.SUCCESS_LOGIN_KEY)
-                        && intent.getBooleanExtra(TrackingConstants.store.SUCCESS_LOGIN_KEY, false)) {
+                if(intent.hasExtra(TrackingConstants.store.SUCCESS_LOGIN_EXTRA)
+                        && intent.getBooleanExtra(TrackingConstants.store.SUCCESS_LOGIN_EXTRA, false)) {
                     Toast.makeText(LoginActivity.this, "Login successful", Toast.LENGTH_LONG).show();
 
                     Intent mainActivity = new Intent(LoginActivity.this, MainActivity.class);
                     startActivity(mainActivity);
                     finish();
 
-                }else
-                    Toast.makeText(LoginActivity.this, "Login failed", Toast.LENGTH_LONG).show();
+                }else{
+
+                    String error;
+                    if(intent.hasExtra(TrackingConstants.store.LOGIN_ERROR_MSG_EXTRA))
+                        error = intent.getStringExtra(TrackingConstants.store.LOGIN_ERROR_MSG_EXTRA);
+                    else
+                        error = "Login failed!";
+
+                    Toast.makeText(LoginActivity.this, error, Toast.LENGTH_LONG).show();
+                }
             }
         };
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(TrackingConstants.store.LOGIN_ACTION);
         registerReceiver(mReceiver, filter);
-
 
         setupGoogleSignin();
         setupTRACENativeSignin();
@@ -127,7 +137,6 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
         loginBtn = (Button) findViewById(R.id.loginBtn);
         cancelBtn= (Button) findViewById(R.id.cancelBtn);
 
-
         usernameForm = (EditText) findViewById(R.id.userIn);
         passwordForm = (EditText) findViewById(R.id.passwordIn);
 
@@ -140,7 +149,10 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
                     String username = usernameForm.getText().toString();
                     String password = passwordForm.getText().toString();
 
-                    TRACEStore.Client.requestLogin(LoginActivity.this, username, password);
+                    //TRACEStore.Client.requestLogin(LoginActivity.this, username, password);
+
+                    mAuthManager.login(username, password);
+
                 }else
                     buildAlertMessageNoConnectivity();
 
@@ -240,11 +252,7 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
 
                 // Show signed-in UI.
                 Log.d(TAG, "idToken:" + idToken);
-                Toast.makeText(this, idToken, Toast.LENGTH_LONG).show();
-                //mIdTokenTextView.setText(getString(R.string.id_token_fmt, idToken));
-                updateUI(true);
-
-                // TODO(user): send token to server and validate server-side
+                mAuthManager.login(idToken, TraceAuthenticationManager.GrantType.google);
             } else {
                 // Show signed-out UI.
                 updateUI(false);
