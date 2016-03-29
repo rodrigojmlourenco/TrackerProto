@@ -10,62 +10,40 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import org.trace.tracking.Constants;
+import com.google.android.gms.auth.api.Auth;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.auth.api.signin.GoogleSignInResult;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.SignInButton;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.common.api.Status;
+
 import org.trace.trackerproto.R;
+import org.trace.tracking.Constants;
 import org.trace.tracking.store.TRACEStore;
 
-public class LoginActivity extends AppCompatActivity {
+public class LoginActivity extends AppCompatActivity implements GoogleApiClient.OnConnectionFailedListener {
 
+    private static final String TAG = "Login";
     private final String LOG_TAG = "LoginActivity";
-
-    private Button loginBtn, cancelBtn;
-    private EditText usernameForm, passwordForm;
 
     private BroadcastReceiver mReceiver;
 
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
         mConnectivityManager = (ConnectivityManager) this.getSystemService(Context.CONNECTIVITY_SERVICE);
-
-        loginBtn = (Button) findViewById(R.id.loginBtn);
-        cancelBtn= (Button) findViewById(R.id.cancelBtn);
-
-        usernameForm = (EditText) findViewById(R.id.userIn);
-        passwordForm = (EditText) findViewById(R.id.passwordIn);
-
-        loginBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-
-                if(isNetworkConnected()) {
-
-                    String username = usernameForm.getText().toString();
-                    String password = passwordForm.getText().toString();
-
-                    TRACEStore.Client.requestLogin(LoginActivity.this, username, password);
-                }else
-                    buildAlertMessageNoConnectivity();
-
-            }
-        });
-
-        cancelBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                buildAlertMessageCancel();
-            }
-        });
-
 
         // TRACEStore Service callbacks
         mReceiver = new BroadcastReceiver() {
@@ -88,6 +66,10 @@ public class LoginActivity extends AppCompatActivity {
         IntentFilter filter = new IntentFilter();
         filter.addAction(Constants.store.LOGIN_ACTION);
         registerReceiver(mReceiver, filter);
+
+
+        setupGoogleSignin();
+        setupTRACENativeSignin();
     }
 
     @Override
@@ -96,28 +78,7 @@ public class LoginActivity extends AppCompatActivity {
         super.finish();
     }
 
-    private void buildAlertMessageCancel() {
 
-        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setMessage(getString(R.string.exit_no_login_rationale))
-                .setCancelable(false)
-                .setPositiveButton(getString(R.string.yes), new DialogInterface.OnClickListener() {
-                    public void onClick(@SuppressWarnings("unused") final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
-                        Intent homeIntent = new Intent(Intent.ACTION_MAIN);
-                        homeIntent.addCategory( Intent.CATEGORY_HOME );
-                        homeIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                        startActivity(homeIntent);
-                    }
-                })
-                .setNegativeButton(getString(R.string.no), new DialogInterface.OnClickListener() {
-                    public void onClick(final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
-                        dialog.cancel();
-                    }
-                });
-
-        final AlertDialog alert = builder.create();
-        alert.show();
-    }
 
     /* Devices Management
     /* Devices Management
@@ -152,5 +113,200 @@ public class LoginActivity extends AppCompatActivity {
         alert.show();
     }
 
+    /* TRACE Native Sign-in
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+
+    private Button loginBtn, cancelBtn;
+    private EditText usernameForm, passwordForm;
+
+    private void setupTRACENativeSignin(){
+
+        loginBtn = (Button) findViewById(R.id.loginBtn);
+        cancelBtn= (Button) findViewById(R.id.cancelBtn);
+
+
+        usernameForm = (EditText) findViewById(R.id.userIn);
+        passwordForm = (EditText) findViewById(R.id.passwordIn);
+
+        loginBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                if(isNetworkConnected()) {
+
+                    String username = usernameForm.getText().toString();
+                    String password = passwordForm.getText().toString();
+
+                    TRACEStore.Client.requestLogin(LoginActivity.this, username, password);
+                }else
+                    buildAlertMessageNoConnectivity();
+
+            }
+        });
+
+        cancelBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                buildAlertMessageCancel();
+            }
+        });
+    }
+
+    private void buildAlertMessageCancel() {
+
+        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage(getString(R.string.exit_no_login_rationale))
+                .setCancelable(false)
+                .setPositiveButton(getString(R.string.yes), new DialogInterface.OnClickListener() {
+                    public void onClick(@SuppressWarnings("unused") final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
+                        Intent homeIntent = new Intent(Intent.ACTION_MAIN);
+                        homeIntent.addCategory( Intent.CATEGORY_HOME );
+                        homeIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                        startActivity(homeIntent);
+                    }
+                })
+                .setNegativeButton(getString(R.string.no), new DialogInterface.OnClickListener() {
+                    public void onClick(final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
+                        dialog.cancel();
+                    }
+                });
+
+        final AlertDialog alert = builder.create();
+        alert.show();
+    }
+
+    /* Google SignIn
+    /* Google SignIn
+    /* Google SignIn
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+
+    private static final int RC_SIGN_IN = 0;
+
+    private SignInButton googleSignIn;
+
+    private GoogleApiClient mGoogleApiClient;
+
+    private void setupGoogleSignin(){
+
+        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken(getString(R.string.trace_client_id))
+                .requestEmail()
+                .build();
+
+        googleSignIn = (SignInButton) findViewById(R.id.sign_in_button);
+        googleSignIn.setSize(SignInButton.SIZE_STANDARD);
+        googleSignIn.setScopes(gso.getScopeArray());
+
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .enableAutoManage(this /* FragmentActivity */, this /* OnConnectionFailedListener */)
+                .addApi(Auth.GOOGLE_SIGN_IN_API, gso)
+                .build();
+
+        googleSignIn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                signIn();
+            }
+        });
+    }
+
+    private void signIn(){
+        Intent signInIntent = Auth.GoogleSignInApi.getSignInIntent(mGoogleApiClient);
+        startActivityForResult(signInIntent, RC_SIGN_IN);
+    }
+
+    @Override
+    public void onConnectionFailed(ConnectionResult connectionResult) {
+        Log.e(LOG_TAG, "Connection failed because " + connectionResult.getErrorMessage());
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if(requestCode == RC_SIGN_IN){
+            GoogleSignInResult result = Auth.GoogleSignInApi.getSignInResultFromIntent(data);
+            Log.d(TAG, "onActivityResult:GET_TOKEN:success:" + result.getStatus().isSuccess());
+
+            if (result.isSuccess()) {
+                GoogleSignInAccount acct = result.getSignInAccount();
+                String idToken = acct.getIdToken();
+
+                // Show signed-in UI.
+                Log.d(TAG, "idToken:" + idToken);
+                Toast.makeText(this, idToken, Toast.LENGTH_LONG).show();
+                //mIdTokenTextView.setText(getString(R.string.id_token_fmt, idToken));
+                updateUI(true);
+
+                // TODO(user): send token to server and validate server-side
+            } else {
+                // Show signed-out UI.
+                updateUI(false);
+            }
+
+
+
+            //handleSignInResult(result);
+        }
+    }
+
+    private void updateUI(boolean signedIn) {
+        if (signedIn) {
+            findViewById(R.id.sign_in_button).setVisibility(View.GONE);
+            //findViewById(R.id.sign_out_and_disconnect).setVisibility(View.VISIBLE);
+        } else {
+            //mStatusTextView.setText(R.string.signed_out);
+
+            findViewById(R.id.sign_in_button).setVisibility(View.VISIBLE);
+            //findViewById(R.id.sign_out_and_disconnect).setVisibility(View.GONE);
+        }
+    }
+
+
+    private void handleSignInResult(GoogleSignInResult result) {
+        Log.d(TAG, "handleSignInResult:" + result.isSuccess());
+        Log.d(TAG, "handleSignInResult:" + result.toString());
+        Log.d(TAG, "handleSignInResult:" + result.getStatus());
+        if (result.isSuccess()) {
+            // Signed in successfully, show authenticated UI.
+            GoogleSignInAccount acct = result.getSignInAccount();
+            //mStatusTextView.setText(getString(R.string.signed_in_fmt, acct.getDisplayName()));
+            //updateUI(true);
+            Toast.makeText(this, acct.getDisplayName(), Toast.LENGTH_LONG).show();
+
+        } else {
+            // Signed out, show unauthenticated UI.
+            //updateUI(false);
+            signOut();
+        }
+    }
+
+    private void signOut() {
+        Auth.GoogleSignInApi.signOut(mGoogleApiClient).setResultCallback(
+                new ResultCallback<Status>() {
+                    @Override
+                    public void onResult(Status status) {
+                        Log.d(TAG, "signOut:onResult:" + status);
+                        updateUI(false);
+                    }
+                });
+    }
+
+    private void revokeAccess() {
+        Auth.GoogleSignInApi.revokeAccess(mGoogleApiClient).setResultCallback(
+                new ResultCallback<Status>() {
+                    @Override
+                    public void onResult(Status status) {
+                        Log.d(TAG, "revokeAccess:onResult:" + status);
+                        updateUI(false);
+                    }
+                });
+    }
 
 }

@@ -26,4 +26,5 @@ dependencies {
     compile 'com.google.code.gson:gson:2.6.1'
     compile 'com.google.android.gms:play-services:8.4.0'
     compile 'pub.devrel:easypermissions:0.1.5'
+    compile 'com.google.android.gms:play-services-auth:8.4.0'
 }

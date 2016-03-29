@@ -47,4 +47,6 @@
     <string name="title_activity_dynamic_init">DynamicInitActivity</string>
     <string name="here">Here</string>
     <string name="current_position">Current Position</string>
+
+    <string name="google">Google</string>
 </resources>

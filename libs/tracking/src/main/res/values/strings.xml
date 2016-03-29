@@ -1,3 +1,6 @@
 <resources>
     <string name="app_name">Tracking</string>
+
+    <!-- Google Sign-in Authentication -->
+    <string name="trace_client_id">307422557916-mj0ma4qr4fu4tfs9a83f0s2tc8bck847.apps.googleusercontent.com</string>
 </resources>
