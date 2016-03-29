@@ -21,12 +21,10 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import org.trace.trackerproto.ProtoConstants;
-import org.trace.tracking.Constants;
+import org.trace.tracking.TrackingConstants;
 import org.trace.trackerproto.R;
 import org.trace.tracking.store.TRACEStore;
 import org.trace.tracking.tracker.TRACETracker;
-import org.trace.tracking.tracker.storage.GPXTrackWriter;
-import org.trace.tracking.tracker.storage.PersistentTrackStorage;
 import org.trace.tracking.tracker.storage.data.SimplifiedTrack;
 import org.trace.tracking.tracker.storage.data.Track;
 
@@ -101,7 +99,7 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
         String feedback;
 
         if(!EasyPermissions.hasPermissions(getActivity(), perms)) {
-            EasyPermissions.requestPermissions(this, getString(R.string.export_rationale), Constants.permissions.EXTERNAL_STORAGE, perms);
+            EasyPermissions.requestPermissions(this, getString(R.string.export_rationale), TrackingConstants.permissions.EXTERNAL_STORAGE, perms);
             feedback = getString(R.string.try_again);
         }else {
 
@@ -195,7 +193,7 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
                         EasyPermissions.requestPermissions(
                                 getActivity(),
                                 getString(R.string.export_rationale),
-                                Constants.permissions.EXTERNAL_STORAGE, perms);
+                                TrackingConstants.permissions.EXTERNAL_STORAGE, perms);
                     }
 
                 }

@@ -3,7 +3,7 @@ package org.trace.tracking.store.auth;
 import android.content.Context;
 import android.content.SharedPreferences;
 
-import org.trace.tracking.Constants;
+import org.trace.tracking.TrackingConstants;
 
 /**
  * TODO: THIS IS NOT SECURE!! Use Android recommended APIs
@@ -27,14 +27,14 @@ public class AuthenticationManager {
         SharedPreferences prefs =
                 context.getSharedPreferences(AUTH_SETTINGS_KEY, Context.MODE_PRIVATE);
 
-        return prefs.getString(Constants.store.USERNAME_KEY, "");
+        return prefs.getString(TrackingConstants.store.USERNAME_KEY, "");
     }
 
     public String getPassword(){
         SharedPreferences prefs =
                 context.getSharedPreferences(AUTH_SETTINGS_KEY, Context.MODE_PRIVATE);
 
-        return prefs.getString(Constants.store.PASSWORD_KEY, "");
+        return prefs.getString(TrackingConstants.store.PASSWORD_KEY, "");
     }
 
     public void storeCredentials(String username, String password){
@@ -42,8 +42,8 @@ public class AuthenticationManager {
         SharedPreferences.Editor editor =
                 context.getSharedPreferences(AUTH_SETTINGS_KEY, Context.MODE_PRIVATE).edit();
 
-        editor.putString(Constants.store.USERNAME_KEY, username);
-        editor.putString(Constants.store.PASSWORD_KEY, password);
+        editor.putString(TrackingConstants.store.USERNAME_KEY, username);
+        editor.putString(TrackingConstants.store.PASSWORD_KEY, password);
         editor.commit();
 
     }
@@ -53,7 +53,7 @@ public class AuthenticationManager {
         SharedPreferences prefs =
                 context.getSharedPreferences(AUTH_SETTINGS_KEY, Context.MODE_PRIVATE);
 
-        return prefs == null || !(prefs.contains(Constants.store.USERNAME_KEY) && prefs.contains(Constants.store.PASSWORD_KEY));
+        return prefs == null || !(prefs.contains(TrackingConstants.store.USERNAME_KEY) && prefs.contains(TrackingConstants.store.PASSWORD_KEY));
 
     }
 
@@ -63,7 +63,7 @@ public class AuthenticationManager {
 
         if(prefs == null) return true;
 
-        return !(prefs.contains(Constants.store.USERNAME_KEY) && prefs.contains(Constants.store.PASSWORD_KEY));
+        return !(prefs.contains(TrackingConstants.store.USERNAME_KEY) && prefs.contains(TrackingConstants.store.PASSWORD_KEY));
     }
 
     public static boolean clearCredentials(Context context){

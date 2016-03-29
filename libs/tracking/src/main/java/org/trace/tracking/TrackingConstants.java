@@ -3,7 +3,7 @@ package org.trace.tracking;
 import android.Manifest;
 
 //TODO: precisa de refactorização, algumas incoerências nos nomes.
-public final class Constants {
+public final class TrackingConstants {
 
     //IntentService and BroadcastReceiver
     //TODO: isto é mesmo necessário?
@@ -55,7 +55,7 @@ public final class Constants {
     public interface tracker {
 
         //getLastLocation
-        String COLLECT_ACTION = "org.trace.tracker.COLLECT";
+        String COLLECT_LOCATIONS_ACTION = "org.trace.tracker.COLLECT";
         String BROADCAST_LOCATION_ACTION = "org.trace.tracking.BROADCAST_LOCATION";
 
         String BROADCAST_LOCATION_EXTRA = "org.trace.tracking.BROADCAST_LOCATION_EXTRA";

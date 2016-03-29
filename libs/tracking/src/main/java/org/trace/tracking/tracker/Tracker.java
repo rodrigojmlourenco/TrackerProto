@@ -9,7 +9,7 @@ import android.util.Log;
 import com.google.android.gms.location.DetectedActivity;
 import com.google.android.gms.location.LocationServices;
 
-import org.trace.tracking.Constants;
+import org.trace.tracking.TrackingConstants;
 import org.trace.tracking.store.TRACEStore;
 import org.trace.tracking.tracker.google.GoogleClientManager;
 import org.trace.tracking.tracker.modules.activity.ActivityConstants;
@@ -192,9 +192,9 @@ public class Tracker extends BroadcastReceiver implements CollectorManager {
     @Override
     public void onReceive(Context context, Intent intent) {
 
-        if(intent.hasExtra(Constants.tracker.LOCATION_EXTRA)) {
+        if(intent.hasExtra(org.trace.tracking.TrackingConstants.tracker.LOCATION_EXTRA)) {
 
-            TraceLocation location = intent.getParcelableExtra(Constants.tracker.LOCATION_EXTRA);
+            TraceLocation location = intent.getParcelableExtra(TrackingConstants.tracker.LOCATION_EXTRA);
             onHandleLocation(location);
 
 

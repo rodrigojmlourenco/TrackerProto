@@ -29,11 +29,10 @@ import android.widget.ListView;
 import org.trace.trackerproto.R;
 import org.trace.trackerproto.ui.slidingmenu.adapter.NavDrawerListAdapter;
 import org.trace.trackerproto.ui.slidingmenu.model.NavDrawerItem;
-import org.trace.tracking.Constants;
+import org.trace.tracking.TrackingConstants;
 import org.trace.tracking.store.TRACEStore;
 import org.trace.tracking.store.auth.AuthenticationManager;
 import org.trace.tracking.tracker.TRACETracker;
-import org.trace.tracking.tracker.storage.PersistentTrackStorage;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -303,21 +302,21 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
         Log.e("PERMISSIONS!", "Permissions denied but on the mainActivity");
     }
 
-    @AfterPermissionGranted(Constants.permissions.DRAW_MAPS)
+    @AfterPermissionGranted(TrackingConstants.permissions.DRAW_MAPS)
     private void redrawOSMDroidMap(){
         if(mCurrentFragment != null && mCurrentFragment instanceof MapViewFragment){
             ((MapViewFragment)mCurrentFragment).redrawMap();
         }
     }
 
-    @AfterPermissionGranted(Constants.permissions.FOCUS_ON_MAP)
+    @AfterPermissionGranted(TrackingConstants.permissions.FOCUS_ON_MAP)
     private void focusOnMap(){
         if(mCurrentFragment != null && mCurrentFragment instanceof TrackingFragment){
             ((TrackingFragment)mCurrentFragment).focusOnCurrentLocation();
         }
     }
 
-    @AfterPermissionGranted(Constants.permissions.TRACKING)
+    @AfterPermissionGranted(TrackingConstants.permissions.TRACKING)
     private void startTracking(){
         if(mCurrentFragment != null && mCurrentFragment instanceof TrackingFragment){
             ((TrackingFragment)mCurrentFragment).startTracking();

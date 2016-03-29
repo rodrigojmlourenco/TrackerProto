@@ -8,13 +8,12 @@ import android.os.Handler;
 import android.util.Log;
 import android.widget.Toast;
 
-import org.trace.tracking.Constants;
+import org.trace.tracking.TrackingConstants;
 import org.trace.tracking.store.auth.AuthenticationManager;
 import org.trace.tracking.store.exceptions.AuthTokenIsExpiredException;
 import org.trace.tracking.store.exceptions.InvalidAuthCredentialsException;
 import org.trace.tracking.store.exceptions.LoginFailedException;
 import org.trace.tracking.store.exceptions.RemoteTraceException;
-import org.trace.tracking.store.exceptions.UnableToCloseSessionTokenExpiredException;
 import org.trace.tracking.store.exceptions.UnableToPerformLogin;
 import org.trace.tracking.store.exceptions.UnableToSubmitTrackTokenExpiredException;
 import org.trace.tracking.store.remote.HttpClient;
@@ -44,11 +43,11 @@ public class TRACEStore extends IntentService{
     @Override
     protected void onHandleIntent(Intent intent) {
 
-        intent.hasExtra(Constants.store.OPERATION_KEY);
+        intent.hasExtra(TrackingConstants.store.OPERATION_KEY);
 
         Operations op;
         try {
-            op = Operations.valueOf(intent.getStringExtra(Constants.store.OPERATION_KEY));
+            op = Operations.valueOf(intent.getStringExtra(TrackingConstants.store.OPERATION_KEY));
         }catch (NullPointerException e){
             Log.e(LOG_TAG, "Un-parseable operation");
             return;
@@ -125,8 +124,8 @@ public class TRACEStore extends IntentService{
         boolean isFirst = authManager.isFirstTime(), success = false;
 
         if(isFirst){
-            username = intent.getStringExtra(Constants.store.USERNAME_KEY);
-            password = intent.getStringExtra(Constants.store.PASSWORD_KEY);
+            username = intent.getStringExtra(TrackingConstants.store.USERNAME_KEY);
+            password = intent.getStringExtra(TrackingConstants.store.PASSWORD_KEY);
         }else{
             username = authManager.getUsername();
             password = authManager.getPassword();
@@ -149,9 +148,9 @@ public class TRACEStore extends IntentService{
             }
 
 
-        Intent loginI = new Intent(Constants.store.LOGIN_ACTION)
-                .putExtra(Constants.store.SUCCESS_LOGIN_KEY, success)
-                .putExtra(Constants.store.LOGIN_ERROR_MSG_KEY, error);
+        Intent loginI = new Intent(TrackingConstants.store.LOGIN_ACTION)
+                .putExtra(TrackingConstants.store.SUCCESS_LOGIN_KEY, success)
+                .putExtra(TrackingConstants.store.LOGIN_ERROR_MSG_KEY, error);
 
         sendBroadcast(loginI);
 
@@ -229,9 +228,9 @@ public class TRACEStore extends IntentService{
     private void performSubmitTrack(Intent intent) {
 
         Track track;
-        if(!intent.hasExtra(Constants.store.TRACK_EXTRA)) return;
+        if(!intent.hasExtra(TrackingConstants.store.TRACK_EXTRA)) return;
 
-        track = intent.getParcelableExtra(Constants.store.TRACK_EXTRA);
+        track = intent.getParcelableExtra(TrackingConstants.store.TRACK_EXTRA);
 
         /*
         //Check if the track has already been uploaded, proceed otherwise.
@@ -362,8 +361,8 @@ public class TRACEStore extends IntentService{
         /**
          * The method initiates communication with the TraceStore service, as to perform login.
          * <br>
-         * The results of this operation are then broadcasted under the Constants.LOGIN_ACTION action,
-         * with two payloads Constants.SUCCESS_LOGIN_KEY and Constants.LOGIN_ERROR_MSG_KEY. The first
+         * The results of this operation are then broadcasted under the TrackingConstants.LOGIN_ACTION action,
+         * with two payloads TrackingConstants.SUCCESS_LOGIN_KEY and TrackingConstants.LOGIN_ERROR_MSG_KEY. The first
          * is a boolean denoting if the operation was successful, and the second corresponds to the
          * error message.
          *
@@ -373,9 +372,9 @@ public class TRACEStore extends IntentService{
          */
         public static void requestLogin(Context context, String username, String password){
             Intent mI = new Intent(context, TRACEStore.class);
-            mI.putExtra(Constants.store.OPERATION_KEY, Operations.login.toString());
-            mI.putExtra(Constants.store.USERNAME_KEY, username);
-            mI.putExtra(Constants.store.PASSWORD_KEY, password);
+            mI.putExtra(TrackingConstants.store.OPERATION_KEY, Operations.login.toString());
+            mI.putExtra(TrackingConstants.store.USERNAME_KEY, username);
+            mI.putExtra(TrackingConstants.store.PASSWORD_KEY, password);
             context.startService(mI);
         }
 
@@ -385,7 +384,7 @@ public class TRACEStore extends IntentService{
          */
         public static void requestLogout(Context context){
             Intent mI = new Intent(context, TRACEStore.class);
-            mI.putExtra(Constants.store.OPERATION_KEY, Operations.logout.toString());
+            mI.putExtra(TrackingConstants.store.OPERATION_KEY, Operations.logout.toString());
             context.startService(mI);
         }
 
@@ -395,7 +394,7 @@ public class TRACEStore extends IntentService{
          */
         public static void requestInitiateSession(Context context){
             Intent mI = new Intent(context, TRACEStore.class);
-            mI.putExtra(Constants.store.OPERATION_KEY, Operations.initiateSession.toString());
+            mI.putExtra(TrackingConstants.store.OPERATION_KEY, Operations.initiateSession.toString());
             context.startService(mI);
         }
 
@@ -419,8 +418,8 @@ public class TRACEStore extends IntentService{
          */
         public static void uploadWholeTrack(Context context, Track track){
             Intent mI = new Intent(context, TRACEStore.class);
-            mI.putExtra(Constants.store.OPERATION_KEY, Operations.submitTrack.toString());
-            mI.putExtra(Constants.store.TRACK_EXTRA, track);
+            mI.putExtra(TrackingConstants.store.OPERATION_KEY, Operations.submitTrack.toString());
+            mI.putExtra(TrackingConstants.store.TRACK_EXTRA, track);
             context.startService(mI);
         }
     }

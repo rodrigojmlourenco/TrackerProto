@@ -5,11 +5,10 @@ import android.content.Intent;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
-import org.trace.tracking.Constants;
+import org.trace.tracking.TrackingConstants;
 import org.trace.tracking.tracker.storage.data.TraceLocation;
 
 import java.util.LinkedList;
-import java.util.NoSuchElementException;
 
 /**
  * Specialized queue designed to hold TraceLocation objects and ease the application of certain
@@ -78,7 +77,7 @@ public class OutlierFilteringLocationQueue {
 
         //Step 1 - Validate the location
         //Step 1a - Run the simple outlier filters
-        try {
+        /*try {
             previous = mLocationQueue.getLast();
 
             if(!mOutlierFilter.isValidLocation(location,previous))
@@ -110,6 +109,7 @@ public class OutlierFilteringLocationQueue {
                 }
             }
         }
+        */ //TODO: descomentar steps 1a and 1b
 
         Log.i(LOG_TAG, "Location was accepted as valid... "+location.toString());
 
@@ -131,8 +131,8 @@ public class OutlierFilteringLocationQueue {
 
 
     private void broadcastLocation(TraceLocation location){
-        Intent localIntent = new Intent(Constants.tracker.COLLECT_ACTION);
-        localIntent.putExtra(Constants.tracker.LOCATION_EXTRA, location);
+        Intent localIntent = new Intent(TrackingConstants.tracker.COLLECT_LOCATIONS_ACTION);
+        localIntent.putExtra(TrackingConstants.tracker.LOCATION_EXTRA, location);
         LocalBroadcastManager.getInstance(mContext).sendBroadcast(localIntent);
     }
 

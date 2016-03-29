@@ -4,7 +4,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 
-import org.trace.tracking.Constants;
+import org.trace.tracking.TrackingConstants;
 
 
 /**
@@ -18,8 +18,8 @@ public class TRACEStoreReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
 
 
-        if(intent.hasExtra(Constants.FIRST_TIME_BROADCAST)
-                && intent.getBooleanExtra(Constants.FIRST_TIME_BROADCAST, true)){
+        if(intent.hasExtra(TrackingConstants.FIRST_TIME_BROADCAST)
+                && intent.getBooleanExtra(TrackingConstants.FIRST_TIME_BROADCAST, true)){
 
             /**
              * TODO: send and action that means that a login activity should be presented.

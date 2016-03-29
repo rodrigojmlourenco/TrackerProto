@@ -27,7 +27,7 @@ import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
 
 import org.trace.trackerproto.R;
-import org.trace.tracking.Constants;
+import org.trace.tracking.TrackingConstants;
 import org.trace.tracking.store.TRACEStore;
 
 public class LoginActivity extends AppCompatActivity implements GoogleApiClient.OnConnectionFailedListener {
@@ -50,8 +50,8 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
             @Override
             public void onReceive(Context context, Intent intent) {
 
-                if(intent.hasExtra(Constants.store.SUCCESS_LOGIN_KEY)
-                        && intent.getBooleanExtra(Constants.store.SUCCESS_LOGIN_KEY, false)) {
+                if(intent.hasExtra(TrackingConstants.store.SUCCESS_LOGIN_KEY)
+                        && intent.getBooleanExtra(TrackingConstants.store.SUCCESS_LOGIN_KEY, false)) {
                     Toast.makeText(LoginActivity.this, "Login successful", Toast.LENGTH_LONG).show();
 
                     Intent mainActivity = new Intent(LoginActivity.this, MainActivity.class);
@@ -64,7 +64,7 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
         };
 
         IntentFilter filter = new IntentFilter();
-        filter.addAction(Constants.store.LOGIN_ACTION);
+        filter.addAction(TrackingConstants.store.LOGIN_ACTION);
         registerReceiver(mReceiver, filter);
 
 

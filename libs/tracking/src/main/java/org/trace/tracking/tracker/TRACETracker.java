@@ -14,7 +14,7 @@ import android.support.annotation.Nullable;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
-import org.trace.tracking.Constants;
+import org.trace.tracking.TrackingConstants;
 import org.trace.tracking.tracker.modules.activity.ActivityConstants;
 import org.trace.tracking.tracker.settings.SettingsManager;
 import org.trace.tracking.tracker.settings.TrackingProfile;
@@ -56,11 +56,12 @@ public class TRACETracker extends Service {
 
         Log.d(LOG_TAG, "onBind");
 
+        IntentFilter listenerFilter = new IntentFilter();
+        listenerFilter.addAction(ActivityConstants.COLLECT_ACTION);
+        listenerFilter.addAction(TrackingConstants.tracker.COLLECT_LOCATIONS_ACTION);
 
-        LocalBroadcastManager.getInstance(this)
-                .registerReceiver(mTracker, new IntentFilter(ActivityConstants.COLLECT_ACTION));
-
-        registerReceiver(mTracker, new IntentFilter(ActivityConstants.COLLECT_ACTION));
+        LocalBroadcastManager.getInstance(this).registerReceiver(mTracker, listenerFilter);
+        registerReceiver(mTracker, new IntentFilter(ActivityConstants.COLLECT_ACTION)); //TODO: confirmar se este é necessário
 
 
         return mMessenger.getBinder();
@@ -146,8 +147,8 @@ public class TRACETracker extends Service {
         Location location = mTracker.getCurrentLocation();
 
         Intent locationBroadcast = new Intent();
-        locationBroadcast.setAction(Constants.tracker.BROADCAST_LOCATION_ACTION);
-        locationBroadcast.putExtra(Constants.tracker.BROADCAST_LOCATION_EXTRA, location);
+        locationBroadcast.setAction(org.trace.tracking.TrackingConstants.tracker.BROADCAST_LOCATION_ACTION);
+        locationBroadcast.putExtra(TrackingConstants.tracker.BROADCAST_LOCATION_EXTRA, location);
 
         LocalBroadcastManager.getInstance(this).sendBroadcast(locationBroadcast);
     }
@@ -254,8 +255,8 @@ public class TRACETracker extends Service {
         /**
          * Request the most current location. Because the communication is made with the service
          * this method does not actually returns the location. Instead, the location is broadcasted
-         * through the LocalBroadcastManager with the Constants.BROADCAST_LOCATION_ACTION, and
-         * under the Constants.BROADCAST_LOCATION_EXTRA extra.
+         * through the LocalBroadcastManager with the TrackingConstants.BROADCAST_LOCATION_ACTION, and
+         * under the TrackingConstants.BROADCAST_LOCATION_EXTRA extra.
          * <br>
          * <br><b>Note:</b> It is important to assure in API version above 23, that the ACCESS_FINE_LOCATION
          * and ACCESS_COARSE_LOCATION have been granted, and otherwise, request them.
@@ -265,13 +266,13 @@ public class TRACETracker extends Service {
          *     mLocationReceiver = new BroadcastReceiver(){
          *      {@literal @}Override
          *      public void onReceive(Context context, Intent intent) {
-         *          Location mCurrentLocation = intent.getParcelableExtra(Constants.tracker.BROADCAST_LOCATION_EXTRA);
+         *          Location mCurrentLocation = intent.getParcelableExtra(TrackingConstants.tracker.BROADCAST_LOCATION_EXTRA);
          *          //Do something with the location
          *          }
          *     };
          *
          *     IntentFilter locationFilter = new IntentFilter();
-         *     locationFilter.addAction(Constants.tracker.BROADCAST_LOCATION_ACTION);
+         *     locationFilter.addAction(TrackingConstants.tracker.BROADCAST_LOCATION_ACTION);
          *
          *     LocalBroadcastManager.getInstance(this).registerReceiver(mLocationReceiver, locationFilter);
          *     }
@@ -289,8 +290,8 @@ public class TRACETracker extends Service {
         /**
          * Request the most current location. Because the communication is made with the service
          * this method does not actually returns the location. Instead, the location is broadcasted
-         * through the LocalBroadcastManager with the Constants.BROADCAST_LOCATION_ACTION, and
-         * under the Constants.BROADCAST_LOCATION_EXTRA extra.
+         * through the LocalBroadcastManager with the TrackingConstants.BROADCAST_LOCATION_ACTION, and
+         * under the TrackingConstants.BROADCAST_LOCATION_EXTRA extra.
          * <br>
          * <br><b>Note:</b> It is important to assure in API version above 23, that the ACCESS_FINE_LOCATION
          * and ACCESS_COARSE_LOCATION have been granted, and otherwise, request them.
@@ -300,13 +301,13 @@ public class TRACETracker extends Service {
          *     mLocationReceiver = new BroadcastReceiver(){
          *      {@literal @}Override
          *      public void onReceive(Context context, Intent intent) {
-         *          Location mCurrentLocation = intent.getParcelableExtra(Constants.tracker.BROADCAST_LOCATION_EXTRA);
+         *          Location mCurrentLocation = intent.getParcelableExtra(TrackingConstants.tracker.BROADCAST_LOCATION_EXTRA);
          *          //Do something with the location
          *          }
          *     };
          *
          *     IntentFilter locationFilter = new IntentFilter();
-         *     locationFilter.addAction(Constants.tracker.BROADCAST_LOCATION_ACTION);
+         *     locationFilter.addAction(TrackingConstants.tracker.BROADCAST_LOCATION_ACTION);
          *
          *     LocalBroadcastManager.getInstance(this).registerReceiver(mLocationReceiver, locationFilter);
          *     }

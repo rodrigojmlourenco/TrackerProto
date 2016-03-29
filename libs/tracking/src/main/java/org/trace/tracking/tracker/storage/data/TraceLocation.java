@@ -7,7 +7,7 @@ import android.os.Parcel;
 import com.google.android.gms.location.DetectedActivity;
 import com.google.gson.JsonObject;
 
-import org.trace.tracking.Constants;
+import org.trace.tracking.TrackingConstants;
 import org.trace.tracking.tracker.modules.activity.ActivityRecognitionModule;
 
 
@@ -100,53 +100,53 @@ public class TraceLocation extends Location{
 
     public JsonObject getSerializableLocationAsJson(){
         JsonObject location = getMainAttributesAsJson();
-        location.addProperty(Constants.location.ATTRIBUTES, getSecondaryAttributesAsJson().toString());
+        location.addProperty(TrackingConstants.location.ATTRIBUTES, getSecondaryAttributesAsJson().toString());
         return location;
     }
 
     public JsonObject getMainAttributesAsJson(){
         JsonObject attributes = new JsonObject();
-        attributes.addProperty(Constants.location.LATITUDE, getLatitude());
-        attributes.addProperty(Constants.location.LONGITUDE, getLongitude());
-        attributes.addProperty(Constants.location.TIMESTAMP, getTime());
+        attributes.addProperty(TrackingConstants.location.LATITUDE, getLatitude());
+        attributes.addProperty(TrackingConstants.location.LONGITUDE, getLongitude());
+        attributes.addProperty(TrackingConstants.location.TIMESTAMP, getTime());
         return  attributes;
     }
 
     public JsonObject getSecondaryAttributesAsJson(){
         JsonObject attributes = new JsonObject();
-        attributes.addProperty(Constants.location.attributes.ACCURACY, getAccuracy());
-        attributes.addProperty(Constants.location.attributes.SPEED, getSpeed());
-        attributes.addProperty(Constants.location.attributes.BEARING, getBearing());
-        attributes.addProperty(Constants.location.attributes.ALTITUDE, getAltitude());
-        attributes.addProperty(Constants.location.attributes.ELAPSED_NANOS, getElapsedRealtimeNanos());
-        attributes.addProperty(Constants.location.attributes.PROVIDER, getProvider());
-        attributes.addProperty(Constants.location.attributes.ACTIVITY, getActivityMode());
+        attributes.addProperty(TrackingConstants.location.attributes.ACCURACY, getAccuracy());
+        attributes.addProperty(TrackingConstants.location.attributes.SPEED, getSpeed());
+        attributes.addProperty(TrackingConstants.location.attributes.BEARING, getBearing());
+        attributes.addProperty(TrackingConstants.location.attributes.ALTITUDE, getAltitude());
+        attributes.addProperty(TrackingConstants.location.attributes.ELAPSED_NANOS, getElapsedRealtimeNanos());
+        attributes.addProperty(TrackingConstants.location.attributes.PROVIDER, getProvider());
+        attributes.addProperty(TrackingConstants.location.attributes.ACTIVITY, getActivityMode());
         return  attributes;
     }
 
     public void setSecondaryAttributes(JsonObject secondaryAttributes){
 
-        if (secondaryAttributes.has(Constants.location.attributes.ACCURACY))
-            setAccuracy(secondaryAttributes.get(Constants.location.attributes.ACCURACY).getAsFloat());
+        if (secondaryAttributes.has(TrackingConstants.location.attributes.ACCURACY))
+            setAccuracy(secondaryAttributes.get(TrackingConstants.location.attributes.ACCURACY).getAsFloat());
 
-        if (secondaryAttributes.has(Constants.location.attributes.SPEED))
-            setSpeed(secondaryAttributes.get(Constants.location.attributes.SPEED).getAsFloat());
+        if (secondaryAttributes.has(TrackingConstants.location.attributes.SPEED))
+            setSpeed(secondaryAttributes.get(TrackingConstants.location.attributes.SPEED).getAsFloat());
 
-        if (secondaryAttributes.has(Constants.location.attributes.BEARING))
-            setBearing(secondaryAttributes.get(Constants.location.attributes.BEARING).getAsFloat());
+        if (secondaryAttributes.has(TrackingConstants.location.attributes.BEARING))
+            setBearing(secondaryAttributes.get(TrackingConstants.location.attributes.BEARING).getAsFloat());
 
-        if (secondaryAttributes.has(Constants.location.attributes.ALTITUDE))
-            setAltitude(secondaryAttributes.get(Constants.location.attributes.ALTITUDE).getAsFloat());
+        if (secondaryAttributes.has(TrackingConstants.location.attributes.ALTITUDE))
+            setAltitude(secondaryAttributes.get(TrackingConstants.location.attributes.ALTITUDE).getAsFloat());
 
-        if (secondaryAttributes.has(Constants.location.attributes.ELAPSED_NANOS)
+        if (secondaryAttributes.has(TrackingConstants.location.attributes.ELAPSED_NANOS)
             && Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1)
-                setElapsedRealtimeNanos(secondaryAttributes.get(Constants.location.attributes.ELAPSED_NANOS).getAsLong());
+                setElapsedRealtimeNanos(secondaryAttributes.get(TrackingConstants.location.attributes.ELAPSED_NANOS).getAsLong());
 
-        if (secondaryAttributes.has(Constants.location.attributes.PROVIDER))
-            setProvider(secondaryAttributes.get(Constants.location.attributes.PROVIDER).getAsString());
+        if (secondaryAttributes.has(TrackingConstants.location.attributes.PROVIDER))
+            setProvider(secondaryAttributes.get(TrackingConstants.location.attributes.PROVIDER).getAsString());
 
-        if (secondaryAttributes.has(Constants.location.attributes.ACTIVITY))
-            activityMode = secondaryAttributes.get(Constants.location.attributes.ACTIVITY).getAsString();
+        if (secondaryAttributes.has(TrackingConstants.location.attributes.ACTIVITY))
+            activityMode = secondaryAttributes.get(TrackingConstants.location.attributes.ACTIVITY).getAsString();
     }
 
     @Override
