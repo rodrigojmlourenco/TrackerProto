@@ -59,6 +59,7 @@ public class SettingsFragment extends Fragment {
 
         //Location
         setupLocationSettings();
+
     }
 
     private void setupLocationSettings(){

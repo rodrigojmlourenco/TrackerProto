@@ -48,7 +48,7 @@
             android:name=".ui.MapActivity"
             android:label="@string/title_activity_osmdroid_map" />
         <activity
-            android:name=".ui.DynamicInitActivity"
+            android:name=".ui.DynamicEntryActivity"
             >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

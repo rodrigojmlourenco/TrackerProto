@@ -17,6 +17,7 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import com.google.android.gms.auth.api.Auth;
+import com.google.android.gms.auth.api.credentials.Credential;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.auth.api.signin.GoogleSignInResult;
@@ -29,6 +30,7 @@ import com.google.android.gms.common.api.Status;
 import org.trace.trackerproto.R;
 import org.trace.tracking.TrackingConstants;
 import org.trace.tracking.store.TraceAuthenticationManager;
+import org.trace.tracking.store.auth.MultipleCredentialsRequestHandler;
 
 public class LoginActivity extends AppCompatActivity implements GoogleApiClient.OnConnectionFailedListener {
 
@@ -38,15 +40,13 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
     private BroadcastReceiver mReceiver;
 
     private TraceAuthenticationManager mAuthManager;
+    private MultipleCredentialsRequestHandler mHandler;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
-
-        mAuthManager = TraceAuthenticationManager.getAuthenticationManager(this);
-        mConnectivityManager = (ConnectivityManager) this.getSystemService(Context.CONNECTIVITY_SERVICE);
 
         // TRACEStore Service callbacks
         mReceiver = new BroadcastReceiver() {
@@ -80,6 +80,14 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
 
         setupGoogleSignin();
         setupTRACENativeSignin();
+
+
+        mAuthManager = TraceAuthenticationManager.getAuthenticationManager(this, mGoogleApiClient);
+        mHandler = new MultipleCredentialsRequestHandler(mGoogleApiClient, mAuthManager);
+        mConnectivityManager = (ConnectivityManager) this.getSystemService(Context.CONNECTIVITY_SERVICE);
+
+
+        setupCredentialRemoval();
     }
 
     @Override
@@ -102,6 +110,7 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
     private boolean isNetworkConnected(){
         return mConnectivityManager.getActiveNetworkInfo() != null;
     }
+
 
     private void buildAlertMessageNoConnectivity() {
 
@@ -198,7 +207,7 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
      ***********************************************************************************************
      */
 
-    private static final int RC_SIGN_IN = 0;
+
 
     private SignInButton googleSignIn;
 
@@ -218,6 +227,7 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .enableAutoManage(this /* FragmentActivity */, this /* OnConnectionFailedListener */)
                 .addApi(Auth.GOOGLE_SIGN_IN_API, gso)
+                .addApi(Auth.CREDENTIALS_API)
                 .build();
 
         googleSignIn.setOnClickListener(new View.OnClickListener() {
@@ -230,7 +240,7 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
 
     private void signIn(){
         Intent signInIntent = Auth.GoogleSignInApi.getSignInIntent(mGoogleApiClient);
-        startActivityForResult(signInIntent, RC_SIGN_IN);
+        startActivityForResult(signInIntent, TraceAuthenticationManager.RC_SIGN_IN);
     }
 
     @Override
@@ -242,26 +252,47 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        if(requestCode == RC_SIGN_IN){
-            GoogleSignInResult result = Auth.GoogleSignInApi.getSignInResultFromIntent(data);
-            Log.d(TAG, "onActivityResult:GET_TOKEN:success:" + result.getStatus().isSuccess());
 
-            if (result.isSuccess()) {
-                GoogleSignInAccount acct = result.getSignInAccount();
-                String idToken = acct.getIdToken();
+        mHandler.onRequestResult(requestCode, resultCode, data);
 
-                // Show signed-in UI.
-                Log.d(TAG, "idToken:" + idToken);
-                mAuthManager.login(idToken, TraceAuthenticationManager.GrantType.google);
-            } else {
-                // Show signed-out UI.
-                updateUI(false);
-            }
-
-
-
-            //handleSignInResult(result);
+        /*
+        if(resultCode != RESULT_OK) {
+            Log.e(TAG, "Failed at code " + requestCode);
+            return;
         }
+
+
+        switch (requestCode){
+            case TraceAuthenticationManager.RC_SIGN_IN:
+                GoogleSignInResult result = Auth.GoogleSignInApi.getSignInResultFromIntent(data);
+                Log.d(TAG, "onActivityResult:GET_TOKEN:success:" + result.getStatus().isSuccess());
+
+                if (result.isSuccess()) {
+                    GoogleSignInAccount acct = result.getSignInAccount();
+                    mAuthManager.login(acct, TraceAuthenticationManager.GrantType.google);
+                }
+                break;
+            case TraceAuthenticationManager.RC_LOAD:
+                Log.d(LOG_TAG, "Read");
+                if (resultCode == RESULT_OK) {
+                    Credential credential = data.getParcelableExtra(Credential.EXTRA_KEY);
+                    //onCredentialRetrieved(credential);
+                } else {
+                    Log.e(TAG, "Credential Read: NOT OK");
+                    Toast.makeText(this, "Credential Read Failed", Toast.LENGTH_SHORT).show();
+                }
+                break;
+            case TraceAuthenticationManager.RC_SAVE:
+                Log.d(LOG_TAG, "Save");
+                break;
+            case TraceAuthenticationManager.RC_DELETE:
+                Credential credential = data.getParcelableExtra(Credential.EXTRA_KEY);
+                mAuthManager.removeCredential(credential);
+                break;
+            default:
+                Log.e(LOG_TAG, "Unknown request code "+requestCode);
+        }
+        */
     }
 
     private void updateUI(boolean signedIn) {
@@ -316,5 +347,24 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
                     }
                 });
     }
+
+    /*
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+    private Button clearCredentialsBtn;
+
+    public void setupCredentialRemoval(){
+        clearCredentialsBtn = (Button) findViewById(R.id.clear_credentials_btn);
+        clearCredentialsBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mAuthManager.removeAllStoredCredentials();
+            }
+        });
+    }
+
+
 
 }
