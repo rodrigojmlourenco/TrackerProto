@@ -275,8 +275,6 @@ public class HttpClient {
     public boolean submitTrack(String authToken, Track track)
             throws RemoteTraceException, UnableToSubmitTrackTokenExpiredException {
 
-
-
         String session, localSession;
 
         PersistentTrackStorage storage = new PersistentTrackStorage(mContext);
@@ -328,6 +326,5 @@ public class HttpClient {
         String CONTENT_LENGTH = "Content-Length";
         String CONTENT_LANGUAGE = "Content-Language";
         String AUTHORIZATION = "Authorization";
-
     }
 }

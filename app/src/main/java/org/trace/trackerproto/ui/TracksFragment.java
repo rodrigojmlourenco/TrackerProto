@@ -231,7 +231,7 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
                     if(isNetworkConnected()) {
                         //Track track = mTrackStorage.getTrack(values.get(position));
                         Track track = TRACETracker.Client.getStoredTrack(getActivity(), values.get(position));
-                        TRACEStore.Client.uploadWholeTrack(context, track);
+                        TRACEStore.Client.uploadWholeTrack(context,((MainActivity)getActivity()).getAuthenticationToken(), track); //TODO: refactorizar
                     }else
                         buildAlertMessageNoConnectivity();
 

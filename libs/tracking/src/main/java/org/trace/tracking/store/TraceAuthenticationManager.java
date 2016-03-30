@@ -30,9 +30,6 @@ import org.trace.tracking.store.exceptions.UnableToPerformLogin;
 import org.trace.tracking.store.exceptions.UserIsNotLoggedException;
 import org.trace.tracking.store.remote.HttpClient;
 
-/**
- * Created by Rodrigo Lourenço on 29/03/2016.
- */
 public class TraceAuthenticationManager {
 
 
@@ -44,7 +41,7 @@ public class TraceAuthenticationManager {
     private GrantType mCurrentGrantType = GrantType.none;
     private String mAuthenticationToken = null;
 
-    private TraceAuthenticationManager(Context context, GoogleApiClient credentialsApiClient){
+    public TraceAuthenticationManager(Context context, GoogleApiClient credentialsApiClient){
         mContext = context;
         mHttpClient = new HttpClient(context);
         mCredentialsApiClient = credentialsApiClient;
@@ -61,6 +58,8 @@ public class TraceAuthenticationManager {
 
         return MANAGER;
     }
+
+
 
     private void updateContext(Context context, GoogleApiClient credentialsApiClient){
         this.mContext = context;
@@ -95,8 +94,10 @@ public class TraceAuthenticationManager {
                 //TODO
             case none:
             default:
-                throw new UnsupportedOperationException();
+                ;
         }
+
+        clearAuthenticationToken();
     }
 
 
@@ -411,38 +412,6 @@ public class TraceAuthenticationManager {
      ***********************************************************************************************
      */
 
-    public boolean isFirstTime() {
-
-        /*
-        SharedPreferences prefs =
-                mContext.getSharedPreferences(AUTH_SETTINGS_KEY, Context.MODE_PRIVATE);
-
-        return prefs == null || !(prefs.contains(TrackingConstants.store.USERNAME_KEY) && prefs.contains(TrackingConstants.store.PASSWORD_KEY));
-        */
-        return isFirstTime;
-
-    }
-
-    public static boolean isFirstTime(Context context){
-        SharedPreferences prefs =
-                context.getSharedPreferences(AUTH_SETTINGS_KEY, Context.MODE_PRIVATE);
-
-        if(prefs == null) return true;
-
-        return !(prefs.contains(TrackingConstants.store.USERNAME_KEY) && prefs.contains(TrackingConstants.store.PASSWORD_KEY));
-    }
-
-    public static boolean clearCredentials(Context context){
-        SharedPreferences.Editor editor =
-                context.getSharedPreferences(AUTH_SETTINGS_KEY, Context.MODE_PRIVATE).edit();
-
-        editor.clear();
-        editor.commit();
-
-        return true;
-    }
-
-
     public void storeAuthenticationToken(String token){
         SharedPreferences.Editor editor =
                 mContext.getSharedPreferences(AUTH_SETTINGS_KEY, Context.MODE_PRIVATE).edit();
@@ -484,51 +453,6 @@ public class TraceAuthenticationManager {
         return new Intent(TrackingConstants.store.LOGIN_ACTION)
                 .putExtra(TrackingConstants.store.SUCCESS_LOGIN_EXTRA, success)
                 .putExtra(TrackingConstants.store.LOGIN_ERROR_MSG_EXTRA, error);
-    }
-
-    public class TraceRequestHelper{
-
-        private final String TAG = "Auth";
-
-        public int onRequestResult(int requestCode, int resultCode, Intent data){
-            if(resultCode != -1) {
-                Log.e(TAG, "Failed at code " + requestCode);
-                return -1;
-            }
-
-            switch (requestCode){
-                case TraceAuthenticationManager.RC_SIGN_IN:
-                    GoogleSignInResult result = Auth.GoogleSignInApi.getSignInResultFromIntent(data);
-
-                    if (result.isSuccess()) {
-                        GoogleSignInAccount acct = result.getSignInAccount();
-                        login(acct, GrantType.google);
-                    }
-                    break;
-                case TraceAuthenticationManager.RC_LOAD:
-                    OptionalPendingResult<GoogleSignInResult> opr =
-                            Auth.GoogleSignInApi.silentSignIn(mCredentialsApiClient);
-
-                    opr.setResultCallback(new ResultCallback<GoogleSignInResult>() {
-                        @Override
-                        public void onResult(GoogleSignInResult googleSignInResult) {
-                            login(googleSignInResult.getSignInAccount(), TraceAuthenticationManager.GrantType.google);
-                        }
-                    });
-                    break;
-                case TraceAuthenticationManager.RC_SAVE:
-                    Log.d(TraceAuthenticationManager.this.TAG, "TODO: Save");
-                    break;
-                case TraceAuthenticationManager.RC_DELETE:
-                    Credential credential = data.getParcelableExtra(Credential.EXTRA_KEY);
-                    removeCredential(credential);
-                    break;
-                default:
-                    Log.e(TraceAuthenticationManager.this.TAG, "Unknown request code "+requestCode);
-            }
-
-            return requestCode;
-        }
     }
 
     public enum GrantType {

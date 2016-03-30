@@ -352,7 +352,7 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
 
 
     private void startTrackingOnClick(){
-        TRACEStore.Client.requestInitiateSession(getActivity());
+        TRACEStore.Client.requestInitiateSession(getActivity(), ((MainActivity)getActivity()).getAuthenticationToken()); //TODO: refactorizar
 
         if (EasyPermissions.hasPermissions(getActivity(), TrackingConstants.permissions.TRACKING_PERMISSIONS)) {
 

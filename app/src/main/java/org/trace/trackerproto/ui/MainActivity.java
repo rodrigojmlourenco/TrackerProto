@@ -26,12 +26,16 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
 
+import com.google.android.gms.auth.api.Auth;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+
 import org.trace.trackerproto.R;
 import org.trace.trackerproto.ui.slidingmenu.adapter.NavDrawerListAdapter;
 import org.trace.trackerproto.ui.slidingmenu.model.NavDrawerItem;
 import org.trace.tracking.TrackingConstants;
-import org.trace.tracking.store.TRACEStore;
-import org.trace.tracking.store.auth.AuthenticationManager;
+import org.trace.tracking.store.TraceAuthenticationManager;
+import org.trace.tracking.store.exceptions.UserIsNotLoggedException;
 import org.trace.tracking.tracker.TRACETracker;
 
 import java.util.ArrayList;
@@ -42,12 +46,13 @@ import pub.devrel.easypermissions.AfterPermissionGranted;
 import pub.devrel.easypermissions.EasyPermissions;
 
 //TODO: update the count of navdraweritem on delete or create track
-public class MainActivity extends AppCompatActivity implements EasyPermissions.PermissionCallbacks, TrackCountListener{
+public class MainActivity extends AppCompatActivity implements EasyPermissions.PermissionCallbacks, TrackCountListener, GoogleApiClient.OnConnectionFailedListener {
 
     private static final String LOG_TAG = "MainActivity";
     private Fragment mCurrentFragment = null;
 
     //Storage
+
 
 
 
@@ -59,9 +64,9 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
         if(savedInstanceState!=null)
             updateState(savedInstanceState);
 
-        TRACEStore.Client.requestLogin(this, "", "");
+        setupTraceAuthenticationManager();
+        //TRACEStore.Client.requestLogin(this, "", ""); //TODO: why is this necessary? to avoid non logged in users?
         setupSlidingMenu(savedInstanceState);
-
     }
 
 
@@ -114,7 +119,8 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
         }
 
         if(isFinishing())
-            TRACEStore.Client.requestLogout(MainActivity.this);
+            mAuthManager.logout();
+            //TRACEStore.Client.requestLogout(MainActivity.this);
 
         if(mCurrentFragment instanceof MapViewFragment){
             ((MapViewFragment)mCurrentFragment).cleanMap();
@@ -323,6 +329,11 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
         }
     }
 
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+
+    }
+
     /*
      ***********************************************************************************************
      ***********************************************************************************************
@@ -515,12 +526,47 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
                 .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        AuthenticationManager.clearCredentials(MainActivity.this);
+                        //AuthenticationManager.clearCredentials(MainActivity.this);
+                        Log.e(LOG_TAG, "Not doing anything right now when logging out...");
                         Intent logoutIntent = new Intent(MainActivity.this, LoginActivity.class);
                         startActivity(logoutIntent);
                     }
                 })
                 .setNegativeButton(R.string.no, null)
                 .show();
+    }
+
+    /* Security
+    /* Security
+    /* Security
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+    private TraceAuthenticationManager mAuthManager;
+    private GoogleApiClient mGoogleApiClient;
+
+    private void setupTraceAuthenticationManager(){
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .enableAutoManage(this, this)
+                .addApi(Auth.GOOGLE_SIGN_IN_API)
+                .addApi(Auth.CREDENTIALS_API)
+                .build();
+
+        mAuthManager = TraceAuthenticationManager.getAuthenticationManager(this, mGoogleApiClient);
+    }
+
+    public String getAuthenticationToken(){ //TODO: migrar isto para uma interface
+
+        String authToken = "";
+
+        try {
+            authToken = mAuthManager.getAuthenticationToken();
+        } catch (UserIsNotLoggedException e) {
+            e.printStackTrace();
+        }
+
+        Log.d(LOG_TAG, authToken);
+        return authToken;
     }
 }
