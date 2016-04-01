@@ -8,6 +8,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import org.trace.tracking.store.auth.AuthenticationRenewalListener;
 import org.trace.tracking.store.exceptions.AuthTokenIsExpiredException;
 import org.trace.tracking.store.exceptions.InvalidAuthCredentialsException;
 import org.trace.tracking.store.exceptions.LoginFailedException;
@@ -81,7 +82,32 @@ public class HttpClient {
         return traceTrack.toString();
     }
 
-    private String performPostRequest(String urlEndpoint, JsonObject requestProperties, String data) throws UnableToRequestPostException, AuthTokenIsExpiredException {
+    private JsonObject constructRemoteRequest(String method, String urlEndpoint, JsonObject requestProperties, String data){
+        JsonObject operation = new JsonObject();
+        operation.addProperty("method", method);
+        operation.addProperty("endpoint", urlEndpoint);
+        operation.add("properties", requestProperties);
+        operation.addProperty("data", data);
+        return operation;
+    }
+
+    public String performRemoteRequest(JsonObject operation){
+
+        String method       = operation.get("method").getAsString();
+        String urlEndpoint  = operation.get("endpoint").getAsString();
+        JsonObject props    = operation.getAsJsonObject("properties");
+        String data         = operation.get("data").getAsString();
+
+        URL url;
+        HttpURLConnection connection = null;
+        String dataUrl = BASE_URI+urlEndpoint;
+
+        //TODO: terminar
+
+        return "";
+    }
+
+    public String performPostRequest(String urlEndpoint, JsonObject requestProperties, String data) throws UnableToRequestPostException, AuthTokenIsExpiredException {
         URL url;
         HttpURLConnection connection = null;
         String dataUrl = BASE_URI+urlEndpoint;
@@ -115,6 +141,15 @@ public class HttpClient {
                 case 200:
                     break;
                 case 401:
+
+                    mContext.sendBroadcast(
+                            AuthenticationRenewalListener.getFailedRemoteOperationIntent(
+                                    constructRemoteRequest(
+                                            "POST",
+                                            urlEndpoint,
+                                            requestProperties,
+                                            data)));
+
                     throw new AuthTokenIsExpiredException();
                 default:
                     throw new UnableToRequestPostException(String.valueOf(responseCode));

@@ -9,7 +9,6 @@ import android.util.Log;
 import android.widget.Toast;
 
 import org.trace.tracking.TrackingConstants;
-import org.trace.tracking.store.auth.AuthenticationRenewalListener;
 import org.trace.tracking.store.exceptions.AuthTokenIsExpiredException;
 import org.trace.tracking.store.exceptions.AuthenticationTokenNotSetException;
 import org.trace.tracking.store.exceptions.RemoteTraceException;
@@ -93,8 +92,10 @@ public class TRACEStore extends IntentService{
             session = mHttpClient.requestTrackingSession(authToken);
             isValid = true;
 
-        } catch (RemoteTraceException | AuthTokenIsExpiredException e) {
+        } catch (RemoteTraceException e) {
             Log.e(LOG_TAG, e.getMessage());
+        }catch(AuthTokenIsExpiredException e){
+            Log.e(LOG_TAG, "Authentication token has expired");
             //TODO: tento renovar logo o token o desisto... e logo tento no upload?
         } finally {
 
@@ -118,13 +119,12 @@ public class TRACEStore extends IntentService{
      */
 
     private void performSubmitTrack(Intent intent) {
-
-
         Track track;
         String authToken = extractAuthenticationToken(intent);
         if(!intent.hasExtra(TrackingConstants.store.TRACK_EXTRA)) return;
 
         track = intent.getParcelableExtra(TrackingConstants.store.TRACK_EXTRA);
+
 
 
         try {
@@ -144,9 +144,13 @@ public class TRACEStore extends IntentService{
         }
     }
 
+    private void performSubmitTrack(String session, Track track, String authToken){
+
+    }
+
     private void broadcastFailedSubmitOperation(Track track) {
-        Intent i = AuthenticationRenewalListener.getFailedToSubmitTrackIntent(track);
-        sendBroadcast(i);
+        //Intent i = AuthenticationRenewalListener.getFailedToSubmitTrackIntent(track);
+        //sendBroadcast(i);
     }
 
 
@@ -230,6 +234,7 @@ public class TRACEStore extends IntentService{
          * identify a traced track.
          * @return The session identifier.
          */
+
         public static String getSessionId(){
             return sessionId;
         }
@@ -239,13 +244,14 @@ public class TRACEStore extends IntentService{
          * Requests for a new tracking session to be initiated if possible.
          * @param context The current context.
          */
+        /*
         public static void requestInitiateSession(Context context, String authToken){
             Intent mI = new Intent(context, TRACEStore.class);
             mI.putExtra(TrackingConstants.store.OPERATION_KEY, Operations.initiateSession.toString());
             mI.putExtra(TrackingConstants.store.AUTH_TOKEN_EXTRA, authToken);
-            context.startService(mI);
+            //context.startService(mI);
         }
-
+        */
 
         /**
          * Uploads a complete track. It is important to note that the method was designed to handle
@@ -257,6 +263,15 @@ public class TRACEStore extends IntentService{
          * @see Track
          */
         public static void uploadWholeTrack(Context context, String authToken, Track track){
+            Intent mI = new Intent(context, TRACEStore.class);
+            mI.putExtra(TrackingConstants.store.OPERATION_KEY, Operations.submitTrack.toString());
+            mI.putExtra(TrackingConstants.store.TRACK_EXTRA, track);
+            mI.putExtra(TrackingConstants.store.AUTH_TOKEN_EXTRA, authToken);
+            context.startService(mI);
+        }
+
+        public static void uploadWholeTrack(Context context, String authToken, String session, Track track){
+            track.setSessionId(session);
             Intent mI = new Intent(context, TRACEStore.class);
             mI.putExtra(TrackingConstants.store.OPERATION_KEY, Operations.submitTrack.toString());
             mI.putExtra(TrackingConstants.store.TRACK_EXTRA, track);

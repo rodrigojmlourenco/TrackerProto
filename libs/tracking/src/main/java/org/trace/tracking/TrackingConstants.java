@@ -37,12 +37,14 @@ public final class TrackingConstants {
 
         String AUTH_TOKEN_EXTRA = "auth_token";
 
-        String TRACK_EXTRA = "org.trace.store.extras.TRACK";
+        String TRACK_EXTRA  = "org.trace.store.extras.TRACK";
+        String SESSION_EXTRA= "org.trace.store.extras.SESSION";
 
         String OPERATION_KEY    = "action";
         String USERNAME_KEY     = "username";
         String PASSWORD_KEY     = "password";
         String ID_TOKEN_KEY     = "id_token";
+
 
 
 

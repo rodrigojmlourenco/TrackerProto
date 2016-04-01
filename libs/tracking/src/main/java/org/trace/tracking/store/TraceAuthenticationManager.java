@@ -24,14 +24,19 @@ import com.google.android.gms.common.api.Status;
 
 import org.trace.tracking.R;
 import org.trace.tracking.TrackingConstants;
+import org.trace.tracking.store.exceptions.AuthTokenIsExpiredException;
 import org.trace.tracking.store.exceptions.InvalidAuthCredentialsException;
 import org.trace.tracking.store.exceptions.LoginFailedException;
 import org.trace.tracking.store.exceptions.MissingSignInApiException;
 import org.trace.tracking.store.exceptions.NetworkConnectivityRequiredException;
+import org.trace.tracking.store.exceptions.RemoteTraceException;
 import org.trace.tracking.store.exceptions.UnableToPerformLogin;
 import org.trace.tracking.store.exceptions.UnsupportedIdentityProvider;
 import org.trace.tracking.store.exceptions.UserIsNotLoggedException;
 import org.trace.tracking.store.remote.HttpClient;
+
+import java.math.BigInteger;
+import java.security.SecureRandom;
 
 public class TraceAuthenticationManager {
 
@@ -302,6 +307,12 @@ public class TraceAuthenticationManager {
 
     private void storeGenericCredential(Credential credential){
 
+        if(!mCredentialsApiClient.isConnected()){
+            Log.e(TAG, "GoogleApiClient is not yet connected.");
+            return;
+        }
+
+
         //Testing
         mCurrentCredential = credential;
 
@@ -485,6 +496,92 @@ public class TraceAuthenticationManager {
             mContext.sendBroadcast(getFailedLoginIntent());
         }
     }
+
+
+    /* Session Management
+    /* Session Management
+    /* Session Management
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+
+    private String session;
+    private boolean isValid;
+    private final Object mSessionLock = new Object();
+
+    public boolean isValid() { synchronized (mSessionLock){ return isValid; }}
+
+    public String getSession() { synchronized (mSessionLock) { return session; }}
+
+
+    public void initiateTrackingSession(boolean mandatory) throws NetworkConnectivityRequiredException {
+
+        if(mandatory && !isNetworkConnected())
+            throw new NetworkConnectivityRequiredException();
+
+        if(!isNetworkConnected() && !mandatory){
+            generateFakeSessionId();
+        }
+
+        try {
+            session = mHttpClient.requestTrackingSession(mAuthenticationToken);
+            isValid = true;
+        } catch (RemoteTraceException e) {
+            e.printStackTrace();
+        } catch (AuthTokenIsExpiredException e) {
+            login();
+        }
+    }
+
+    public void fetchNewTrackingSession(){
+
+        if(!isNetworkConnected()){
+            TRACEStore.Client.setSessionId(generateFakeSessionId(), false);
+        }
+
+        synchronized (mSessionLock){
+            isValid = false;
+            session = "";
+        }
+
+        new Thread(new Runnable() {
+                @Override
+                public void run() {
+
+                    boolean failed = false;
+                    String tmpSession;
+                    try {
+
+                        tmpSession = mHttpClient.requestTrackingSession(mAuthenticationToken);
+
+                        synchronized (mSessionLock){
+                            session = tmpSession;
+                            isValid = true;
+                            Log.d("SESSION", session);
+                            TRACEStore.Client.setSessionId(session, isValid);
+                        }
+
+                    } catch (RemoteTraceException e) {
+                        e.printStackTrace();
+                    } catch (AuthTokenIsExpiredException e) {
+                        failed = true;
+                        login();
+                    }finally {
+                        if(failed)
+                            fetchNewTrackingSession();
+                    }
+
+                }
+            }).start();
+    }
+
+
+    private String generateFakeSessionId(){
+        SecureRandom random = new SecureRandom();
+        return "local_"+new BigInteger(130, random).toString(16);
+    }
+
 
 
     /* Others

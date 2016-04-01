@@ -126,7 +126,6 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
                     buildAlertMessageNoGps();
                 }
             }
-
         });
 
         toggleTrackingBtn.setOnClickListener(new View.OnClickListener() {
@@ -352,7 +351,8 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
 
 
     private void startTrackingOnClick(){
-        TRACEStore.Client.requestInitiateSession(getActivity(), ((MainActivity)getActivity()).getAuthenticationToken()); //TODO: refactorizar
+        ((MainActivity)getActivity()).forceFetchNewSession();
+        //TRACEStore.Client.requestInitiateSession(getActivity(), ((MainActivity)getActivity()).getAuthenticationToken()); //TODO: refactorizar
 
         if (EasyPermissions.hasPermissions(getActivity(), TrackingConstants.permissions.TRACKING_PERMISSIONS)) {
 

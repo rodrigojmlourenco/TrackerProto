@@ -52,6 +52,7 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
     private static final String LOG_TAG = "MainActivity";
     private Fragment mCurrentFragment = null;
 
+    private AuthenticationRenewalListener authRenewalListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,11 +63,10 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
             updateState(savedInstanceState);
 
         setupTraceAuthenticationManager();
-        //TRACEStore.Client.requestLogin(this, "", ""); //TODO: why is this necessary? to avoid non logged in users?
         setupSlidingMenu(savedInstanceState);
 
-        registerReceiver(new AuthenticationRenewalListener(mAuthManager),
-                        AuthenticationRenewalListener.getAuthenticationRenewalFilter());
+        authRenewalListener = new AuthenticationRenewalListener(this, mAuthManager);
+        registerReceiver(authRenewalListener, AuthenticationRenewalListener.getAuthenticationRenewalFilter());
     }
 
 
@@ -118,9 +118,12 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
             this.unbindService(mConnection);
         }
 
-        if(isFinishing())
+        if(isFinishing()) {
+            unregisterReceiver(authRenewalListener);
             mAuthManager.logout();
+
             //TRACEStore.Client.requestLogout(MainActivity.this);
+        }
 
         if(mCurrentFragment instanceof MapViewFragment){
             ((MapViewFragment)mCurrentFragment).cleanMap();
@@ -530,6 +533,7 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
                         Log.e(LOG_TAG, "Not doing anything right now when logging out...");
                         Intent logoutIntent = new Intent(MainActivity.this, LoginActivity.class);
                         startActivity(logoutIntent);
+                        finish();
                     }
                 })
                 .setNegativeButton(R.string.no, null)
@@ -568,5 +572,11 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
 
         Log.d(LOG_TAG, authToken);
         return authToken;
+    }
+
+    //TESTING
+    //TODO: remover
+    public void forceFetchNewSession(){
+        mAuthManager.fetchNewTrackingSession();
     }
 }
