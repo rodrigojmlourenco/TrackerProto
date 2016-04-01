@@ -35,6 +35,7 @@ import org.trace.trackerproto.ui.slidingmenu.adapter.NavDrawerListAdapter;
 import org.trace.trackerproto.ui.slidingmenu.model.NavDrawerItem;
 import org.trace.tracking.TrackingConstants;
 import org.trace.tracking.store.TraceAuthenticationManager;
+import org.trace.tracking.store.auth.AuthenticationRenewalListener;
 import org.trace.tracking.store.exceptions.UserIsNotLoggedException;
 import org.trace.tracking.tracker.TRACETracker;
 
@@ -51,10 +52,6 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
     private static final String LOG_TAG = "MainActivity";
     private Fragment mCurrentFragment = null;
 
-    //Storage
-
-
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,6 +64,9 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
         setupTraceAuthenticationManager();
         //TRACEStore.Client.requestLogin(this, "", ""); //TODO: why is this necessary? to avoid non logged in users?
         setupSlidingMenu(savedInstanceState);
+
+        registerReceiver(new AuthenticationRenewalListener(mAuthManager),
+                        AuthenticationRenewalListener.getAuthenticationRenewalFilter());
     }
 
 

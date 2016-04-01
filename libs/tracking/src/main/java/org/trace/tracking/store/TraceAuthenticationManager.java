@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
 import android.util.Log;
 
 import com.google.android.gms.auth.api.Auth;
@@ -26,12 +27,13 @@ import org.trace.tracking.TrackingConstants;
 import org.trace.tracking.store.exceptions.InvalidAuthCredentialsException;
 import org.trace.tracking.store.exceptions.LoginFailedException;
 import org.trace.tracking.store.exceptions.MissingSignInApiException;
+import org.trace.tracking.store.exceptions.NetworkConnectivityRequiredException;
 import org.trace.tracking.store.exceptions.UnableToPerformLogin;
+import org.trace.tracking.store.exceptions.UnsupportedIdentityProvider;
 import org.trace.tracking.store.exceptions.UserIsNotLoggedException;
 import org.trace.tracking.store.remote.HttpClient;
 
 public class TraceAuthenticationManager {
-
 
     private final String TAG = "Auth";
 
@@ -41,10 +43,13 @@ public class TraceAuthenticationManager {
     private GrantType mCurrentGrantType = GrantType.none;
     private String mAuthenticationToken = null;
 
+    private ConnectivityManager mConnectivityManager;
+
     public TraceAuthenticationManager(Context context, GoogleApiClient credentialsApiClient){
         mContext = context;
         mHttpClient = new HttpClient(context);
         mCredentialsApiClient = credentialsApiClient;
+        mConnectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
     }
 
     public static TraceAuthenticationManager getAuthenticationManager(Context context, GoogleApiClient credentialsApiClient){
@@ -59,31 +64,38 @@ public class TraceAuthenticationManager {
         return MANAGER;
     }
 
-
-
     private void updateContext(Context context, GoogleApiClient credentialsApiClient){
         this.mContext = context;
         this.mCredentialsApiClient = credentialsApiClient;
-    }
-
-
-    public String getAuthenticationToken() throws UserIsNotLoggedException {
-
-        String authToken = mContext.getSharedPreferences(AUTH_SETTINGS_KEY, Context.MODE_PRIVATE)
-                            .getString(AUTH_TOKEN, "");
-
-        if(authToken.isEmpty())
-            throw new UserIsNotLoggedException();
-        else
-            return authToken;
-    }
-
-    public boolean isAuthenticated(){
-        return mAuthenticationToken != null;
+        this.mConnectivityManager = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
     }
 
     public void login() {
-        retrieveCredentialsAndLogin();
+
+        //Only attempt login if the network is connected
+        boolean attemptLogin = isNetworkConnected();
+
+
+        if(mCurrentCredential!=null) //a) Check if there is any active credential and use it to login
+            login(mCurrentCredential);
+        else //b) Attempt to login from one of the stored credentials
+            retrieveCredentials(attemptLogin);
+    }
+
+    private void login(Credential credential){
+        String accountType = credential.getAccountType();
+
+        if(accountType == null) { //password-based accout, i.e. native trace
+            login(credential.getId(), credential.getPassword());
+        }else{
+            switch (accountType){
+                case IdentityProviders.GOOGLE:
+                    performSilentGoogleLogin();
+                    break;
+                default:
+                    throw new UnsupportedIdentityProvider(accountType);
+            }
+        }
     }
 
     public void logout(){
@@ -100,6 +112,40 @@ public class TraceAuthenticationManager {
         clearAuthenticationToken();
     }
 
+    /* Authentication Token Management
+    /* Authentication Token Management
+    /* Authentication Token Management
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+
+    private void storeAuthenticationToken(String token){
+        SharedPreferences.Editor editor =
+                mContext.getSharedPreferences(AUTH_SETTINGS_KEY, Context.MODE_PRIVATE).edit();
+
+        editor.putString(AUTH_TOKEN, token);
+        editor.commit();
+    }
+
+    public String getAuthenticationToken() throws UserIsNotLoggedException {
+
+        String authToken = mContext.getSharedPreferences(AUTH_SETTINGS_KEY, Context.MODE_PRIVATE)
+                .getString(AUTH_TOKEN, "");
+
+        if(authToken.isEmpty())
+            throw new UserIsNotLoggedException();
+        else
+            return authToken;
+    }
+
+    public void clearAuthenticationToken(){
+        SharedPreferences.Editor editor =
+                mContext.getSharedPreferences(AUTH_SETTINGS_KEY, Context.MODE_PRIVATE).edit();
+
+        editor.remove(AUTH_TOKEN);
+        editor.commit();
+    }
 
     /* TRACE Native Login
     /* TRACE Native Login
@@ -230,7 +276,7 @@ public class TraceAuthenticationManager {
     private GoogleApiClient mCredentialsApiClient;
 
     public static final int RC_SAVE     = 0;
-    public static final int RC_LOAD = 1;
+    public static final int RC_LOAD     = 1;
     public static final int RC_SIGN_IN  = 2;
     public static final int RC_DELETE   = 3;
 
@@ -250,10 +296,14 @@ public class TraceAuthenticationManager {
                 .setProfilePictureUri(account.getPhotoUrl())
                 .build();
 
+
         storeGenericCredential(credential);
     }
 
     private void storeGenericCredential(Credential credential){
+
+        //Testing
+        mCurrentCredential = credential;
 
         Auth.CredentialsApi.save(mCredentialsApiClient, credential).setResultCallback(
                 new ResultCallback<Status>() {
@@ -278,12 +328,15 @@ public class TraceAuthenticationManager {
         );
     }
 
-    private boolean isFirstTime = true;
-
-
-    private void retrieveCredentialsAndLogin(){
-
-        CredentialRequest mCredentialRequest = new CredentialRequest.Builder()
+    /* Login Support
+    /* Login Support
+    /* Login Support
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+    private void retrieveCredentials(final boolean attemptLogin){
+        final CredentialRequest mCredentialRequest = new CredentialRequest.Builder()
                 .setPasswordLoginSupported(true)
                 .setAccountTypes(IdentityProviders.GOOGLE)
                 .build();
@@ -293,18 +346,71 @@ public class TraceAuthenticationManager {
                     @Override
                     public void onResult(CredentialRequestResult credentialRequestResult) {
 
-                        if(credentialRequestResult.getStatus().isSuccess()) {
-                            isFirstTime = false;
-                            onCredentialRetrievedLogin(credentialRequestResult.getCredential());
-                        }else {
-                            resolveCredentialResult(credentialRequestResult.getStatus(), RC_LOAD);
+                        if (credentialRequestResult.getStatus().isSuccess()) {
+                            if (attemptLogin)
+                                onCredentialRetrievedLogin(credentialRequestResult.getCredential());
+                            else
+                                mContext.sendBroadcast(getFailedLoginIntent());
+                        } else {
+
+                            Status status = credentialRequestResult.getStatus();
+
+                            if (status.getStatusCode() == CommonStatusCodes.RESOLUTION_REQUIRED) {
+
+                                if (attemptLogin) {
+                                    try {
+                                        status.startResolutionForResult((Activity) mContext, RC_LOAD);
+                                    } catch (IntentSender.SendIntentException e) {
+                                        e.printStackTrace();
+                                    }
+                                } else
+                                    mContext.sendBroadcast(getSuccessLoginIntent());
+
+                            } else {
+                                mContext.sendBroadcast(getFailedLoginIntent());
+                            }
+
+
                         }
                     }
                 }
         );
     }
 
-    public void removeAllStoredCredentials(){
+    private void performSilentGoogleLogin(){
+        OptionalPendingResult<GoogleSignInResult> opr =
+                Auth.GoogleSignInApi.silentSignIn(mCredentialsApiClient);
+
+        opr.setResultCallback(new ResultCallback<GoogleSignInResult>() {
+            @Override
+            public void onResult(GoogleSignInResult googleSignInResult) {
+                login(googleSignInResult.getSignInAccount(), GrantType.google);
+            }
+        });
+    }
+
+    private void onCredentialRetrievedLogin(Credential credential){
+        mCurrentCredential = credential;
+        login(credential);
+    }
+
+    /* Credential Removal
+    /* Credential Removal
+    /* Credential Removal
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+
+    /**
+     * Removes all stored credentials in the smart lock.
+     * @throws NetworkConnectivityRequiredException This operation required connectivity in order to be performed.
+     */
+    public void removeAllStoredCredentials() throws NetworkConnectivityRequiredException {
+
+        if(!isNetworkConnected())
+            throw new NetworkConnectivityRequiredException();
+
         CredentialRequest mCredentialRequest = new CredentialRequest.Builder()
                 .setPasswordLoginSupported(true)
                 .setAccountTypes(IdentityProviders.GOOGLE)
@@ -319,14 +425,25 @@ public class TraceAuthenticationManager {
                             Log.i(TAG, "DELETE: found credential to remove.");
                             removeCredential(credentialRequestResult.getCredential());
                         }else {
-                            Log.e(TAG, "DELETE: found no credentials to remove.");
-                            resolveCredentialResult(credentialRequestResult.getStatus(), RC_DELETE);
-                        }
+                            Log.i(TAG, "DELETE: there are several credentials, choosing one...");
 
+                            Status status = credentialRequestResult.getStatus();
+
+                            if(status.getStatusCode() == CommonStatusCodes.RESOLUTION_REQUIRED){
+
+                                try {
+                                    status.startResolutionForResult((Activity) mContext, RC_DELETE);
+                                } catch (IntentSender.SendIntentException e) {
+                                    e.printStackTrace();
+                                }
+
+                            }else{
+                                Log.e(TAG, "DELETE: found no credentials to remove.");
+                            }
+                        }
                     }
                 }
         );
-
     }
 
 
@@ -339,49 +456,15 @@ public class TraceAuthenticationManager {
                         String accountType = credential.getAccountType() == null ? "unknown" : credential.getAccountType();
 
                         if (status.isSuccess()) {
-                            Log.i(TAG, "Removed "+accountType);
-                        }else
-                            Log.e(TAG, "Did not remove "+accountType);
+                            Log.i(TAG, "Removed " + accountType);
+                        } else
+                            Log.e(TAG, "Did not remove " + accountType);
                     }
                 }
         );
     }
 
-    private void onCredentialRetrievedLogin(Credential credential){
 
-        String accountType = credential.getAccountType();
-
-        if(accountType == null){ //Username password credential
-            Log.i(TAG, "Its a TRACE account");
-            mCurrentCredential = credential;
-            login(credential.getId(), credential.getPassword());
-            return;
-        }
-
-        switch (accountType){
-            case IdentityProviders.GOOGLE:
-
-                if(!mCredentialsApiClient.hasConnectedApi(Auth.GOOGLE_SIGN_IN_API))
-                    throw new MissingSignInApiException();
-
-                mCurrentCredential = credential;
-
-                OptionalPendingResult<GoogleSignInResult> opr =
-                        Auth.GoogleSignInApi.silentSignIn(mCredentialsApiClient);
-
-                opr.setResultCallback(new ResultCallback<GoogleSignInResult>() {
-                    @Override
-                    public void onResult(GoogleSignInResult googleSignInResult) {
-                        login(googleSignInResult.getSignInAccount(), GrantType.google);
-                    }
-                });
-
-                break;
-            default:
-
-                return;
-        }
-    }
 
     /*
      * When user input is required to select a credential, the getStatusCode() method returns
@@ -412,20 +495,8 @@ public class TraceAuthenticationManager {
      ***********************************************************************************************
      */
 
-    public void storeAuthenticationToken(String token){
-        SharedPreferences.Editor editor =
-                mContext.getSharedPreferences(AUTH_SETTINGS_KEY, Context.MODE_PRIVATE).edit();
-
-        editor.putString(AUTH_TOKEN, token);
-        editor.commit();
-    }
-
-    public void clearAuthenticationToken(){
-        SharedPreferences.Editor editor =
-                mContext.getSharedPreferences(AUTH_SETTINGS_KEY, Context.MODE_PRIVATE).edit();
-
-        editor.remove(AUTH_TOKEN);
-        editor.commit();
+    private boolean isNetworkConnected(){
+        return mConnectivityManager.getActiveNetworkInfo() != null;
     }
 
 
@@ -441,6 +512,12 @@ public class TraceAuthenticationManager {
                 .requestIdToken(context.getString(R.string.trace_client_id))
                 .requestEmail()
                 .build();
+    }
+
+    private Intent getSuccessLoginIntent(){
+        return new Intent(TrackingConstants.store.LOGIN_ACTION)
+                .putExtra(TrackingConstants.store.SUCCESS_LOGIN_EXTRA, true)
+                .putExtra(TrackingConstants.store.LOGIN_ERROR_MSG_EXTRA, "");
     }
 
     private Intent getFailedLoginIntent(){

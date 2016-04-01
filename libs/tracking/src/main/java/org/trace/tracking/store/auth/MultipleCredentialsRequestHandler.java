@@ -29,7 +29,7 @@ public class MultipleCredentialsRequestHandler {
 
     public int onRequestResult(int requestCode, int resultCode, Intent data){
         if(resultCode != -1) {
-            Log.e(TAG, "Failed at code " + requestCode);
+            Log.e(TAG, "Failed at code " + requestCode + " with result code "+resultCode);
             return -1;
         }
 

@@ -9,6 +9,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 import org.trace.tracking.TrackingConstants;
+import org.trace.tracking.store.auth.AuthenticationRenewalListener;
 import org.trace.tracking.store.exceptions.AuthTokenIsExpiredException;
 import org.trace.tracking.store.exceptions.AuthenticationTokenNotSetException;
 import org.trace.tracking.store.exceptions.RemoteTraceException;
@@ -137,26 +138,15 @@ public class TRACEStore extends IntentService{
             postUserFeedback("Track was not posted because " + e.getMessage());
 
         } catch (UnableToSubmitTrackTokenExpiredException e){
-
             //TODO: Token expired broadcast that information
             Log.e(LOG_TAG, "Token expired");
-
-            /*
-            login(authManager.getUsername(), authManager.getPassword());
-
-            try {
-
-                if(mHttpClient.submitTrack(manager.getAuthenticationToken(), track))
-                    postUserFeedback("Track successfully posted.");
-                else
-                    postUserFeedback("Track was not successfully posted.");
-
-            } catch (RemoteTraceException | UnableToSubmitTrackTokenExpiredException e1) {
-                Log.e(LOG_TAG, e.getMessage());
-                postUserFeedback("Track was not posted because " + e.getMessage());
-            }
-            */
+            broadcastFailedSubmitOperation(track);
         }
+    }
+
+    private void broadcastFailedSubmitOperation(Track track) {
+        Intent i = AuthenticationRenewalListener.getFailedToSubmitTrackIntent(track);
+        sendBroadcast(i);
     }
 
 

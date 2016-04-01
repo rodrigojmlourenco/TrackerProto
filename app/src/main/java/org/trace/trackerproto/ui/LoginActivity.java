@@ -17,7 +17,6 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import com.google.android.gms.auth.api.Auth;
-import com.google.android.gms.auth.api.credentials.Credential;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.auth.api.signin.GoogleSignInResult;
@@ -31,6 +30,7 @@ import org.trace.trackerproto.R;
 import org.trace.tracking.TrackingConstants;
 import org.trace.tracking.store.TraceAuthenticationManager;
 import org.trace.tracking.store.auth.MultipleCredentialsRequestHandler;
+import org.trace.tracking.store.exceptions.NetworkConnectivityRequiredException;
 
 public class LoginActivity extends AppCompatActivity implements GoogleApiClient.OnConnectionFailedListener {
 
@@ -239,8 +239,12 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
     }
 
     private void signIn(){
-        Intent signInIntent = Auth.GoogleSignInApi.getSignInIntent(mGoogleApiClient);
-        startActivityForResult(signInIntent, TraceAuthenticationManager.RC_SIGN_IN);
+        if(!isNetworkConnected()) {
+            buildAlertMessageNoConnectivity();
+        }else {
+            Intent signInIntent = Auth.GoogleSignInApi.getSignInIntent(mGoogleApiClient);
+            startActivityForResult(signInIntent, TraceAuthenticationManager.RC_SIGN_IN);
+        }
     }
 
     @Override
@@ -360,11 +364,12 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
         clearCredentialsBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mAuthManager.removeAllStoredCredentials();
+                try {
+                    mAuthManager.removeAllStoredCredentials();
+                } catch (NetworkConnectivityRequiredException e) {
+                    buildAlertMessageNoConnectivity();
+                }
             }
         });
     }
-
-
-
 }

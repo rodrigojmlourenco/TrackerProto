@@ -4,15 +4,14 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.util.Log;
 
 import org.trace.tracking.TrackingConstants;
 import org.trace.tracking.store.TRACEStore;
 import org.trace.tracking.store.TraceAuthenticationManager;
 import org.trace.tracking.tracker.storage.data.Track;
 
-/**
- * Created by Rodrigo Lourenço on 30/03/2016.
- */
+
 public class AuthenticationRenewalListener extends BroadcastReceiver {
 
     private TraceAuthenticationManager mAuthManager;
@@ -40,6 +39,6 @@ public class AuthenticationRenewalListener extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        //TODO: handle os diferentes tipos de operações que podem falhar
+        Log.e("Renewal", intent.getAction());
     }
 }
