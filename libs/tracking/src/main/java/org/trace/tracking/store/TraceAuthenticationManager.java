@@ -28,7 +28,6 @@ import org.trace.tracking.TrackingConstants;
 import org.trace.tracking.store.exceptions.AuthTokenIsExpiredException;
 import org.trace.tracking.store.exceptions.InvalidAuthCredentialsException;
 import org.trace.tracking.store.exceptions.LoginFailedException;
-import org.trace.tracking.store.exceptions.MissingSignInApiException;
 import org.trace.tracking.store.exceptions.NetworkConnectivityRequiredException;
 import org.trace.tracking.store.exceptions.RemoteTraceException;
 import org.trace.tracking.store.exceptions.UnableToPerformLogin;
@@ -51,13 +50,22 @@ public class TraceAuthenticationManager {
 
     private ConnectivityManager mConnectivityManager;
 
-    public TraceAuthenticationManager(Context context, GoogleApiClient credentialsApiClient){
+    private TraceAuthenticationManager(Context context, GoogleApiClient credentialsApiClient){
         mContext = context;
         mHttpClient = new HttpClient(context);
         mCredentialsApiClient = credentialsApiClient;
         mConnectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
     }
 
+    /**
+     * Creates or fetches an instance of the TraceAuthenticationManager with the provided Context
+     * and GoogleApiClient.
+     *
+     * @param context The current activity context.
+     * @param credentialsApiClient A valid GoogleApiClient
+     *
+     * @return Instance of the TraceAuthenticationManager
+     */
     public static TraceAuthenticationManager getAuthenticationManager(Context context, GoogleApiClient credentialsApiClient){
 
         synchronized (TraceAuthenticationManager.class){
@@ -76,6 +84,16 @@ public class TraceAuthenticationManager {
         this.mConnectivityManager = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
     }
 
+    /**
+     * This method attempts to login the user, but only if the the device has a network connection.
+     * <br>
+     * This operation is performed <b>asynchronously</b>, results are broadcasted and are identifiable
+     * by TraceTracking.store.LOGIN_ACTION. The results can therefore be caught by a BroadcastReceiver,
+     * however its recommended the use of the LoginBroadcastListener, which was specifically designed
+     * for that purpose.
+     *
+     * @see org.trace.tracking.store.auth.LoginBroadcastListener
+     */
     public void login() {
 
         //Only attempt login if the network is connected
@@ -104,6 +122,10 @@ public class TraceAuthenticationManager {
         }
     }
 
+    /**
+     * Logs the user out. <b>Note: </b>Currently this method does nothing, except clean the
+     * authentication token on the application level.
+     */
     public void logout(){
         switch (mCurrentGrantType){
             case trace:
@@ -126,6 +148,9 @@ public class TraceAuthenticationManager {
      ***********************************************************************************************
      */
 
+    public static final String AUTH_TOKEN = "auth_token";
+    private static final String AUTH_SETTINGS_KEY = "auth_settings";
+
     private void storeAuthenticationToken(String token){
         SharedPreferences.Editor editor =
                 mContext.getSharedPreferences(AUTH_SETTINGS_KEY, Context.MODE_PRIVATE).edit();
@@ -134,6 +159,13 @@ public class TraceAuthenticationManager {
         editor.commit();
     }
 
+    /**
+     * Returns the current authentication token, which is required to perform remote security sensitive
+     * operations.
+     *
+     * @return The authentication token
+     * @throws UserIsNotLoggedException if the user is not logged in, i.e. is there is no authentication token.
+     */
     public String getAuthenticationToken() throws UserIsNotLoggedException {
 
         String authToken = mContext.getSharedPreferences(AUTH_SETTINGS_KEY, Context.MODE_PRIVATE)
@@ -145,6 +177,10 @@ public class TraceAuthenticationManager {
             return authToken;
     }
 
+    /**
+     * Clears the current authentication token. It is important to mention that this is only performed
+     * on the application side.
+     */
     public void clearAuthenticationToken(){
         SharedPreferences.Editor editor =
                 mContext.getSharedPreferences(AUTH_SETTINGS_KEY, Context.MODE_PRIVATE).edit();
@@ -159,6 +195,22 @@ public class TraceAuthenticationManager {
      ***********************************************************************************************
      ***********************************************************************************************
      ***********************************************************************************************
+     */
+
+    /**
+     * Logs a user through Trace's native login, i.e. with a previously registered TRACE account. This
+     * TRACE account is identifiable by a user identifier and password pair.
+     * <br>
+     * This operation is performed <b>asynchronously</b>, results are broadcasted and are identifiable
+     * by TraceTracking.store.LOGIN_ACTION. The results can therefore be caught by a BroadcastReceiver,
+     * however its recommended the use of the LoginBroadcastListener, which was specifically designed
+     * for that purpose.
+     *
+     * @param username The user identifier (either username or email)
+     * @param password The user's password.
+     * @throws InvalidAuthCredentialsException If the provided credentials are not valid.
+     *
+     * @see org.trace.tracking.store.auth.LoginBroadcastListener
      */
     public void login(final String username, final String password) throws InvalidAuthCredentialsException {
 
@@ -214,7 +266,11 @@ public class TraceAuthenticationManager {
      ***********************************************************************************************
      */
 
-    public void login(final GoogleSignInAccount account, final GrantType type){
+    /**
+     * Logs a user in through a federated login, more specifically, through Google's login API.
+     * @param account A GoogleSignInAccount
+     */
+    public void login(final GoogleSignInAccount account){
 
         Log.i(TAG, "Google login as "+account.getDisplayName());
 
@@ -239,11 +295,11 @@ public class TraceAuthenticationManager {
                     mAuthenticationToken = authToken;
                     storeAuthenticationToken(authToken);
 
-                    Log.d(TAG, "Successfully logged with grant " + type + ", token is {" + authToken + "}");
+                    Log.d(TAG, "Successfully logged with grant google, token is {" + authToken + "}");
 
                     storeGoogleCredentials(account);
 
-                    mCurrentGrantType = type;
+                    mCurrentGrantType = GrantType.google;
                     success = true;
 
                 } catch (UnableToPerformLogin | LoginFailedException | InvalidAuthCredentialsException e) {
@@ -258,17 +314,6 @@ public class TraceAuthenticationManager {
     }
 
 
-    /* Credential Storage
-    /* Credential Storage
-    /* Credential Storage
-    /* TODO: THIS IS NOT SECURE!! Use Android recommended APIs
-     ***********************************************************************************************
-     ***********************************************************************************************
-     ***********************************************************************************************
-     */
-
-    public static final String AUTH_TOKEN = "auth_token";
-    private static final String AUTH_SETTINGS_KEY = "auth_settings";
 
     /* SmartLock - Credential Storage
     /* SmartLock - Credential Storage
@@ -396,7 +441,7 @@ public class TraceAuthenticationManager {
         opr.setResultCallback(new ResultCallback<GoogleSignInResult>() {
             @Override
             public void onResult(@NonNull GoogleSignInResult googleSignInResult) {
-                login(googleSignInResult.getSignInAccount(), GrantType.google);
+                login(googleSignInResult.getSignInAccount());
             }
         });
     }
@@ -415,7 +460,7 @@ public class TraceAuthenticationManager {
      */
 
     /**
-     * Removes all stored credentials in the smart lock.
+     * Removes all stored credentials from the smart lock.
      * @throws NetworkConnectivityRequiredException This operation required connectivity in order to be performed.
      */
     public void removeAllStoredCredentials() throws NetworkConnectivityRequiredException {
@@ -459,6 +504,10 @@ public class TraceAuthenticationManager {
     }
 
 
+    /**
+     * Removes a specific credential from the smart lock.
+     * @param credential The credential to be removed.
+     */
     public void removeCredential(final Credential credential){
         Auth.CredentialsApi.delete(mCredentialsApiClient, credential).setResultCallback(
                 new ResultCallback<Status>() {
@@ -506,16 +555,29 @@ public class TraceAuthenticationManager {
      ***********************************************************************************************
      ***********************************************************************************************
      */
-
     private String session;
     private boolean isValid;
     private final Object mSessionLock = new Object();
 
+    /**
+     * A tracking session is valid if generated on the TRACE server-side.
+     * @return True if valid, false otherwise.
+     */
     public boolean isValid() { synchronized (mSessionLock){ return isValid; }}
 
+    /**
+     * Fetches the current tracking session.
+     * @return The tracking session identifier.
+     */
     public String getSession() { synchronized (mSessionLock) { return session; }}
 
 
+    /**
+     * Updates the tracking session identifier by requesting a new one to the TRACE server. However,
+     * if there is no network connectivity, a random session is generated locally.
+     * <br>
+     * This is an asynchronous method, therefore it does not return the acquired session identifier.
+     */
     public void fetchNewTrackingSession(){
 
         if(!isNetworkConnected()){
@@ -558,6 +620,9 @@ public class TraceAuthenticationManager {
             }).start();
     }
 
+    /**
+     * Clears the current tracking session.
+     */
     public void clearSession(){
         synchronized (mSessionLock){
             session = "";
@@ -591,12 +656,19 @@ public class TraceAuthenticationManager {
      ***********************************************************************************************
      ***********************************************************************************************
      */
+
+    /**
+     * Returns a GoogleSignInOptions object specifically designed for TRACE authentication.
+     * @param context The current context.
+     * @return A custom GoogleSignInOption for TRACE authentication.
+     */
     public static GoogleSignInOptions getTraceGoogleSignOption(Context context){
         return new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestIdToken(context.getString(R.string.trace_client_id))
                 .requestEmail()
                 .build();
     }
+
 
     private Intent getSuccessLoginIntent(){
         return new Intent(TrackingConstants.store.LOGIN_ACTION)

@@ -2,6 +2,7 @@ package org.trace.tracking.store.auth;
 
 import android.content.Intent;
 import android.os.Trace;
+import android.support.annotation.NonNull;
 import android.util.Log;
 
 import com.google.android.gms.auth.api.Auth;
@@ -15,6 +16,18 @@ import com.google.android.gms.common.api.ResultCallback;
 
 import org.trace.tracking.store.TraceAuthenticationManager;
 
+/**
+ * The MultipleCredentialsRequestHandler was designed to ease the handling of different operations,
+ * when multiple credentials are currently being stored by the device's smart lock. Namely, the following
+ * operations are supported:
+ * <br>
+ *     <ul>
+ *         <li>Sign-in</li>
+ *         <li>Credential Removal</li>
+ *         <li>Credential Loading</li>
+ *         <li>Credential Storing</li>
+ *     </ul>
+ */
 public class MultipleCredentialsRequestHandler {
 
     private static final String TAG = "Auth";
@@ -58,7 +71,7 @@ public class MultipleCredentialsRequestHandler {
 
         if (result.isSuccess()) {
             GoogleSignInAccount acct = result.getSignInAccount();
-            mAuthManager.login(acct, TraceAuthenticationManager.GrantType.google);
+            mAuthManager.login(acct);
         }else{
             Log.e(TAG, "Failed to handle sign in request");
         }
@@ -79,10 +92,10 @@ public class MultipleCredentialsRequestHandler {
 
             opr.setResultCallback(new ResultCallback<GoogleSignInResult>() {
                 @Override
-                public void onResult(GoogleSignInResult googleSignInResult) {
+                public void onResult(@NonNull GoogleSignInResult googleSignInResult) {
 
 
-                    mAuthManager.login(googleSignInResult.getSignInAccount(), TraceAuthenticationManager.GrantType.google);
+                    mAuthManager.login(googleSignInResult.getSignInAccount());
                 }
             });
         }else{
