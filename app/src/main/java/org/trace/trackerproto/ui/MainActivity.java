@@ -47,7 +47,8 @@ import pub.devrel.easypermissions.AfterPermissionGranted;
 import pub.devrel.easypermissions.EasyPermissions;
 
 //TODO: update the count of navdraweritem on delete or create track
-public class MainActivity extends AppCompatActivity implements EasyPermissions.PermissionCallbacks, TrackCountListener, GoogleApiClient.OnConnectionFailedListener {
+public class MainActivity extends AppCompatActivity
+        implements EasyPermissions.PermissionCallbacks, TrackCountListener, GoogleApiClient.OnConnectionFailedListener, SessionHandler {
 
     private static final String LOG_TAG = "MainActivity";
     private Fragment mCurrentFragment = null;
@@ -87,7 +88,7 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             mService= new Messenger(service);
-            mTrakerClient = new TRACETracker.Client(MainActivity.this, mService);
+            //mTrakerClient = new TRACETracker.Client(MainActivity.this, mService);
         }
 
         @Override
@@ -574,9 +575,22 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
         return authToken;
     }
 
-    //TESTING
-    //TODO: remover
-    public void forceFetchNewSession(){
+    /* Session Handler
+    /* Session Handler
+    /* Session Handler
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+    public void updateTrackingSession(){
         mAuthManager.fetchNewTrackingSession();
     }
+
+    public void teardownTrackingSession(){
+        mAuthManager.clearSession();
+    }
+
+    public String getSessionIdentifier() { return mAuthManager.getSession(); }
+
+    public boolean isValidSession() { return mAuthManager.isValid(); }
 }

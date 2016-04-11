@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.IntentSender;
 import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
+import android.support.annotation.NonNull;
 import android.util.Log;
 
 import com.google.android.gms.auth.api.Auth;
@@ -111,7 +112,7 @@ public class TraceAuthenticationManager {
                 //TODO
             case none:
             default:
-                ;
+
         }
 
         clearAuthenticationToken();
@@ -319,7 +320,7 @@ public class TraceAuthenticationManager {
         Auth.CredentialsApi.save(mCredentialsApiClient, credential).setResultCallback(
                 new ResultCallback<Status>() {
                     @Override
-                    public void onResult(Status status) {
+                    public void onResult(@NonNull Status status) {
                         if (status.isSuccess())
                             Log.d(TAG, "SAVE: OK");
                         else {
@@ -355,7 +356,7 @@ public class TraceAuthenticationManager {
         Auth.CredentialsApi.request(mCredentialsApiClient, mCredentialRequest).setResultCallback(
                 new ResultCallback<CredentialRequestResult>() {
                     @Override
-                    public void onResult(CredentialRequestResult credentialRequestResult) {
+                    public void onResult(@NonNull CredentialRequestResult credentialRequestResult) {
 
                         if (credentialRequestResult.getStatus().isSuccess()) {
                             if (attemptLogin)
@@ -394,7 +395,7 @@ public class TraceAuthenticationManager {
 
         opr.setResultCallback(new ResultCallback<GoogleSignInResult>() {
             @Override
-            public void onResult(GoogleSignInResult googleSignInResult) {
+            public void onResult(@NonNull GoogleSignInResult googleSignInResult) {
                 login(googleSignInResult.getSignInAccount(), GrantType.google);
             }
         });
@@ -430,7 +431,7 @@ public class TraceAuthenticationManager {
         Auth.CredentialsApi.request(mCredentialsApiClient, mCredentialRequest).setResultCallback(
                 new ResultCallback<CredentialRequestResult>() {
                     @Override
-                    public void onResult(CredentialRequestResult credentialRequestResult) {
+                    public void onResult(@NonNull CredentialRequestResult credentialRequestResult) {
 
                         if(credentialRequestResult.getStatus().isSuccess()) {
                             Log.i(TAG, "DELETE: found credential to remove.");
@@ -462,7 +463,7 @@ public class TraceAuthenticationManager {
         Auth.CredentialsApi.delete(mCredentialsApiClient, credential).setResultCallback(
                 new ResultCallback<Status>() {
                     @Override
-                    public void onResult(Status status) {
+                    public void onResult(@NonNull Status status) {
 
                         String accountType = credential.getAccountType() == null ? "unknown" : credential.getAccountType();
 
@@ -515,25 +516,6 @@ public class TraceAuthenticationManager {
     public String getSession() { synchronized (mSessionLock) { return session; }}
 
 
-    public void initiateTrackingSession(boolean mandatory) throws NetworkConnectivityRequiredException {
-
-        if(mandatory && !isNetworkConnected())
-            throw new NetworkConnectivityRequiredException();
-
-        if(!isNetworkConnected() && !mandatory){
-            generateFakeSessionId();
-        }
-
-        try {
-            session = mHttpClient.requestTrackingSession(mAuthenticationToken);
-            isValid = true;
-        } catch (RemoteTraceException e) {
-            e.printStackTrace();
-        } catch (AuthTokenIsExpiredException e) {
-            login();
-        }
-    }
-
     public void fetchNewTrackingSession(){
 
         if(!isNetworkConnected()){
@@ -576,13 +558,18 @@ public class TraceAuthenticationManager {
             }).start();
     }
 
+    public void clearSession(){
+        synchronized (mSessionLock){
+            session = "";
+            isValid = false;
+        }
+    }
+
 
     private String generateFakeSessionId(){
         SecureRandom random = new SecureRandom();
         return "local_"+new BigInteger(130, random).toString(16);
     }
-
-
 
     /* Others
     /* Others

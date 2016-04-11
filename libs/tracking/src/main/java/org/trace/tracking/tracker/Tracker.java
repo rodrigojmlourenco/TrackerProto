@@ -10,7 +10,6 @@ import com.google.android.gms.location.DetectedActivity;
 import com.google.android.gms.location.LocationServices;
 
 import org.trace.tracking.TrackingConstants;
-import org.trace.tracking.store.TRACEStore;
 import org.trace.tracking.tracker.google.GoogleClientManager;
 import org.trace.tracking.tracker.modules.activity.ActivityConstants;
 import org.trace.tracking.tracker.modules.activity.ActivityRecognitionModule;
@@ -148,8 +147,8 @@ public class Tracker extends BroadcastReceiver implements CollectorManager {
 
     private void onHandleLocation(TraceLocation location){
 
-        String session  = TRACEStore.Client.getSessionId();
-        boolean isValid = TRACEStore.Client.isValidSession();
+        String session  = mSessionId;
+        boolean isValid = isValidSession;
 
         //Store
         location.setActivityMode(mCurrentActivity);
@@ -263,5 +262,26 @@ public class Tracker extends BroadcastReceiver implements CollectorManager {
         stopLocationUpdates();
         return mCurrentLocation;
         */
+    }
+
+    /* Session Management
+    /* Session Management
+    /* Session Management
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+    private String mSessionId = null;
+    private boolean isValidSession = false;
+
+    public void setSession(String session, boolean isValid){
+        teardownSession();
+        mSessionId = session;
+        isValidSession = isValid;
+    }
+
+    private void teardownSession(){
+        mSessionId = null;
+        isValidSession = false;
     }
 }

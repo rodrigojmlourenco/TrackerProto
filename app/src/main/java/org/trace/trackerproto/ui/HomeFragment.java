@@ -115,7 +115,7 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
                 if (isGPSEnabled()) {
 
                     if (EasyPermissions.hasPermissions(getActivity(), TrackingConstants.permissions.TRACKING_PERMISSIONS))
-                        client.getLastLocation();
+                        TRACETracker.Client.getLastLocation(mService);
                     else
                         EasyPermissions.requestPermissions(
                                 getActivity(),
@@ -295,21 +295,19 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
 
     Messenger mService = null;
 
-    private TRACETracker.Client client = null;
+
 
     private ServiceConnection mConnection = new ServiceConnection() {
 
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             mService= new Messenger(service);
-            client  = new TRACETracker.Client(getActivity(), mService);
             isBound = true;
         }
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
             mService= null;
-            client  = null;
             isBound = false;
         }
     };
@@ -335,13 +333,13 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
 
     @Override
     public void stopTracking() {
-        if (client != null) {
-            client.stopTracking();
-            isTracking = false;
-            toggleButtons(isBound, false);
 
-            Toast.makeText(getActivity(), TRACEStore.Client.getSessionId(), Toast.LENGTH_SHORT).show();
-        }
+        TRACETracker.Client.stopTracking(mService);
+        isTracking = false;
+        toggleButtons(isBound, false);
+
+        Toast.makeText(getActivity(), TRACEStore.Client.getSessionId(), Toast.LENGTH_SHORT).show();
+
     }
 
     @Override
@@ -351,14 +349,37 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
 
 
     private void startTrackingOnClick(){
-        ((MainActivity)getActivity()).forceFetchNewSession();
-        //TRACEStore.Client.requestInitiateSession(getActivity(), ((MainActivity)getActivity()).getAuthenticationToken()); //TODO: refactorizar
+
+        final SessionHandler sessionHandler = (SessionHandler)getActivity();
+
+        sessionHandler.updateTrackingSession();
 
         if (EasyPermissions.hasPermissions(getActivity(), TrackingConstants.permissions.TRACKING_PERMISSIONS)) {
 
-            client.startTracking();
+            String session = sessionHandler.getSessionIdentifier();
+            boolean isValid = sessionHandler.isValidSession();
+
+            if(session == null || session.isEmpty()){
+
+                Log.d("SESSION", "Session empty... delaying tracking for 3s.");
+
+                Runnable task = new Runnable() {
+                    @Override
+                    public void run() {
+                        String session = sessionHandler.getSessionIdentifier();
+                        boolean isValid = sessionHandler.isValidSession();
+                        TRACETracker.Client.startTracking(mService, session, isValid);
+                    }
+                };
+
+                Executors.newSingleThreadScheduledExecutor().schedule(task, 3, TimeUnit.SECONDS);
+
+            }else
+                TRACETracker.Client.startTracking(mService, session, isValid);
+
             isTracking = true;
             toggleButtons(isBound, true);
+
         } else {
             EasyPermissions.requestPermissions(
                     getActivity(),
@@ -369,11 +390,11 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
     }
 
     private void stopTrackingOnClick(){
-        if (client != null) {
-            client.stopTracking();
-            isTracking = false;
-            toggleButtons(isBound, false);
-        }
+        SessionHandler handler = (SessionHandler)getActivity();
+        handler.teardownTrackingSession();
+        TRACETracker.Client.stopTracking(mService);
+        isTracking = false;
+        toggleButtons(isBound, false);
     }
 
 
@@ -482,7 +503,7 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
 
         @Override
         public void run() {
-            client.getLastLocation();
+            TRACETracker.Client.getLastLocation(mService);
         }
     }
 

@@ -69,6 +69,9 @@ public final class TrackingConstants {
 
     public interface tracker {
 
+        String SESSION_EXTRA = "org.trace.tracker.SESSION_ID";
+        String VALID_SESSION_EXTRA = "org.trace.tracker.VALID_SESSION";
+
         //getLastLocation
         String COLLECT_LOCATIONS_ACTION = "org.trace.tracker.COLLECT";
         String BROADCAST_LOCATION_ACTION = "org.trace.tracking.BROADCAST_LOCATION";
