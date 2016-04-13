@@ -9,6 +9,7 @@ import org.trace.tracking.TrackingConstants;
 import org.trace.tracking.tracker.storage.data.TraceLocation;
 
 import java.util.LinkedList;
+import java.util.NoSuchElementException;
 
 /**
  * Specialized queue designed to hold TraceLocation objects and ease the application of certain
@@ -77,7 +78,7 @@ public class OutlierFilteringLocationQueue {
 
         //Step 1 - Validate the location
         //Step 1a - Run the simple outlier filters
-        /*try {
+        try {
             previous = mLocationQueue.getLast();
 
             if(!mOutlierFilter.isValidLocation(location,previous))
@@ -109,7 +110,6 @@ public class OutlierFilteringLocationQueue {
                 }
             }
         }
-        */ //TODO: descomentar steps 1a and 1b
 
         Log.i(LOG_TAG, "Location was accepted as valid... "+location.toString());
 
