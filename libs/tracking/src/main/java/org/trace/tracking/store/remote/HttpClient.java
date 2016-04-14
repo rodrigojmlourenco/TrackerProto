@@ -288,6 +288,24 @@ public class HttpClient {
         }
     }
 
+    private void uploadCompleteTrackSequence(String authToken, String session, Track track) throws RemoteTraceException, AuthTokenIsExpiredException {
+        String data = track.toJson().toString();
+        String urlEndpoint = "/tracker/put/track/"+session;
+
+        JsonObject requestProperties = new JsonObject();
+        requestProperties.addProperty(http.AUTHORIZATION, "Bearer "+authToken);
+        requestProperties.addProperty(http.CONTENT_TYPE, "application/json; charset=UTF-8");
+
+        try {
+            String response = performPostRequest(urlEndpoint, requestProperties, data);
+            validateHttpResponse("UploadTrack", response);
+        } catch (UnableToRequestPostException e) {
+            e.printStackTrace();
+            throw new RemoteTraceException("UploadTrack", e.getMessage());
+        }
+    }
+
+    @Deprecated
     private void uploadCompleteTrackSequence(String authToken, String session, List<TraceLocation> locations)
             throws RemoteTraceException, AuthTokenIsExpiredException {
 
@@ -336,16 +354,13 @@ public class HttpClient {
 
         try {
 
-            uploadCompleteTrackSequence(authToken, session, track.getTracedTrack());
-
-            /* @Deprecated - Remote operation is now atomic and closed the session.
-            try {
-                closeTrackingSession(authToken, session);
-                storage.uploadTrack(session);
-            } catch (AuthTokenIsExpiredException e1) {
-                throw new UnableToCloseSessionTokenExpiredException();
+            //uploadCompleteTrackSequence(authToken, session, track.getTracedTrack());
+            try{
+                uploadCompleteTrackSequence(authToken, session, track);
+            }catch (Exception e){ //TODO: remover isto! Apenas para testes
+                uploadCompleteTrackSequence(authToken, session, track.getTracedTrack());
             }
-            */
+
 
         } catch (AuthTokenIsExpiredException e) {
             e.printStackTrace();

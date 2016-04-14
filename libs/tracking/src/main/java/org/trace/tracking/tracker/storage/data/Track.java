@@ -3,6 +3,13 @@ package org.trace.tracking.tracker.storage.data;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+
+import org.apache.commons.math3.stat.descriptive.moment.Mean;
+import org.apache.commons.math3.stat.descriptive.rank.Max;
+import org.apache.commons.math3.stat.descriptive.rank.Median;
+
 import java.util.LinkedList;
 
 /**
@@ -15,6 +22,7 @@ public class Track implements Parcelable{
     private long startTime, stopTime;
     private LinkedList<TraceLocation> tracedTrack;
     private double elapsedDistance;
+    private double averageSpeed, medianSpeed, topSpeed;
 
     private boolean isLocalOnly;
     private boolean isValid = false;
@@ -34,6 +42,8 @@ public class Track implements Parcelable{
         isValid = in.readByte() != 0;
         tracedTrack = new LinkedList<>();
         in.readTypedList(tracedTrack, TraceLocation.CREATOR);
+
+        updateSpeeds();
     }
 
     public static final Creator<Track> CREATOR = new Creator<Track>() {
@@ -106,6 +116,18 @@ public class Track implements Parcelable{
         this.elapsedDistance = distance;
     }
 
+    public double getAverageSpeed() {
+        return averageSpeed;
+    }
+
+    public double getMedianSpeed() {
+        return medianSpeed;
+    }
+
+    public double getTopSpeed() {
+        return topSpeed;
+    }
+
     @Override
     public int describeContents() {
         return 0;
@@ -120,5 +142,50 @@ public class Track implements Parcelable{
         dest.writeByte((byte) (isLocalOnly ? 1 : 0));
         dest.writeByte((byte) (isValid ? 1 : 0));
         dest.writeTypedList(tracedTrack);
+    }
+
+    private void updateSpeeds(){
+
+        double[] measuredSpeeds = new double[tracedTrack.size()];
+
+        for(int i=0; i < tracedTrack.size(); i++){
+            measuredSpeeds[i] = tracedTrack.get(i).getSpeed();
+        }
+
+        Mean mean = new Mean();
+        Median median = new Median();
+        Max max = new Max();
+
+        averageSpeed    = (mean.evaluate(measuredSpeeds)    *3600)/1000; //Km/h
+        medianSpeed     = (median.evaluate(measuredSpeeds)  *3600)/1000; //Km/h
+        topSpeed        = (max.evaluate(measuredSpeeds)     *3600)/1000; //Km/h
+    }
+
+    public JsonObject toJson(){
+        JsonObject traceTrack = new JsonObject();
+        JsonArray track = new JsonArray();
+
+        for(TraceLocation location : tracedTrack)
+            track.add(location.getSerializableLocationAsJson());
+
+        traceTrack.addProperty("start", getStartTimestamp());
+        traceTrack.addProperty("end", getEndTimestamp());
+        traceTrack.addProperty("elapsedTime", getElapsedTime());
+        traceTrack.addProperty("distance", getTravelledDistance());
+        traceTrack.addProperty("topSpeed", getTopSpeed());
+        traceTrack.addProperty("avgSpeed", getAverageSpeed());
+        traceTrack.addProperty("medianSpeed", getMedianSpeed());
+
+        traceTrack.add("track", track);
+
+        return traceTrack;
+    }
+
+    public long getStartTimestamp(){
+        return tracedTrack.getFirst().getTime();
+    }
+
+    public long getEndTimestamp(){
+        return tracedTrack.getLast().getTime();
     }
 }

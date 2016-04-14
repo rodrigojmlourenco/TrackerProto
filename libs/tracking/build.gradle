@@ -27,4 +27,6 @@ dependencies {
     compile 'com.google.android.gms:play-services:8.4.0'
     compile 'pub.devrel:easypermissions:0.1.5'
     compile 'com.google.android.gms:play-services-auth:8.4.0'
+    compile 'org.apache.commons:commons-math3:3.6.1'
+
 }
