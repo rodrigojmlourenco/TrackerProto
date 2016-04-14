@@ -55,6 +55,8 @@ public class TrackingProfile {
     /** The minimum acceptable confidence for activity tracking. Default is 75% */
     private int activityMinimumConfidence = 75;
 
+    private boolean isActiveOutlierRemoval = true;
+
     //Uploading
     private boolean wifiOnly    = false;
     private boolean onDemandOnly= false;
@@ -166,6 +168,14 @@ public class TrackingProfile {
     }
 
 
+    public boolean isActiveOutlierRemoval() {
+        return isActiveOutlierRemoval;
+    }
+
+    public void activateOutlierRemoval(boolean active) {
+        this.isActiveOutlierRemoval = active;
+    }
+
     /**
      * @return The activity mode tracking sampling rate.
      */
@@ -217,6 +227,8 @@ public class TrackingProfile {
         this.onDemandOnly = onDemandOnly;
     }
 
+
+
     /* JSON Handling
     /* JSON Handling
     /* JSON Handling
@@ -239,6 +251,7 @@ public class TrackingProfile {
         locationMinimumAccuracy = locationProfile.get(Constants.LOCATION_ACCURACY).getAsFloat();
         locationMaximumSpeed    = locationProfile.get(Constants.LOCATION_SPEED).getAsFloat();
         locationDisplacementThreshold = locationProfile.get(Constants.LOCATION_DISPLACEMENT_THRESHOLD).getAsInt();
+        isActiveOutlierRemoval = locationProfile.get(Constants.OUTLIER_REMOVAL).getAsBoolean();
     }
 
     private void loadActivityRecognitionProfileFromJson(JsonObject profile){
@@ -261,6 +274,7 @@ public class TrackingProfile {
         locationTrackingProfile.addProperty(Constants.LOCATION_ACCURACY, locationMinimumAccuracy);
         locationTrackingProfile.addProperty(Constants.LOCATION_SPEED, locationMaximumSpeed);
         locationTrackingProfile.addProperty(Constants.LOCATION_DISPLACEMENT_THRESHOLD, locationDisplacementThreshold);
+        locationTrackingProfile.addProperty(Constants.OUTLIER_REMOVAL, isActiveOutlierRemoval);
 
         return locationTrackingProfile;
     }
@@ -328,5 +342,6 @@ public class TrackingProfile {
         String UPLOADING_WIFI_ONLY = "wifyOnly";
         String UPLOADING_DEMAND_ONLY = "onlyOnDemand";
 
+        String OUTLIER_REMOVAL = "removeOutliers";
     }
 }

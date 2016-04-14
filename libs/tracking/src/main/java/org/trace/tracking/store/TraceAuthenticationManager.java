@@ -17,6 +17,7 @@ import com.google.android.gms.auth.api.credentials.IdentityProviders;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.auth.api.signin.GoogleSignInResult;
+import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes;
 import com.google.android.gms.common.api.CommonStatusCodes;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.OptionalPendingResult;
@@ -441,7 +442,18 @@ public class TraceAuthenticationManager {
         opr.setResultCallback(new ResultCallback<GoogleSignInResult>() {
             @Override
             public void onResult(@NonNull GoogleSignInResult googleSignInResult) {
-                login(googleSignInResult.getSignInAccount());
+
+
+                Status status = googleSignInResult.getStatus();
+
+                switch (status.getStatusCode()){
+                    case CommonStatusCodes.SUCCESS:
+                        login(googleSignInResult.getSignInAccount());
+                        break;
+                    case GoogleSignInStatusCodes.SIGN_IN_REQUIRED:
+                        mContext.sendBroadcast(getFailedLoginIntent());
+
+                }
             }
         });
     }

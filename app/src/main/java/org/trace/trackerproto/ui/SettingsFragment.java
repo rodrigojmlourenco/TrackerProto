@@ -10,6 +10,7 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.SeekBar;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -19,7 +20,7 @@ import org.trace.trackerproto.R;
 import org.trace.tracking.tracker.TRACETracker;
 import org.trace.tracking.tracker.settings.TrackingProfile;
 
- /**
+/**
  * Created by Rodrigo Lourenço on 07/03/2016.
  */
 public class SettingsFragment extends Fragment {
@@ -34,6 +35,7 @@ public class SettingsFragment extends Fragment {
     private EditText locationIntervalInput, locationFastIntervalInput, locationMinAccuracyInput, locationSpeedInput;
     private SeekBar locationDisplacementSeekbar, locationPrioSeekBar;
     private TextView locationDisplacementLabel, locationPriorityLabel;
+    private Switch removeOutliersSwitch;
 
     //Activity Recognition Inputs
     private EditText activityIntervalInput;
@@ -76,6 +78,7 @@ public class SettingsFragment extends Fragment {
         locationPrioSeekBar         = (SeekBar)     getView().findViewById(R.id.prioritySeekBar);
         locationPriorityLabel       = (TextView)    getView().findViewById(R.id.priorityLabel);
         locationSpeedInput          = (EditText)    getView().findViewById(R.id.locationSpeedInput);
+        removeOutliersSwitch        = (Switch)      getView().findViewById(R.id.removeOutliersSwitch);
         ////// Activity Recognition Inputs
         activityIntervalInput       = (EditText)    getView().findViewById(R.id.activityRecogIntervalInput);
         activityConfidenceSeekbar   = (SeekBar)     getView().findViewById(R.id.activityConfidenceSeekBar);
@@ -94,6 +97,7 @@ public class SettingsFragment extends Fragment {
         locationPrioSeekBar.setProgress(priorityToValue(mTrackingProfile.getLocationTrackingPriority()));
         locationPriorityLabel.setText(priorityToLabel(mTrackingProfile.getLocationTrackingPriority()));
         locationSpeedInput.setText(String.format("%.2f", ms2kmh(mTrackingProfile.getLocationMaximumSpeed())));
+        removeOutliersSwitch.setChecked(mTrackingProfile.isActiveOutlierRemoval());
         ////// Activity Recognition Inputs
         activityIntervalInput.setText(String.valueOf(mTrackingProfile.getActivityInterval()));
         activityConfidenceSeekbar.setProgress(mTrackingProfile.getActivityMinimumConfidence());
@@ -174,7 +178,8 @@ public class SettingsFragment extends Fragment {
 
 
                 boolean wifiOnly = wifiOnlyBox.isChecked(),
-                        onDemandOnly = onDemandUploadOnlyBox.isChecked();
+                        onDemandOnly = onDemandUploadOnlyBox.isChecked(),
+                        removeOutliers = removeOutliersSwitch.isChecked();
 
 
                 ////// Location
@@ -184,6 +189,7 @@ public class SettingsFragment extends Fragment {
                 mTrackingProfile.setLocationMinimumAccuracy(minAcc);
                 mTrackingProfile.setLocationTrackingPriority(priority);
                 mTrackingProfile.setLocationMaximumSpeed(kmh2ms(maxSpeed));
+                mTrackingProfile.activateOutlierRemoval(removeOutliers);
                 ////// Activity Recognition
                 mTrackingProfile.setActivityRecognitionInterval(activityInterval);
                 mTrackingProfile.setActivityMinimumConfidence(activityConfidence);
