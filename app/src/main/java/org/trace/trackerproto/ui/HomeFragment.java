@@ -350,10 +350,6 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
 
     private void startTrackingOnClick(){
 
-        final SessionHandler sessionHandler = (SessionHandler)getActivity();
-
-        sessionHandler.updateTrackingSession();
-
         if (EasyPermissions.hasPermissions(getActivity(), TrackingConstants.permissions.TRACKING_PERMISSIONS)) {
 
             TRACETracker.Client.startTracking(mService);

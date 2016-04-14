@@ -8,12 +8,14 @@ import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 import android.support.annotation.Nullable;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
+import android.widget.Toast;
 
 import org.trace.tracking.TrackingConstants;
 import org.trace.tracking.tracker.modules.activity.ActivityConstants;
@@ -133,10 +135,12 @@ public class TRACETracker extends Service {
         }
     }
 
+    private String mCurrentSession;
     private void startTracking(Message msg){
 
         String session = mTrackStorage.getNextAvailableId();
-        boolean isValid = false;
+        mCurrentSession= session;
+        boolean isValid= false;
 
         mTracker.setSession(session, isValid);
         mTracker.updateSettings();
@@ -147,6 +151,28 @@ public class TRACETracker extends Service {
     private void stopTracking(){
         mTracker.stopLocationUpdates();
         mTracker.stopActivityUpdates();
+
+        deleteTrackIfIrrelevant(mCurrentSession);
+    }
+
+    private void deleteTrackIfIrrelevant(String session){
+        Track t = mTrackStorage.getTrack(mCurrentSession);
+
+        if(t.getTravelledDistance() <= 15 || t.getTracedTrack().size() <= 5) {
+            mTrackStorage.deleteTrackById(session);
+
+            //TODO: remover --- apenas para testing
+            Handler handler = new Handler(Looper.getMainLooper());
+            handler.post(new Runnable() {
+
+                @Override
+                public void run() {
+                    Toast.makeText(getApplicationContext(), "This track was not stored because it is too short.", Toast.LENGTH_LONG).show();
+                }
+            });
+        }
+
+
     }
 
     private void broadcastCurrentLocation(){
