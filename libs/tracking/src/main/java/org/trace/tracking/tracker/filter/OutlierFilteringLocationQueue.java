@@ -37,6 +37,7 @@ public class OutlierFilteringLocationQueue {
     private HeuristicBasedFilter mOutlierFilter;
     private UnrealisticPassThroughSpeedOutlierFilter mUnrealisticPassThroughSpeedOutlierFilter;
 
+    private boolean isEnabled = true;
 
     public OutlierFilteringLocationQueue(Context context){
         this.mLocationQueue = new LinkedList<>();
@@ -45,6 +46,17 @@ public class OutlierFilteringLocationQueue {
 
         this.mOutlierFilter = new HeuristicBasedFilter();
         this.mUnrealisticPassThroughSpeedOutlierFilter = new UnrealisticPassThroughSpeedOutlierFilter();
+    }
+
+    public OutlierFilteringLocationQueue(Context context, boolean isEnabled){
+        this.mLocationQueue = new LinkedList<>();
+
+        this.mContext = context;
+
+        this.mOutlierFilter = new HeuristicBasedFilter();
+        this.mUnrealisticPassThroughSpeedOutlierFilter = new UnrealisticPassThroughSpeedOutlierFilter();
+
+        this.isEnabled = isEnabled;
     }
 
 
@@ -73,6 +85,12 @@ public class OutlierFilteringLocationQueue {
      * @param location The new TraceLocation
      */
     public void addLocation(TraceLocation location){
+
+        //If the outlier remove is not activated then broadcast all locations.
+        if(!isEnabled){
+            broadcastLocation(location);
+            return;
+        }
 
         TraceLocation previous;
 
@@ -166,5 +184,9 @@ public class OutlierFilteringLocationQueue {
 
             }while (!mLocationQueue.isEmpty());
         }
+    }
+
+    public void setIsEnabled(boolean isEnabled) {
+        this.isEnabled = isEnabled;
     }
 }

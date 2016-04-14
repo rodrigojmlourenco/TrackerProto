@@ -107,6 +107,7 @@ public class Tracker extends BroadcastReceiver implements CollectorManager {
         mFusedLocationModule.setMinimumAccuracy(profile.getLocationMinimumAccuracy());
         mFusedLocationModule.setPriority(profile.getLocationTrackingPriority());
         mFusedLocationModule.setMaximumSpeed(profile.getLocationMaximumSpeed());
+        mFusedLocationModule.activateRemoveOutliers(profile.isActiveOutlierRemoval());
 
         if(mActivityRecognitionModule ==null) init();
         mActivityRecognitionModule.setInterval(profile.getActivityInterval());

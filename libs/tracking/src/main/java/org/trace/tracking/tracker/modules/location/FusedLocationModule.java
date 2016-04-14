@@ -103,6 +103,10 @@ public class FusedLocationModule implements LocationListener, ModuleInterface {
         this.mMinimumSatellites = mMinimumSatellites;
     }
 
+    public void activateRemoveOutliers(boolean activate) {
+        mLocationQueue.setIsEnabled(activate);
+    }
+
     public boolean isTracking() {
         return isTracking;
     }
