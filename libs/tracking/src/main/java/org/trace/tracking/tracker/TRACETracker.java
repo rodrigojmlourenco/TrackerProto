@@ -35,13 +35,14 @@ public class TRACETracker extends Service {
     private final String LOG_TAG = "TRACETracker";
 
     private Tracker mTracker;
-
+    private PersistentTrackStorage mTrackStorage;
     final Messenger mMessenger = new Messenger(new ClientHandler());
 
     @Override
     public void onCreate() {
         super.onCreate();
         mTracker = Tracker.getTracker(this);
+        mTrackStorage = new PersistentTrackStorage(this);
     }
 
     /* Service
@@ -134,10 +135,8 @@ public class TRACETracker extends Service {
 
     private void startTracking(Message msg){
 
-        Bundle data = msg.getData();
-        String session = data.getString(TrackingConstants.tracker.SESSION_EXTRA);
-        boolean isValid = data.getBoolean(TrackingConstants.tracker.VALID_SESSION_EXTRA);
-
+        String session = mTrackStorage.getNextAvailableId();
+        boolean isValid = false;
 
         mTracker.setSession(session, isValid);
         mTracker.updateSettings();
@@ -192,20 +191,12 @@ public class TRACETracker extends Service {
          * and ACCESS_COARSE_LOCATION have been granted, and otherwise, request them.
          *
          * @param messenger Messenger object for Activity Service communication
-         * @param sessionId The current session identifier
-         * @param isValidSession Boolean denoting if the session identifier is local of remote.
          */
-        public static void startTracking(Messenger messenger, String sessionId, boolean isValidSession){
-
-            Bundle data = new Bundle();
-            data.putString(TrackingConstants.tracker.SESSION_EXTRA, sessionId);
-            data.putBoolean(TrackingConstants.tracker.VALID_SESSION_EXTRA, isValidSession);
-
+        public static void startTracking(Messenger messenger){
             Message msg = Message.obtain(null, TRACETrackerOperations.TRACK_ACTION);
-            msg.setData(data);
-
             sendRequest(messenger, msg);
         }
+
 
         /**
          * Stops the location and activity tracking modules.

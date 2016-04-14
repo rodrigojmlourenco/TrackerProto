@@ -243,6 +243,23 @@ public class PersistentTrackStorage {
         return count;
     }
 
+    public String getNextAvailableId(){
+        int nextId;
+
+        SQLiteDatabase db = mDBHelper.getReadableDatabase();
+
+        //Cursor c = db.rawQuery("SELECT MAX("+TraceEntry._ID+") FROM "+TraceEntry.TABLE_NAME_TRACKS, null);
+        Cursor c = db.query(TraceEntry.TABLE_NAME_TRACKS, new String[]{"MAX("+TraceEntry._ID+")"}, null, null, null, null, null);
+
+        if(c.moveToFirst()){
+            nextId = c.getInt(0)+1;
+        }else{
+            nextId = -1;
+        }
+
+        return String.valueOf(nextId);
+    }
+
 
     /* Updaters
     /* Updaters

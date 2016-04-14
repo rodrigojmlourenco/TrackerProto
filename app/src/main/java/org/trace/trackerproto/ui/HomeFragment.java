@@ -356,27 +356,7 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
 
         if (EasyPermissions.hasPermissions(getActivity(), TrackingConstants.permissions.TRACKING_PERMISSIONS)) {
 
-            String session = sessionHandler.getSessionIdentifier();
-            boolean isValid = sessionHandler.isValidSession();
-
-            if(session == null || session.isEmpty()){
-
-                Log.d("SESSION", "Session empty... delaying tracking for 3s.");
-
-                Runnable task = new Runnable() {
-                    @Override
-                    public void run() {
-                        String session = sessionHandler.getSessionIdentifier();
-                        boolean isValid = sessionHandler.isValidSession();
-                        TRACETracker.Client.startTracking(mService, session, isValid);
-                    }
-                };
-
-                Executors.newSingleThreadScheduledExecutor().schedule(task, 3, TimeUnit.SECONDS);
-
-            }else
-                TRACETracker.Client.startTracking(mService, session, isValid);
-
+            TRACETracker.Client.startTracking(mService);
             isTracking = true;
             toggleButtons(isBound, true);
 
