@@ -22,12 +22,12 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import org.trace.storeclient.TRACEStore;
+import org.trace.tracker.TRACETracker;
+import org.trace.tracker.TrackingConstants;
+import org.trace.tracker.storage.data.SimplifiedTrack;
+import org.trace.tracker.storage.data.Track;
 import org.trace.trackerproto.ProtoConstants;
 import org.trace.trackerproto.R;
-import org.trace.tracking.TrackingConstants;
-import org.trace.tracking.tracker.TRACETracker;
-import org.trace.tracking.tracker.storage.data.SimplifiedTrack;
-import org.trace.tracking.tracker.storage.data.Track;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;

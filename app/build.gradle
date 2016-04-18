@@ -46,8 +46,8 @@ dependencies {
     compile project(':storeclient')
     //compile('org.trace:storeclient:0.0') //From local mvn repository
 
-    compile project(':libs:tracking')
-    //compile project(':tracker')
+    //compile project(':libs:tracking')
+    compile project(':tracker')
 }
 
 apply plugin: 'com.google.gms.google-services'

@@ -15,11 +15,11 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
 import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.MapView;
 import org.osmdroid.views.overlay.PathOverlay;
+import org.trace.tracker.storage.PersistentTrackStorage;
+import org.trace.tracker.storage.data.TraceLocation;
+import org.trace.tracker.storage.data.Track;
 import org.trace.trackerproto.ProtoConstants;
 import org.trace.trackerproto.R;
-import org.trace.tracking.tracker.storage.PersistentTrackStorage;
-import org.trace.tracking.tracker.storage.data.TraceLocation;
-import org.trace.tracking.tracker.storage.data.Track;
 
 import java.util.ArrayList;
 

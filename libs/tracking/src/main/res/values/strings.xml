@@ -1,7 +1,0 @@
-<resources>
-    <string name="app_name">Tracking</string>
-
-    <!-- Google Sign-in Authentication -->
-
-    <string name="failed_remote_operation">The operation failed, please try again.</string>
-</resources>

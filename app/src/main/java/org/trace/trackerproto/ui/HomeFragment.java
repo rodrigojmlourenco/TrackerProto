@@ -30,9 +30,9 @@ import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.MapView;
 import org.trace.storeclient.TRACEStore;
 import org.trace.storeclient.TRACEStoreReceiver;
+import org.trace.tracker.TRACETracker;
+import org.trace.tracker.TrackingConstants;
 import org.trace.trackerproto.R;
-import org.trace.tracking.TrackingConstants;
-import org.trace.tracking.tracker.TRACETracker;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;

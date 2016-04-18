@@ -24,10 +24,11 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <service
+        <!--<service
             android:name="org.trace.tracking.store.TRACEStore"
-            android:exported="false" />
-        <service android:name="org.trace.tracking.tracker.TRACETracker" />
+            android:exported="false" />-->
+        <service android:name="org.trace.storeclient.TRACEStore" android:exported="false"/>
+        <service android:name="org.trace.tracker.TRACETracker" />
 
 
         <activity

@@ -12,6 +12,7 @@ import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 import android.support.annotation.Nullable;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -61,9 +62,8 @@ public class TRACETracker extends Service {
         listenerFilter.addAction(ActivityConstants.COLLECT_ACTION);
         listenerFilter.addAction(org.trace.tracker.TrackingConstants.tracker.COLLECT_LOCATIONS_ACTION);
 
-        //LocalBroadcastManager.getInstance(this).registerReceiver(mTracker, listenerFilter);
-        //registerReceiver(mTracker, new IntentFilter(ActivityConstants.COLLECT_ACTION)); //TODO: confirmar se este é necessário
-
+        LocalBroadcastManager.getInstance(this).registerReceiver(mTracker, listenerFilter);
+        registerReceiver(mTracker, new IntentFilter(ActivityConstants.COLLECT_ACTION)); //TODO: confirmar se este é necessário
 
         return mMessenger.getBinder();
     }
@@ -73,8 +73,7 @@ public class TRACETracker extends Service {
     public boolean onUnbind(Intent intent) {
         Log.d(LOG_TAG, "onUnbind");
 
-        //LocalBroadcastManager.getInstance(this).unregisterReceiver(mTracker);
-
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(mTracker);
         unregisterReceiver(mTracker);
 
         return super.onUnbind(intent);
@@ -180,7 +179,7 @@ public class TRACETracker extends Service {
         locationBroadcast.setAction(org.trace.tracker.TrackingConstants.tracker.BROADCAST_LOCATION_ACTION);
         locationBroadcast.putExtra(org.trace.tracker.TrackingConstants.tracker.BROADCAST_LOCATION_EXTRA, location);
 
-        //LocalBroadcastManager.getInstance(this).sendBroadcast(locationBroadcast); TODO: confirmar se isto é necessário
+        LocalBroadcastManager.getInstance(this).sendBroadcast(locationBroadcast);
     }
 
 
