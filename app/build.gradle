@@ -31,17 +31,23 @@ android {
 
 repositories {
     maven { url "https://jitpack.io" }
+    mavenLocal()
 }
 
 dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
     testCompile 'junit:junit:4.12'
-    compile project(':libs:tracking')
+
     compile 'pub.devrel:easypermissions:0.1.5'
     compile 'com.google.code.gson:gson:2.6.1'
     compile 'org.osmdroid:osmdroid-android:5.1@aar'
     compile 'com.github.MKergall.osmbonuspack:OSMBonusPack:v5.7'
+
     compile project(':storeclient')
+    //compile('org.trace:storeclient:0.0') //From local mvn repository
+
+    compile project(':libs:tracking')
+    //compile project(':tracker')
 }
 
 apply plugin: 'com.google.gms.google-services'
