@@ -102,10 +102,12 @@ public class SettingsFragment extends Fragment {
         ////// Activity Recognition Inputs
         activityIntervalInput.setText(String.valueOf(mTrackingProfile.getActivityInterval()));
         activityConfidenceSeekbar.setProgress(mTrackingProfile.getActivityMinimumConfidence());
-        activityConfidenceLabel.setText(mTrackingProfile.getActivityMinimumConfidence()+"%");
+        activityConfidenceLabel.setText(mTrackingProfile.getActivityMinimumConfidence() + "%");
         ///// Uploading Inputs
-        wifiOnlyBox.setChecked(mTrackingProfile.isWifiOnly());
+        wifiOnlyBox.setChecked(false);
+        wifiOnlyBox.setEnabled(false);
         onDemandUploadOnlyBox.setChecked(false);
+        onDemandUploadOnlyBox.setEnabled(false);
 
 
         //Listeners
@@ -195,8 +197,7 @@ public class SettingsFragment extends Fragment {
                 mTrackingProfile.setActivityRecognitionInterval(activityInterval);
                 mTrackingProfile.setActivityMinimumConfidence(activityConfidence);
                 ////// Uploading
-                mTrackingProfile.setWifiOnly(wifiOnly);
-                mTrackingProfile.setOnDemandOnly(onDemandOnly);
+
 
                 //mSettingsManager.saveTrackingProfile(mTrackingProfile);
                 TRACETracker.Client.updateTrackingProfile(getActivity(), mTrackingProfile);

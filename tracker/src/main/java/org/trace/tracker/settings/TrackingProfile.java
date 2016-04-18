@@ -57,10 +57,6 @@ public class TrackingProfile {
 
     private boolean isActiveOutlierRemoval = true;
 
-    //Uploading
-    private boolean wifiOnly    = false;
-    private boolean onDemandOnly= false;
-
     /**
      * Creates a new TrackingProfile with the default values.
      */
@@ -206,26 +202,6 @@ public class TrackingProfile {
         this.activityMinimumConfidence = minimumConfidence;
     }
 
-    @Deprecated
-    public boolean isWifiOnly() {
-        return wifiOnly;
-    }
-
-    @Deprecated
-    public void setWifiOnly(boolean wifiOnly) {
-        this.wifiOnly = wifiOnly;
-
-    }
-
-    @Deprecated
-    public boolean isOnDemandOnly() {
-        return onDemandOnly;
-    }
-
-    @Deprecated
-    public void setOnDemandOnly(boolean onDemandOnly) {
-        this.onDemandOnly = onDemandOnly;
-    }
 
 
 
@@ -241,7 +217,6 @@ public class TrackingProfile {
     private void loadFromJsonProfile(JsonObject profile){
         loadLocationProfileFromJson((JsonObject) profile.get(Constants.LOCATION));
         loadActivityRecognitionProfileFromJson((JsonObject) profile.get(Constants.ACTIVITY_RECOGNITION));
-        loadUpladingProfileFromJson((JsonObject) profile.get(Constants.UPLOADING));
     }
 
     private void loadLocationProfileFromJson(JsonObject locationProfile){
@@ -257,11 +232,6 @@ public class TrackingProfile {
     private void loadActivityRecognitionProfileFromJson(JsonObject profile){
         activityInterval = profile.get(Constants.ACTIVITY_RECOGNITION_INTERVAL).getAsLong();
         activityMinimumConfidence = profile.get(Constants.ACTIVITY_RECOGNITION_CONFIDENCE).getAsInt();
-    }
-
-    private void loadUpladingProfileFromJson(JsonObject profile){
-        wifiOnly = profile.get(Constants.UPLOADING_WIFI_ONLY).getAsBoolean();
-        onDemandOnly = profile.get(Constants.UPLOADING_DEMAND_ONLY).getAsBoolean();
     }
 
 
@@ -290,14 +260,6 @@ public class TrackingProfile {
         return profile;
     }
 
-    @Deprecated
-    public JsonObject getJsonUploadingProfile(){
-        JsonObject profile = new JsonObject();
-        profile.addProperty(Constants.UPLOADING_WIFI_ONLY, wifiOnly);
-        profile.addProperty(Constants.UPLOADING_DEMAND_ONLY, onDemandOnly);
-        return profile;
-    }
-
     /**
      * Returns the location tracking settings as a JsonObject
      * @return
@@ -307,7 +269,6 @@ public class TrackingProfile {
 
         trackingProfile.add(Constants.LOCATION, getJsonLocationTrackingProfile());
         trackingProfile.add(Constants.ACTIVITY_RECOGNITION, getJsonActivityRecognitionProfile());
-        trackingProfile.add(Constants.UPLOADING, getJsonUploadingProfile());
 
         return trackingProfile;
     }
