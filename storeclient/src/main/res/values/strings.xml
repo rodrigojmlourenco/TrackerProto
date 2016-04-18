@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">StoreClient</string>
+    <string name="failed_remote_operation">TODO: there should be no UI in here</string>
+</resources>

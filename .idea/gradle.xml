@@ -13,6 +13,8 @@
             <option value="$PROJECT_DIR$/app" />
             <option value="$PROJECT_DIR$/libs" />
             <option value="$PROJECT_DIR$/libs/tracking" />
+            <option value="$PROJECT_DIR$/storeclient" />
+            <option value="$PROJECT_DIR$/tracker" />
           </set>
         </option>
       </GradleProjectSettings>
