@@ -263,6 +263,7 @@ public class TRACEStore extends IntentService{
          * @see Track
          */
         public static void uploadWholeTrack(Context context, String authToken, Track track){
+
             Intent mI = new Intent(context, TRACEStore.class);
             mI.putExtra(TrackingConstants.store.OPERATION_KEY, Operations.submitTrack.toString());
             mI.putExtra(TrackingConstants.store.TRACK_EXTRA, track);

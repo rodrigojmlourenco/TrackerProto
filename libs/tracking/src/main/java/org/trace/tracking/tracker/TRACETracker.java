@@ -158,7 +158,7 @@ public class TRACETracker extends Service {
     private void deleteTrackIfIrrelevant(String session){
         Track t = mTrackStorage.getTrack(mCurrentSession);
 
-        if(t.getTravelledDistance() <= 15 || t.getTracedTrack().size() <= 5) {
+        if(t == null || t.getTravelledDistance() <= 15 || t.getTracedTrack().size() <= 5) {
             mTrackStorage.deleteTrackById(session);
 
             //TODO: remover --- apenas para testing

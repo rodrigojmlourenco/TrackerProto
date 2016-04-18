@@ -12,6 +12,10 @@ import org.apache.commons.math3.stat.descriptive.rank.Median;
 
 import java.util.LinkedList;
 
+//import org.apache.commons.math3.stat.descriptive.moment.Mean;
+//import org.apache.commons.math3.stat.descriptive.rank.Max;
+//import org.apache.commons.math3.stat.descriptive.rank.Median;
+
 /**
  * @version 1.0
  * @author Rodrigo Lourenço
@@ -159,7 +163,9 @@ public class Track implements Parcelable{
         averageSpeed    = (mean.evaluate(measuredSpeeds)    *3600)/1000; //Km/h
         medianSpeed     = (median.evaluate(measuredSpeeds)  *3600)/1000; //Km/h
         topSpeed        = (max.evaluate(measuredSpeeds)     *3600)/1000; //Km/h
+
     }
+
 
     public JsonObject toJson(){
         JsonObject traceTrack = new JsonObject();

@@ -11,6 +11,7 @@ import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AlertDialog;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,8 +22,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import org.trace.trackerproto.ProtoConstants;
-import org.trace.tracking.TrackingConstants;
 import org.trace.trackerproto.R;
+import org.trace.tracking.TrackingConstants;
 import org.trace.tracking.store.TRACEStore;
 import org.trace.tracking.tracker.TRACETracker;
 import org.trace.tracking.tracker.storage.data.SimplifiedTrack;
@@ -231,6 +232,12 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
                     if(isNetworkConnected()) {
                         //Track track = mTrackStorage.getTrack(values.get(position));
                         Track track = TRACETracker.Client.getStoredTrack(getActivity(), values.get(position));
+
+                        if(track == null){
+                            Log.e("UPLOAD", "The session is not being updated in the activity!"); //TODO
+                            return;
+                        }
+
                         TRACEStore.Client.uploadWholeTrack(context,((MainActivity)getActivity()).getAuthenticationToken(), track); //TODO: refactorizar
                     }else
                         buildAlertMessageNoConnectivity();
