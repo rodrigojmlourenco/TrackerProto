@@ -155,7 +155,7 @@ public class FusedLocationModule implements LocationListener, ModuleInterface {
     public void stopTracking() {
         if(isTracking) {
             LocationServices.FusedLocationApi.removeLocationUpdates(this.mGoogleApiClient, this);
-            mLocationQueue.clearAndStoreQueue();
+            //mLocationQueue.clearAndStoreQueue();
             isTracking = false;
 
         }
