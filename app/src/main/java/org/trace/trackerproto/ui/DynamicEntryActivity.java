@@ -9,9 +9,11 @@ import com.google.android.gms.auth.api.Auth;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 
-import org.trace.tracking.store.TraceAuthenticationManager;
-import org.trace.tracking.store.auth.LoginBroadcastListener;
-import org.trace.tracking.store.auth.MultipleCredentialsRequestHandler;
+import org.trace.storeclient.TraceAuthenticationManager;
+import org.trace.storeclient.auth.LoginBroadcastListener;
+import org.trace.storeclient.auth.MultipleCredentialsRequestHandler;
+import org.trace.trackerproto.R;
+
 
 public class DynamicEntryActivity extends AppCompatActivity implements GoogleApiClient.OnConnectionFailedListener{
 
@@ -25,10 +27,12 @@ public class DynamicEntryActivity extends AppCompatActivity implements GoogleApi
 
         super.onCreate(savedInstanceState);
 
+        String traceClientId = getString(R.string.trace_client_id);
+
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .enableAutoManage(this, this)
                 .addApi(Auth.CREDENTIALS_API)
-                .addApi(Auth.GOOGLE_SIGN_IN_API, TraceAuthenticationManager.getTraceGoogleSignOption(this))
+                .addApi(Auth.GOOGLE_SIGN_IN_API, TraceAuthenticationManager.getTraceGoogleSignOption(traceClientId))
                 .build();
 
         mAuthManager = TraceAuthenticationManager.getAuthenticationManager(this, mGoogleApiClient);

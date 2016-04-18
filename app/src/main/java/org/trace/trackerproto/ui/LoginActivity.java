@@ -26,11 +26,11 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
 
+import org.trace.storeclient.TraceAuthenticationManager;
+import org.trace.storeclient.auth.MultipleCredentialsRequestHandler;
+import org.trace.storeclient.exceptions.NetworkConnectivityRequiredException;
 import org.trace.trackerproto.R;
 import org.trace.tracking.TrackingConstants;
-import org.trace.tracking.store.TraceAuthenticationManager;
-import org.trace.tracking.store.auth.MultipleCredentialsRequestHandler;
-import org.trace.tracking.store.exceptions.NetworkConnectivityRequiredException;
 
 public class LoginActivity extends AppCompatActivity implements GoogleApiClient.OnConnectionFailedListener {
 

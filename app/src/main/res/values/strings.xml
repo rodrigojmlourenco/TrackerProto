@@ -27,6 +27,8 @@
     <string name="logout">Logout</string>
     <string name="logout_rationale">Are you sure you want to logout? Your credentials will be removed.</string>
 
+    <string name="trace_client_id">307422557916-mj0ma4qr4fu4tfs9a83f0s2tc8bck847.apps.googleusercontent.com</string>
+
     <!-- Nav Drawer Menu Items -->
     <string-array name="nav_drawer_items">
         <item>Home</item>

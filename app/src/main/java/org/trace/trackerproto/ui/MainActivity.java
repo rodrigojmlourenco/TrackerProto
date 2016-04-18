@@ -30,13 +30,13 @@ import com.google.android.gms.auth.api.Auth;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 
+import org.trace.storeclient.TraceAuthenticationManager;
+import org.trace.storeclient.auth.AuthenticationRenewalListener;
+import org.trace.storeclient.exceptions.UserIsNotLoggedException;
 import org.trace.trackerproto.R;
 import org.trace.trackerproto.ui.slidingmenu.adapter.NavDrawerListAdapter;
 import org.trace.trackerproto.ui.slidingmenu.model.NavDrawerItem;
 import org.trace.tracking.TrackingConstants;
-import org.trace.tracking.store.TraceAuthenticationManager;
-import org.trace.tracking.store.auth.AuthenticationRenewalListener;
-import org.trace.tracking.store.exceptions.UserIsNotLoggedException;
 import org.trace.tracking.tracker.TRACETracker;
 
 import java.util.ArrayList;

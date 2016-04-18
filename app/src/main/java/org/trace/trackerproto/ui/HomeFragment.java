@@ -28,11 +28,11 @@ import org.osmdroid.api.IMapController;
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
 import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.MapView;
+import org.trace.storeclient.TRACEStore;
+import org.trace.storeclient.TRACEStoreReceiver;
 import org.trace.trackerproto.R;
 import org.trace.tracking.TrackingConstants;
-import org.trace.tracking.store.TRACEStore;
 import org.trace.tracking.tracker.TRACETracker;
-import org.trace.tracking.store.TRACEStoreReceiver;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;

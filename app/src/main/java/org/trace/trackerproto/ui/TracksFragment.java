@@ -21,10 +21,10 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.trace.storeclient.TRACEStore;
 import org.trace.trackerproto.ProtoConstants;
 import org.trace.trackerproto.R;
 import org.trace.tracking.TrackingConstants;
-import org.trace.tracking.store.TRACEStore;
 import org.trace.tracking.tracker.TRACETracker;
 import org.trace.tracking.tracker.storage.data.SimplifiedTrack;
 import org.trace.tracking.tracker.storage.data.Track;
@@ -238,7 +238,7 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
                             return;
                         }
 
-                        TRACEStore.Client.uploadWholeTrack(context,((MainActivity)getActivity()).getAuthenticationToken(), track); //TODO: refactorizar
+                        TRACEStore.Client.uploadWholeTrack(context,((MainActivity)getActivity()).getAuthenticationToken(), track.toJson().toString()); //TODO: refactorizar
                     }else
                         buildAlertMessageNoConnectivity();
 
