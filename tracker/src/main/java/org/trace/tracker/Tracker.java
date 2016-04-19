@@ -19,7 +19,6 @@ import org.trace.tracker.storage.PersistentTrackStorage;
 import org.trace.tracker.storage.data.TraceLocation;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 
 public class Tracker extends BroadcastReceiver implements CollectorManager {
 
@@ -38,13 +37,11 @@ public class Tracker extends BroadcastReceiver implements CollectorManager {
 
     //Location Modules
     private double travelledDistance = 0;
-    private LinkedList<Location> mLocationTrace;
     private FusedLocationModule mFusedLocationModule = null;
 
 
     //Activity Modules
     private DetectedActivity mCurrentActivity = null;
-    private LinkedList<DetectedActivity> mActivityTrace;
     private ActivityRecognitionModule mActivityRecognitionModule = null;
 
     //Outlier Filters Parameters
@@ -64,12 +61,6 @@ public class Tracker extends BroadcastReceiver implements CollectorManager {
 
         //Settings
         mSettingsManager = SettingsManager.getInstance(context);
-
-        //Location
-        mLocationTrace = new LinkedList<>();
-
-        //Activity Recognition
-        mActivityTrace = new LinkedList<>();
 
         mTrackPersistentStorage = new PersistentTrackStorage(mContext);
     }

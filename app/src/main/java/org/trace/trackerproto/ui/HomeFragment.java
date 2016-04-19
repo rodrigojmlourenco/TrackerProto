@@ -295,8 +295,6 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
 
     Messenger mService = null;
 
-
-
     private ServiceConnection mConnection = new ServiceConnection() {
 
         @Override

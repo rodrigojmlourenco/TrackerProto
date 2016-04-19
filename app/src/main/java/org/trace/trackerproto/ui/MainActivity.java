@@ -116,7 +116,7 @@ public class MainActivity extends AppCompatActivity
 
         if(isBound){
             isBound = false;
-            this.unbindService(mConnection);
+            unbindService(mConnection);
         }
 
         if(isFinishing()) {
