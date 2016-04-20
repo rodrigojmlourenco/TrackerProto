@@ -37,6 +37,7 @@ import org.trace.storeclient.remote.HttpClient;
 import java.math.BigInteger;
 import java.security.SecureRandom;
 
+//TODO: make this a service
 public class TraceAuthenticationManager {
 
     private final String TAG = "Auth";
@@ -211,7 +212,7 @@ public class TraceAuthenticationManager {
      *
      * @see org.trace.storeclient.auth.LoginBroadcastListener
      */
-    public void login(final String username, final String password) throws InvalidAuthCredentialsException {
+    public void login(final String username, final String password){
 
         Log.i(TAG, "Native login as "+username);
 
@@ -492,11 +493,13 @@ public class TraceAuthenticationManager {
                             Log.i(TAG, "DELETE: found credential to remove.");
                             removeCredential(credentialRequestResult.getCredential());
                         }else {
-                            Log.i(TAG, "DELETE: there are several credentials, choosing one...");
+
 
                             Status status = credentialRequestResult.getStatus();
 
                             if(status.getStatusCode() == CommonStatusCodes.RESOLUTION_REQUIRED){
+
+                                Log.i(TAG, "DELETE: there are several credentials, choosing one...");
 
                                 try {
                                     status.startResolutionForResult((Activity) mContext, RC_DELETE);
@@ -505,7 +508,7 @@ public class TraceAuthenticationManager {
                                 }
 
                             }else{
-                                Log.e(TAG, "DELETE: found no credentials to remove.");
+                                Log.e(TAG, "DELETE: found no credentials to remove. {"+status.getStatusCode()+"}");
                             }
                         }
                     }

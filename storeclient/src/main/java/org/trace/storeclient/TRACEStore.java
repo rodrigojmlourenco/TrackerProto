@@ -120,17 +120,15 @@ public class TRACEStore extends IntentService{
      */
 
     private void performSubmitTrack(Intent intent) {
-        String track;
+        JsonObject track;
         JsonParser parser = new JsonParser();
         String authToken = extractAuthenticationToken(intent);
         if(!intent.hasExtra(StoreClientConstants.TRACK_EXTRA)) return;
 
-        track = intent.getParcelableExtra(StoreClientConstants.TRACK_EXTRA);
-
-
+        track = (JsonObject) parser.parse(intent.getStringExtra(StoreClientConstants.TRACK_EXTRA));
 
         try {
-            if(mHttpClient.submitTrack(authToken, (JsonObject) parser.parse(track)))
+            if(mHttpClient.submitTrack(authToken, track))
                 postUserFeedback("Track successfully posted.");
             else
                 postUserFeedback("Track was not successfully posted.");
@@ -142,7 +140,7 @@ public class TRACEStore extends IntentService{
         } catch (UnableToSubmitTrackTokenExpiredException e){
             //TODO: Token expired broadcast that information
             Log.e(LOG_TAG, "Token expired");
-            broadcastFailedSubmitOperation(track);
+            broadcastFailedSubmitOperation(track.toString());
         }
     }
 
@@ -262,17 +260,17 @@ public class TRACEStore extends IntentService{
          * @param context The current context.
          * @param track The Track to be uploaded.
          */
-        public static void uploadWholeTrack(Context context, String authToken, String track){
+        public static void uploadTrack(Context context, String authToken, JsonObject track){
 
             Intent mI = new Intent(context, TRACEStore.class);
             mI.putExtra(StoreClientConstants.OPERATION_KEY, Operations.submitTrack.toString());
-            mI.putExtra(StoreClientConstants.TRACK_EXTRA, track);
+            mI.putExtra(StoreClientConstants.TRACK_EXTRA, track.toString());
             mI.putExtra(StoreClientConstants.AUTH_TOKEN_EXTRA, authToken);
             context.startService(mI);
         }
 
 
-        public static void uploadWholeTrack(Context context, String authToken, String session, String track){
+        public static void uploadTrack(Context context, String authToken, String session, String track){
             //track.setSessionId(session);
             Intent mI = new Intent(context, TRACEStore.class);
             mI.putExtra(StoreClientConstants.OPERATION_KEY, Operations.submitTrack.toString());

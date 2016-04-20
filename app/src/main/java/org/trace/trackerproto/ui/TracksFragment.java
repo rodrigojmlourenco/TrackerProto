@@ -238,7 +238,7 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
                             return;
                         }
 
-                        TRACEStore.Client.uploadWholeTrack(context,((MainActivity)getActivity()).getAuthenticationToken(), track.toJson().toString()); //TODO: refactorizar
+                        TRACEStore.Client.uploadTrack(context, ((MainActivity) getActivity()).getAuthenticationToken(), track.toJson()); //TODO: refactorizar
                     }else
                         buildAlertMessageNoConnectivity();
 

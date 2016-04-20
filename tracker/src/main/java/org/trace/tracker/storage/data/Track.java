@@ -174,6 +174,8 @@ public class Track implements Parcelable{
         for(TraceLocation location : tracedTrack)
             track.add(location.getSerializableLocationAsJson());
 
+        traceTrack.addProperty("session", getSessionId());
+        traceTrack.addProperty("isValid", isValid());
         traceTrack.addProperty("start", getStartTimestamp());
         traceTrack.addProperty("end", getEndTimestamp());
         traceTrack.addProperty("elapsedTime", getElapsedTime());

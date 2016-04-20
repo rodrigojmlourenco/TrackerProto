@@ -82,8 +82,8 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
         setupTRACENativeSignin();
 
 
-        mAuthManager = TraceAuthenticationManager.getAuthenticationManager(this, mGoogleApiClient);
-        mHandler = new MultipleCredentialsRequestHandler(mGoogleApiClient, mAuthManager);
+        mAuthManager = TraceAuthenticationManager.getAuthenticationManager(this, mGoogleApiClient);mHandler = new MultipleCredentialsRequestHandler(mGoogleApiClient, mAuthManager);
+
         mConnectivityManager = (ConnectivityManager) this.getSystemService(Context.CONNECTIVITY_SERVICE);
 
 
