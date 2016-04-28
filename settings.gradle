@@ -1,1 +1,1 @@
-include ':app', ':tracker', ':storeclient'
+include ':app', ':tracker', ':storeclient', ':modality'

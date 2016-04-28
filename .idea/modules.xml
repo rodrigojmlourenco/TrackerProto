@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/TrackerProto.iml" filepath="$PROJECT_DIR$/TrackerProto.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/modality/modality.iml" filepath="$PROJECT_DIR$/modality/modality.iml" />
       <module fileurl="file://$PROJECT_DIR$/storeclient/storeclient.iml" filepath="$PROJECT_DIR$/storeclient/storeclient.iml" />
       <module fileurl="file://$PROJECT_DIR$/tracker/tracker.iml" filepath="$PROJECT_DIR$/tracker/tracker.iml" />
     </modules>
