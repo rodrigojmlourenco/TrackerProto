@@ -127,6 +127,9 @@ public class TraceAuthenticationManager {
      * authentication token on the application level.
      */
     public void logout(){
+
+        Auth.CredentialsApi.delete(mCredentialsApiClient, mCurrentCredential);
+
         switch (mCurrentGrantType){
             case trace:
                 //TODO
@@ -358,7 +361,6 @@ public class TraceAuthenticationManager {
             return;
         }
 
-
         //Testing
         mCurrentCredential = credential;
 
@@ -366,9 +368,9 @@ public class TraceAuthenticationManager {
                 new ResultCallback<Status>() {
                     @Override
                     public void onResult(@NonNull Status status) {
-                        if (status.isSuccess())
+                        if (status.isSuccess()) {
                             Log.d(TAG, "SAVE: OK");
-                        else {
+                        }else {
 
                             if (status.hasResolution()) {
                                 try {
@@ -380,6 +382,12 @@ public class TraceAuthenticationManager {
                                 Log.e(TAG, "Failed to save the credentials");
                             }
                         }
+
+                        //Broadcast the result of the operation
+                        Intent operationResults = new Intent(StoreClientConstants.auth.CREDENTIAL_STORED);
+                        operationResults.putExtra(StoreClientConstants.auth.SUCCESS, status.isSuccess() || status.hasResolution());
+                        operationResults.putExtra(StoreClientConstants.auth.STATUS, status.toString());
+                        mContext.sendBroadcast(operationResults);
                     }
                 }
         );
@@ -445,7 +453,7 @@ public class TraceAuthenticationManager {
 
                 Status status = googleSignInResult.getStatus();
 
-                switch (status.getStatusCode()){
+                switch (status.getStatusCode()) {
                     case CommonStatusCodes.SUCCESS:
                         login(googleSignInResult.getSignInAccount());
                         break;
@@ -492,6 +500,7 @@ public class TraceAuthenticationManager {
                         if(credentialRequestResult.getStatus().isSuccess()) {
                             Log.i(TAG, "DELETE: found credential to remove.");
                             removeCredential(credentialRequestResult.getCredential());
+
                         }else {
 
 
@@ -516,7 +525,16 @@ public class TraceAuthenticationManager {
         );
     }
 
+    /**
+     * Removes the current credential from the smart lock.
+     */
+    public void removeCurrentCredential(){
 
+        if(mCurrentCredential != null) {
+            removeCredential(mCurrentCredential);
+            mCurrentCredential = null;
+        }
+    }
     /**
      * Removes a specific credential from the smart lock.
      * @param credential The credential to be removed.
@@ -533,6 +551,11 @@ public class TraceAuthenticationManager {
                             Log.i(TAG, "Removed " + accountType);
                         } else
                             Log.e(TAG, "Did not remove " + accountType);
+
+                        Intent operationResult = new Intent(StoreClientConstants.auth.CREDENTIAL_STORED);
+                        operationResult.putExtra(StoreClientConstants.auth.SUCCESS, status.isSuccess());
+                        operationResult.putExtra(StoreClientConstants.auth.STATUS, status.toString());
+                        mContext.sendBroadcast(operationResult);
                     }
                 }
         );

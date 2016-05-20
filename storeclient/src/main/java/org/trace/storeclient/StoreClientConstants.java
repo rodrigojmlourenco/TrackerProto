@@ -15,4 +15,16 @@ public interface StoreClientConstants {
     String AUTH_TOKEN_EXTRA = "auth_token";
     String TRACK_EXTRA  = "org.trace.store.extras.TRACK";
     String OPERATION_KEY    = "action";
+
+    interface auth {
+        String CREDENTIAL_DELETED = "org.trace.intent.CREDENTIAL_DELETED";
+        String CREDENTIAL_STORED = "org.trace.intent.CREDENTIAL_STORED";
+        String LOGOUT = "org.trace.intent.CREDENTIAL_LOGOUT";
+
+        String SUCCESS = "org.trace.extra.SUCCESS";
+        String STATUS = "org.trace.extra.STATUS";
+
+
+
+    }
 }
