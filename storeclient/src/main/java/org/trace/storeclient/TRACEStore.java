@@ -8,14 +8,22 @@ import android.os.Handler;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import org.trace.storeclient.exceptions.AuthTokenIsExpiredException;
 import org.trace.storeclient.exceptions.AuthenticationTokenNotSetException;
+import org.trace.storeclient.exceptions.InvalidEmailException;
+import org.trace.storeclient.exceptions.InvalidPasswordException;
+import org.trace.storeclient.exceptions.InvalidUsernameException;
+import org.trace.storeclient.exceptions.NonMatchingPasswordsException;
 import org.trace.storeclient.exceptions.RemoteTraceException;
+import org.trace.storeclient.exceptions.UnableToRegisterUserException;
+import org.trace.storeclient.exceptions.UnableToRequestGetException;
 import org.trace.storeclient.exceptions.UnableToSubmitTrackTokenExpiredException;
 import org.trace.storeclient.remote.HttpClient;
+import org.trace.storeclient.utils.FormFieldValidator;
 
 import java.math.BigInteger;
 import java.security.SecureRandom;
@@ -47,6 +55,9 @@ public class TRACEStore extends IntentService{
         }
 
         switch (op){
+            case registerUser:
+                performUserRegistry(intent);
+                break;
             case submitTrack:
                 performSubmitTrack(intent);
                 break;
@@ -59,11 +70,36 @@ public class TRACEStore extends IntentService{
                 }
 
                 break;
+            case fetchShopsWithRewards:
 
+                try {
+                    JsonArray response = performFetchShopsWithRewards(intent);
+                    broadcastResult(Operations.fetchShopsWithRewards, String.valueOf(response));
+                } catch (UnableToRequestGetException e) {
+                    e.printStackTrace();
+                    broadcastFailedOperation(Operations.fetchShopsWithRewards, false, -1, e.getMessage());
+                }catch(RemoteTraceException e){
+                    e.printStackTrace();
+                    broadcastFailedOperation(Operations.fetchShopsWithRewards, false, e.getErrorCode(), e.getErrorMessage());
+                }
+
+                break;
             default:
                 Log.e(LOG_TAG, "Unknown operation "+op);
         }
     }
+
+    private JsonArray performFetchShopsWithRewards(Intent intent) throws RemoteTraceException, UnableToRequestGetException {
+        double latitude, longitude, radius;
+
+        latitude = intent.getDoubleExtra(StoreClientConstants.LATITUDE, 0);
+        longitude= intent.getDoubleExtra(StoreClientConstants.LONGITUDE, 0);
+        radius   = intent.getDoubleExtra(StoreClientConstants.RADIUS, 0);
+
+        return mHttpClient.fetchShopsWithRewards(latitude, longitude, radius);
+    }
+
+
 
     /* Tracking Session Management
     /* Tracking Session Management
@@ -118,6 +154,48 @@ public class TRACEStore extends IntentService{
      ***********************************************************************************************
      ***********************************************************************************************
      */
+
+    private void broadcastFailedOperation(Operations op, boolean success, int errorCode, String errorMsg) {
+        Intent failedOperation = new Intent(StoreClientConstants.FAILED_OPERATION);
+        failedOperation.putExtra(StoreClientConstants.OPERATION_EXTRA, op);
+        failedOperation.putExtra(StoreClientConstants.response.SUCCESS, success);
+        failedOperation.putExtra(StoreClientConstants.response.ERROR_CODE, errorCode);
+        failedOperation.putExtra(StoreClientConstants.response.ERROR_MSG, errorMsg);
+        sendBroadcast(failedOperation);
+    }
+
+    private void broadcastResult(Operations op, String payload) {
+        Intent failedOperation = new Intent(StoreClientConstants.FAILED_OPERATION);
+        failedOperation.putExtra(StoreClientConstants.OPERATION_EXTRA, op);
+        failedOperation.putExtra(StoreClientConstants.response.SUCCESS, true);
+        failedOperation.putExtra(StoreClientConstants.response.PAYLOAD, payload);
+        sendBroadcast(failedOperation);
+    }
+
+    private void performUserRegistry(Intent intent) {
+
+        JsonObject userRegistryRequest;
+        JsonParser parser = new JsonParser();
+
+        if(!intent.hasExtra(StoreClientConstants.USER_REQUEST_EXTRA)){
+            return;
+        }
+
+        userRegistryRequest =
+                (JsonObject) parser.parse(intent.getStringExtra(StoreClientConstants.USER_REQUEST_EXTRA));
+
+        try {
+
+            mHttpClient.registerUser(userRegistryRequest);
+            broadcastFailedOperation(Operations.registerUser, true, 0, "");
+            Log.d(LOG_TAG, "user successfully registered.");
+
+        } catch (UnableToRegisterUserException e) {
+            e.printStackTrace();
+            broadcastFailedOperation(Operations.registerUser, false, e.getErrorCode(), e.getMessage());
+        }
+    }
+
 
     private void performSubmitTrack(Intent intent) {
         JsonObject track;
@@ -191,8 +269,10 @@ public class TRACEStore extends IntentService{
      ***********************************************************************************************
      */
     public enum Operations {
+        registerUser,
         initiateSession,
         submitTrack,
+        fetchShopsWithRewards,
         unknown
     }
 
@@ -277,6 +357,54 @@ public class TRACEStore extends IntentService{
             mI.putExtra(StoreClientConstants.TRACK_EXTRA, track);
             mI.putExtra(StoreClientConstants.AUTH_TOKEN_EXTRA, authToken);
             context.startService(mI);
+        }
+
+        /**
+         * TODO: document
+         * @param context
+         * @param latitude
+         * @param longitude
+         * @param radius
+         * @return
+         */
+        public static void fetchShopsWithRewards(Context context, double latitude, double longitude, double radius){
+            Intent mI = new Intent(context, TRACEStore.class);
+            mI.putExtra(StoreClientConstants.OPERATION_KEY, Operations.fetchShopsWithRewards.toString());
+            mI.putExtra(StoreClientConstants.LATITUDE, latitude);
+            mI.putExtra(StoreClientConstants.LONGITUDE, longitude);
+            mI.putExtra(StoreClientConstants.RADIUS, radius);
+            context.startService(mI);
+        }
+
+        public static void registerUser(Context context, String username, String email, String password, String confirmPassword)
+                throws InvalidUsernameException, InvalidEmailException, InvalidPasswordException, NonMatchingPasswordsException {
+
+            if(!FormFieldValidator.isValidUsername(username))
+                throw new InvalidUsernameException();
+
+            if(!FormFieldValidator.isValidEmail(email))
+                throw new InvalidEmailException();
+
+            if(!FormFieldValidator.isValidPassword(password))
+                throw new InvalidPasswordException();
+
+            if(!password.equals(confirmPassword))
+                throw new NonMatchingPasswordsException();
+
+            JsonObject userRegistryRequest = new JsonObject();
+            userRegistryRequest.addProperty(StoreClientConstants.register_user.USERNAME, username);
+            userRegistryRequest.addProperty(StoreClientConstants.register_user.EMAIL, email);
+            userRegistryRequest.addProperty(StoreClientConstants.register_user.PASSWORD, password);
+            userRegistryRequest.addProperty(StoreClientConstants.register_user.CONFIRMATION_PASSWORD, confirmPassword);
+
+            Intent mI = new Intent(context, TRACEStore.class);
+            mI.putExtra(StoreClientConstants.OPERATION_KEY, Operations.registerUser.toString());
+            mI.putExtra(StoreClientConstants.USER_REQUEST_EXTRA, userRegistryRequest.toString());
+            context.startService(mI);
+        }
+
+        public static void log(String log){
+            Log.d(LOG_TAG, log);
         }
     }
 }

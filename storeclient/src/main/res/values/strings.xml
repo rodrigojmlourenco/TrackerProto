@@ -1,4 +1,20 @@
 <resources>
     <string name="app_name">StoreClient</string>
     <string name="failed_remote_operation">TODO: there should be no UI in here</string>
+
+    <string-array name="register_errors">
+        <item>Invalid username.</item>
+        <item>Invalid email address.</item>
+        <item>Invalid password.</item>
+        <item>This username is already in use.</item>
+        <item>This email address is already in use.</item>
+        <item>The passwords do not match.</item>
+        <item>Unable to register, please try again.</item>
+        <item>Invalid name.</item>
+        <item>Invalid phone number.</item>
+        <item>Invalid address.</item>
+    </string-array>
+
+    <string name="username_hint">A username must be between 5 and 15 characters and contain letters, numbers and or the underscore sign.</string>
+    <string name="password_hing">A password must be between 8 and 25 characters and must contain both lower case and uppercase letters, numbers.</string>
 </resources>

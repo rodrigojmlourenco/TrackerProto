@@ -3,16 +3,20 @@ package org.trace.storeclient.remote;
 import android.content.Context;
 import android.util.Log;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import org.trace.storeclient.StoreClientConstants;
 import org.trace.storeclient.auth.AuthenticationRenewalListener;
 import org.trace.storeclient.exceptions.AuthTokenIsExpiredException;
 import org.trace.storeclient.exceptions.InvalidAuthCredentialsException;
 import org.trace.storeclient.exceptions.LoginFailedException;
 import org.trace.storeclient.exceptions.RemoteTraceException;
 import org.trace.storeclient.exceptions.UnableToPerformLogin;
+import org.trace.storeclient.exceptions.UnableToRegisterUserException;
+import org.trace.storeclient.exceptions.UnableToRequestGetException;
 import org.trace.storeclient.exceptions.UnableToRequestPostException;
 import org.trace.storeclient.exceptions.UnableToSubmitTrackTokenExpiredException;
 
@@ -169,6 +173,82 @@ public class HttpClient {
 
     }
 
+    public String performGetRequest(String urlEndpoint, JsonObject requestProperties, String data)
+            throws UnableToRequestGetException, AuthTokenIsExpiredException {
+
+        URL url;
+        HttpURLConnection connection = null;
+        String dataUrl = BASE_URI+urlEndpoint;
+
+        try {
+
+            // Create connection
+            url = new URL(dataUrl);
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+
+            if(requestProperties != null)
+                for(Map.Entry<String, JsonElement> entry : requestProperties.entrySet())
+                    connection.setRequestProperty(entry.getKey(), entry.getValue().getAsString());
+
+            connection.setDoInput(true);
+            connection.connect();
+
+            // Send request
+            //DataOutputStream wr = new DataOutputStream(connection.getOutputStream());
+            //if(data != null && !data.isEmpty()) wr.write(data.getBytes("UTF-8"));
+            //wr.flush();
+            //wr.close();
+
+            // Get Response
+            int responseCode = connection.getResponseCode();
+
+            switch (responseCode){
+                case 200:
+                    break;
+                case 401:
+
+                    mContext.sendBroadcast(
+                            AuthenticationRenewalListener.getFailedRemoteOperationIntent(
+                                    constructRemoteRequest(
+                                            "GET",
+                                            urlEndpoint,
+                                            requestProperties,
+                                            data)));
+
+                    throw new AuthTokenIsExpiredException();
+
+                default:
+                    throw new UnableToRequestGetException(String.valueOf(responseCode));
+            }
+
+            InputStream is = connection.getInputStream();
+            BufferedReader rd = new BufferedReader(new InputStreamReader(is));
+            String line;
+            StringBuilder response = new StringBuilder();
+            while ((line = rd.readLine()) != null) {
+                response.append(line);
+                response.append('\r');
+            }
+
+            rd.close();
+
+            return response.toString();
+
+        } catch (IOException e) {
+
+            e.printStackTrace();
+            throw new UnableToRequestGetException(e.getMessage());
+
+        } finally {
+
+            if (connection != null) {
+                connection.disconnect();
+            }
+        }
+
+    }
+
     private void validateHttpResponse(String requestType, String response) throws RemoteTraceException {
 
         JsonObject jsonResponse = (JsonObject) jsonParser.parse(response);
@@ -291,27 +371,37 @@ public class HttpClient {
         }
     }
 
-    /*
-    @Deprecated
-    private void uploadCompleteTrackSequence(String authToken, String session, List<TraceLocation> locations)
-            throws RemoteTraceException, AuthTokenIsExpiredException {
 
-        String data = constructTraceTrack(locations);
-        String urlEndpoint = "/tracker/put/track/"+session;
 
-        JsonObject requestProperties = new JsonObject();
-        requestProperties.addProperty(http.AUTHORIZATION, "Bearer "+authToken);
-        requestProperties.addProperty(http.CONTENT_TYPE, "application/json; charset=UTF-8");
+    public boolean registerUser(JsonObject data) throws UnableToRegisterUserException {
+
+        String urlEndpoint = "/tracker/register";
+
+        JsonObject properties = new JsonObject();
+        properties.addProperty(http.CONTENT_TYPE, "application/json; charset=UTF-8");
 
         try {
-            String response = performPostRequest(urlEndpoint, requestProperties, data);
-            validateHttpResponse("UploadTrack", response);
+            String response = performPostRequest(urlEndpoint, properties, data.toString());
+            JsonObject jsonResponse = (JsonObject) jsonParser.parse(response);
+
+            if(!jsonResponse.get("success").getAsBoolean()) {
+                String msg = jsonResponse.get(StoreClientConstants.response.ERROR_MSG).getAsString();
+                int code = jsonResponse.get(StoreClientConstants.response.ERROR_CODE).getAsInt();
+
+                throw new UnableToRegisterUserException(msg,code);
+            }
+
+            return true;
+
+
         } catch (UnableToRequestPostException e) {
             e.printStackTrace();
-            throw new RemoteTraceException("UploadTrack", e.getMessage());
+        } catch (AuthTokenIsExpiredException e) {
+            e.printStackTrace();
         }
+
+        return false;
     }
-    */
 
     public boolean submitTrack(String authToken, JsonObject jsonTrack)
             throws RemoteTraceException, UnableToSubmitTrackTokenExpiredException {
@@ -362,6 +452,38 @@ public class HttpClient {
         return true;
     }
 
+
+    public JsonArray fetchShopsWithRewards(double latitude, double longitude, double radius)
+            throws RemoteTraceException, UnableToRequestGetException {
+
+        JsonParser parser = new JsonParser();
+        //String urlEndpoint = "/reward/rewards";
+
+        String data = String.format("lat=%f&lon=%f&radius=%f", latitude, longitude, radius);
+        String urlEndpoint = "/reward/rewards?"+data;
+
+        try {
+            String response = performGetRequest(urlEndpoint, null, null);
+
+            Log.d(LOG_TAG, response);
+
+            JsonObject jsonResponse = (JsonObject) parser.parse(response);
+
+            if(jsonResponse.get("success").getAsBoolean()) {
+                return (JsonArray) parser.parse(jsonResponse.get("payload").getAsString());
+            } else {
+                int errorCode = jsonResponse.get("code").getAsInt();
+                String errorMessage = jsonResponse.get("error").getAsString();
+                throw new RemoteTraceException(String.valueOf(errorCode), errorMessage);
+            }
+
+
+        } catch (AuthTokenIsExpiredException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
 
     private interface http {
         String CONTENT_TYPE = "Content-Type";

@@ -32,7 +32,7 @@ public class AuthenticationRenewalListener extends BroadcastReceiver {
 
     public static Intent getFailedRemoteOperationIntent(JsonObject operation){
         return new Intent(StoreClientConstants.TOKEN_EXPIRED_ACTION)
-                .putExtra(StoreClientConstants.FAILED_OPERATION_KEY, operation.toString());
+                .putExtra(StoreClientConstants.FAILED_OPERATION, operation.toString());
     }
 
     @Override
@@ -41,8 +41,8 @@ public class AuthenticationRenewalListener extends BroadcastReceiver {
         mAuthManager.login();
         JsonParser parser = new JsonParser();
 
-        if(intent.hasExtra(StoreClientConstants.FAILED_OPERATION_KEY)){
-            JsonObject failedOperation = (JsonObject)parser.parse(intent.getStringExtra(StoreClientConstants.FAILED_OPERATION_KEY));
+        if(intent.hasExtra(StoreClientConstants.FAILED_OPERATION)){
+            JsonObject failedOperation = (JsonObject)parser.parse(intent.getStringExtra(StoreClientConstants.FAILED_OPERATION));
 
             if(!avoidOperation(failedOperation.get("endpoint").getAsString())){
                 Toast.makeText(mContext, mContext.getString(R.string.failed_remote_operation), Toast.LENGTH_LONG).show();

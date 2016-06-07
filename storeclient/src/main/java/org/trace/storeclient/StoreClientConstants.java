@@ -11,10 +11,17 @@ public interface StoreClientConstants {
 
     //AuthTokenExpired
     String TOKEN_EXPIRED_ACTION  = "org.trace.intent.EXPIRED_TOKEN";
-    String FAILED_OPERATION_KEY = "org.trace.intent.FAILED_OPERATION";
+    String FAILED_OPERATION = "org.trace.intent.FAILED_OPERATION";
     String AUTH_TOKEN_EXTRA = "auth_token";
     String TRACK_EXTRA  = "org.trace.store.extras.TRACK";
+    String USER_REQUEST_EXTRA  = "org.trace.store.extras.REGISTER_USER";
+    String OPERATION_EXTRA  = "org.trace.store.extras.OPERATION";
+    String ERROR_CODE_EXTRA  = "org.trace.store.extras.ERROR_CODE";
+    String ERROR_MSG_EXTRA  = "org.trace.store.extras.ERROR_MSG";
     String OPERATION_KEY    = "action";
+    String LATITUDE = "org.trace.store.extras.LATITUDE";
+    String LONGITUDE = "org.trace.store.extras.LONGITUDE";
+    String RADIUS = "org.trace.store.extras.RADIUS";
 
     interface auth {
         String CREDENTIAL_DELETED = "org.trace.intent.CREDENTIAL_DELETED";
@@ -23,8 +30,25 @@ public interface StoreClientConstants {
 
         String SUCCESS = "org.trace.extra.SUCCESS";
         String STATUS = "org.trace.extra.STATUS";
-
-
-
     }
+
+    interface register_user {
+        String NAME = "name";
+        String USERNAME = "username";
+        String EMAIL = "email";
+        String PASSWORD = "password";
+        String CONFIRMATION_PASSWORD = "confirm";
+        String PHONE = "phone";
+        String ADDRESS = "address";
+    }
+
+    interface response {
+        String  SUCCESS = "success",
+                ERROR_CODE = "code",
+                ERROR_MSG = "error";
+
+        String PAYLOAD = "payload";
+    }
+
+
 }
