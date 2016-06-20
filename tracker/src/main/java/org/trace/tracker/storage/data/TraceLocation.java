@@ -14,6 +14,7 @@ import org.trace.tracker.modules.activity.ActivityRecognitionModule;
 public class TraceLocation extends Location{
 
     private String activityMode;
+    private boolean isCorner;
 
     public TraceLocation(){
         super("unknown");
@@ -147,6 +148,31 @@ public class TraceLocation extends Location{
 
         if (secondaryAttributes.has(TrackingConstants.location.attributes.ACTIVITY))
             activityMode = secondaryAttributes.get(TrackingConstants.location.attributes.ACTIVITY).getAsString();
+    }
+
+    /**
+     * Check if the current position vs the last position is a corner (heading change of 30 degrees)
+     * @author Miley
+     * @param lastPositionBearing
+     * @return
+     */
+    public boolean isCorner(float lastPositionBearing) {
+
+        if (getSpeed() < 0.5)
+            return false;
+        if (getBearing() < 0)
+            return false;
+
+
+        float diffHeading = Math.abs(lastPositionBearing - getBearing());
+
+        if (diffHeading > 180)
+            diffHeading = 360 - diffHeading;
+
+        if (diffHeading > 30)
+            return true;
+
+        return false;
     }
 
     @Override
