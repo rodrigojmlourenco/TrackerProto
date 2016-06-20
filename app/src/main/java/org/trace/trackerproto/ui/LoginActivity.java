@@ -26,10 +26,10 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
 
+import org.trace.storeclient.StoreClientConstants;
 import org.trace.storeclient.TraceAuthenticationManager;
 import org.trace.storeclient.auth.MultipleCredentialsRequestHandler;
 import org.trace.storeclient.exceptions.NetworkConnectivityRequiredException;
-import org.trace.tracker.TrackingConstants;
 import org.trace.trackerproto.R;
 
 public class LoginActivity extends AppCompatActivity implements GoogleApiClient.OnConnectionFailedListener {
@@ -53,8 +53,8 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
             @Override
             public void onReceive(Context context, Intent intent) {
 
-                if(intent.hasExtra(TrackingConstants.store.SUCCESS_LOGIN_EXTRA)
-                        && intent.getBooleanExtra(TrackingConstants.store.SUCCESS_LOGIN_EXTRA, false)) {
+                if(intent.hasExtra(StoreClientConstants.SUCCESS_LOGIN_EXTRA)
+                        && intent.getBooleanExtra(StoreClientConstants.SUCCESS_LOGIN_EXTRA, false)) {
                     Toast.makeText(LoginActivity.this, "Login successful", Toast.LENGTH_LONG).show();
 
                     Intent mainActivity = new Intent(LoginActivity.this, MainActivity.class);
@@ -64,8 +64,8 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
                 }else{
 
                     String error;
-                    if(intent.hasExtra(TrackingConstants.store.LOGIN_ERROR_MSG_EXTRA))
-                        error = intent.getStringExtra(TrackingConstants.store.LOGIN_ERROR_MSG_EXTRA);
+                    if(intent.hasExtra(StoreClientConstants.LOGIN_ERROR_MSG_EXTRA))
+                        error = intent.getStringExtra(StoreClientConstants.LOGIN_ERROR_MSG_EXTRA);
                     else
                         error = "Login failed!";
 
@@ -75,7 +75,7 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
         };
 
         IntentFilter filter = new IntentFilter();
-        filter.addAction(TrackingConstants.store.LOGIN_ACTION);
+        filter.addAction(StoreClientConstants.LOGIN_ACTION);
         registerReceiver(mReceiver, filter);
 
         setupGoogleSignin();

@@ -19,8 +19,6 @@
 
 package org.trace.storeclient.utils;
 
-import org.apache.commons.validator.routines.EmailValidator;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -46,13 +44,13 @@ import edu.vt.middleware.password.WhitespaceRule;
 public class FormFieldValidator {
 
     private final static PasswordValidator PASSWORD_VALIDATOR;
-    private final static EmailValidator EMAIL_VALIDATOR = EmailValidator.getInstance();
+
 
     private final static Pattern NAME_VALIDATOR  		= Pattern.compile("^[a-zA-Z çãõéáâ]{3,64}$");
     private final static Pattern USERNAME_VALIDATOR  	= Pattern.compile("^[a-zA-Z0-9_]{5,15}$");
     private final static Pattern ADDRESS_VALIDATOR		= Pattern.compile("^[a-zA-Z0-9, ºª]{5,254}$");
     private final static Pattern PHONE_VALIDATOR		= Pattern.compile("^([+]?[0-9]{1,3})?[0-9]{9,15}$");
-
+    private final static Pattern EMAIL_VALIDATOR        = Pattern.compile("^[_A-Za-z0-9-\\+]+(\\.[_A-Za-z0-9-]+)*@[A-Za-z0-9-]+(\\.[A-Za-z0-9]+)*(\\.[A-Za-z]{2,})$");
     private final static Pattern SUBJECT_VALIDATOR  	= Pattern.compile("^[a-zA-Z0-9_]{5,25}$");
 
     static {
@@ -93,7 +91,8 @@ public class FormFieldValidator {
     }
 
     public static boolean isValidEmail(String email){
-        return EMAIL_VALIDATOR.isValid(email);
+        Matcher m = EMAIL_VALIDATOR.matcher(email);
+        return m.matches();
     }
 
     public static boolean isValidUsername(String username){

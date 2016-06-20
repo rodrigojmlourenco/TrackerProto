@@ -22,9 +22,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import org.trace.storeclient.TRACEStore;
-import org.trace.tracker.TRACETracker;
+import org.trace.tracker.TRACETrackerService;
 import org.trace.tracker.TrackingConstants;
-import org.trace.tracker.storage.data.SimplifiedTrack;
+import org.trace.tracker.storage.data.TrackSummary;
 import org.trace.tracker.storage.data.Track;
 import org.trace.trackerproto.ProtoConstants;
 import org.trace.trackerproto.R;
@@ -59,11 +59,11 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
         /* Old Version Using PersistentTrackStorage
         mTrackStorage = new PersistentTrackStorage(getActivity());
 
-        List<SimplifiedTrack> simplifiedTracks = mTrackStorage.getTracksSessions();
+        List<TrackSummary> simplifiedTracks = mTrackStorage.getTracksSessions();
         String[] tracks = new String[simplifiedTracks.size()];
         */
         //new Version
-        List<SimplifiedTrack> simplifiedTracks = TRACETracker.Client.getAllStoredTracks(getActivity());
+        List<TrackSummary> simplifiedTracks = TRACETrackerService.Client.getAllStoredTracks(getActivity());
         String[] tracks = new String[simplifiedTracks.size()];
 
         for(int i=0; i < simplifiedTracks.size(); i++) //Remove the file prefix
@@ -106,8 +106,8 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
 
             Track track;
 
-            track = TRACETracker.Client.getStoredTrack(getActivity(), sessionId);
-            feedback = TRACETracker.Client.exportStoredTrackToExternalMemory(getActivity(), track);
+            track = TRACETrackerService.Client.getStoredTrack(getActivity(), sessionId);
+            feedback = TRACETrackerService.Client.exportStoredTrackToExternalMemory(getActivity(), track);
         }
 
         Toast.makeText(getActivity(), feedback, Toast.LENGTH_SHORT).show();
@@ -130,7 +130,7 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
             int i;
             for(i=0; i < values.length; i++){
                 //Track t = mTrackStorage.getTrack(values[i]);
-                Track t = TRACETracker.Client.getStoredTrack(getActivity(), values[i]);
+                Track t = TRACETrackerService.Client.getStoredTrack(getActivity(), values[i]);
                 tracks.put(values[i], t);
             }
 
@@ -213,7 +213,7 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
                                     String handle = values.get(position);
                                     String sessionId = tracks.get(values.get(position)).getSessionId();
 
-                                    TRACETracker.Client.deleteStoredTrack(getActivity(), sessionId);
+                                    TRACETrackerService.Client.deleteStoredTrack(getActivity(), sessionId);
 
                                     ((TrackCountListener) getActivity()).updateTrackCount();
 
@@ -231,7 +231,7 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
 
                     if(isNetworkConnected()) {
                         //Track track = mTrackStorage.getTrack(values.get(position));
-                        Track track = TRACETracker.Client.getStoredTrack(getActivity(), values.get(position));
+                        Track track = TRACETrackerService.Client.getStoredTrack(getActivity(), values.get(position));
 
                         if(track == null){
                             Log.e("UPLOAD", "The session is not being updated in the activity!"); //TODO

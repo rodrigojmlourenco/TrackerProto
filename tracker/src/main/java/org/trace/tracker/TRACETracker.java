@@ -1,342 +1,278 @@
 package org.trace.tracker;
 
-import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.location.Location;
-import android.os.Handler;
-import android.os.IBinder;
-import android.os.Looper;
-import android.os.Message;
-import android.os.Messenger;
-import android.os.RemoteException;
-import android.support.annotation.Nullable;
-import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
-import android.widget.Toast;
 
+import com.google.android.gms.location.DetectedActivity;
+import com.google.android.gms.location.LocationServices;
+
+import org.trace.tracker.google.GoogleClientManager;
 import org.trace.tracker.modules.activity.ActivityConstants;
-import org.trace.tracker.settings.SettingsManager;
-import org.trace.tracker.settings.TrackingProfile;
-import org.trace.tracker.storage.GPXTrackWriter;
+import org.trace.tracker.modules.activity.ActivityRecognitionModule;
+import org.trace.tracker.modules.location.FusedLocationModule;
+import org.trace.tracker.settings.ConfigurationProfile;
+import org.trace.tracker.settings.ConfigurationsManager;
 import org.trace.tracker.storage.PersistentTrackStorage;
-import org.trace.tracker.storage.data.SimplifiedTrack;
-import org.trace.tracker.storage.data.Track;
+import org.trace.tracker.storage.data.TraceLocation;
 
-import java.util.List;
+import java.util.ArrayList;
 
-/**
- * The TRACETracker is a Service that is responsible for managing the tracking efforts. In particular
- * this service is responsible for tracking the user's location and activity mode.
- */
-public class TRACETracker extends Service {
+public class TRACETracker extends BroadcastReceiver implements CollectorManager {
 
-    private final String LOG_TAG = "TRACETracker";
+    private static final String LOG_TAG = "TRACETracker";
 
-    private Tracker mTracker;
-    private PersistentTrackStorage mTrackStorage;
-    final Messenger mMessenger = new Messenger(new ClientHandler());
+    private static TRACETracker TRACKER = null;
+
+    private Context mContext;
+    private GoogleClientManager mGoogleMan;
+
+    private Location mCurrentLocation = null;
+    private final Object mLocationLock = new Object();
+
+    //Async
+    private final Object mLock = new Object();
+
+    //Location Modules
+    private double travelledDistance = 0;
+    private FusedLocationModule mFusedLocationModule = null;
+
+
+    //Activity Modules
+    private DetectedActivity mCurrentActivity = null;
+    private ActivityRecognitionModule mActivityRecognitionModule = null;
+
+    //Outlier Filters Parameters
+    private int mMinimumActivityConfidence;
+
+    //Settings
+    private ConfigurationsManager mSettingsManager;
+
+    //Persistent Storage
+    private PersistentTrackStorage mTrackPersistentStorage;
+
+    private TRACETracker(Context context){
+        mContext = context;
+
+        mGoogleMan = new GoogleClientManager(mContext);
+        mGoogleMan.connect();
+
+        //Settings
+        mSettingsManager = ConfigurationsManager.getInstance(context);
+
+        mTrackPersistentStorage = new PersistentTrackStorage(mContext);
+    }
+
+    protected static TRACETracker getTracker(Context ctx){
+        if(TRACKER == null)
+            TRACKER = new TRACETracker(ctx);
+
+        return TRACKER;
+    }
+
+
+    private void init(){
+
+        mFusedLocationModule = new FusedLocationModule(
+                mContext,
+                mGoogleMan.getApiClient());
+
+        mActivityRecognitionModule = new ActivityRecognitionModule(
+                mContext,
+                mGoogleMan.getApiClient());
+    }
+
+
+    public void updateSettings() {
+
+        ConfigurationProfile profile = mSettingsManager.getTrackingProfile();
+
+        if(mFusedLocationModule ==null) init();
+
+        mFusedLocationModule.setInterval(profile.getLocationInterval());
+        mFusedLocationModule.setFastInterval(profile.getLocationFastInterval());
+        mFusedLocationModule.setMinimumDisplacement(profile.getLocationDisplacementThreshold());
+        mFusedLocationModule.setMinimumAccuracy(profile.getLocationMinimumAccuracy());
+        mFusedLocationModule.setPriority(profile.getLocationTrackingPriority());
+        mFusedLocationModule.setMaximumSpeed(profile.getLocationMaximumSpeed());
+        mFusedLocationModule.activateRemoveOutliers(profile.isActiveOutlierRemoval());
+
+        if(mActivityRecognitionModule ==null) init();
+        mActivityRecognitionModule.setInterval(profile.getActivityInterval());
+        mActivityRecognitionModule.setMinimumConfidence(profile.getActivityMinimumConfidence());
+
+        //TODO: this should be in the ActivityRecognitionModule
+        mMinimumActivityConfidence = profile.getActivityMinimumConfidence();
+    }
+
+
 
     @Override
-    public void onCreate() {
-        super.onCreate();
-        mTracker = Tracker.getTracker(this);
-        mTrackStorage = new PersistentTrackStorage(this);
-    }
-
-    /* Service
-    /* Service
-    /* Service
-     ***********************************************************************************************
-     ***********************************************************************************************
-     ***********************************************************************************************
-     */
-    @Nullable
-    @Override
-    public IBinder onBind(Intent intent) {
-
-        Log.d(LOG_TAG, "onBind");
-
-        IntentFilter listenerFilter = new IntentFilter();
-        listenerFilter.addAction(ActivityConstants.COLLECT_ACTION);
-        listenerFilter.addAction(org.trace.tracker.TrackingConstants.tracker.COLLECT_LOCATIONS_ACTION);
-
-        LocalBroadcastManager.getInstance(this).registerReceiver(mTracker, listenerFilter);
-        registerReceiver(mTracker, new IntentFilter(ActivityConstants.COLLECT_ACTION)); //TODO: confirmar se este é necessário
-
-        return mMessenger.getBinder();
+    public void storeLocation(Location location) {
+        throw new UnsupportedOperationException();
     }
 
 
-    @Override
-    public boolean onUnbind(Intent intent) {
-        Log.d(LOG_TAG, "onUnbind");
+    public void startLocationUpdates(){
+        if(mFusedLocationModule ==null) init();
 
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(mTracker);
-        unregisterReceiver(mTracker);
+        travelledDistance = 0;
+        mFusedLocationModule.startTracking();
+    }
 
-        return super.onUnbind(intent);
+    public void stopLocationUpdates(){
+        mFusedLocationModule.stopTracking();
+    }
+
+    public void startActivityUpdates(){
+        if(mActivityRecognitionModule ==null) init();
+        mActivityRecognitionModule.startTracking();
+    }
+
+    public void stopActivityUpdates(){
+        mActivityRecognitionModule.stopTracking();
     }
 
 
-    /* Service Requests Handling
-    /* Service Requests Handling
-    /* Service Requests Handling
-    ************************************************************************************************
-    ************************************************************************************************
-    ************************************************************************************************
-     */
+    private void onHandleLocation(TraceLocation location){
 
-    /**
-     * Operation codes of the methods supported by the TRACETrackerService
-     */
-    protected interface TRACETrackerOperations {
+        String session  = mSessionId;
+        boolean isValid = isValidSession;
 
-        int TRACK_LOCATION_ACTION   = 2;
-        int UNTRACK_LOCATION_ACTION = 3;
+        //Store
+        location.setActivityMode(mCurrentActivity);
+        mTrackPersistentStorage.storeLocation(location, session, isValid);
 
-        int TRACK_ACTIVITY_ACTION   = 5;
-        int UNTRACK_ACTIVITY_ACTION = 6;
+        //Update the current location
+        synchronized (mLocationLock){
 
-        int TRACK_ACTION            = 7;
-        int UNTRACK_ACTION          = 8;
+            if(mCurrentLocation != null)
+                travelledDistance += mCurrentLocation.distanceTo(location);
 
-        int LAST_LOCATION_ACTION    = 9;
+            mCurrentLocation = location;
+        }
+
+        //Update the travelled distance
+        mTrackPersistentStorage.updateTravelledDistanceAndTime(session, travelledDistance, 0);
     }
 
-    private class ClientHandler extends Handler {
+    private void onHandleDetectedActivity(ArrayList<DetectedActivity> detectedActivities){
 
-        @Override
-        public void handleMessage(Message msg) {
-            switch (msg.what) {
+        if(detectedActivities.isEmpty()) return;
 
-                case TRACETrackerOperations.TRACK_ACTION:
-                case TRACETrackerOperations.TRACK_LOCATION_ACTION:
-                    startTracking(msg);
-                    break;
-                case TRACETrackerOperations.UNTRACK_ACTION:
-                case TRACETrackerOperations.UNTRACK_LOCATION_ACTION:
-                    stopTracking();
-                    break;
-                case TRACETrackerOperations.TRACK_ACTIVITY_ACTION:
-                case TRACETrackerOperations.UNTRACK_ACTIVITY_ACTION:
-                    break;
-                case TRACETrackerOperations.LAST_LOCATION_ACTION:
-                    broadcastCurrentLocation();
-                    break;
-                default:
-                    super.handleMessage(msg);
-            }
+        DetectedActivity aux = detectedActivities.get(0);
+
+        for(DetectedActivity activity : detectedActivities)
+            if (aux.getConfidence() > activity.getConfidence())
+                aux = activity;
+
+        if(aux.getConfidence() < mMinimumActivityConfidence) {
+            String activityName = ActivityRecognitionModule.getActivityString(aux.getType());
+            Log.d(LOG_TAG, "Confidence on the activity '"+activityName+"' is too low, keeping the previous...");
+            return;
+        }
+
+        synchronized (mLock) {
+            mCurrentActivity = aux;
         }
     }
 
-    private String mCurrentSession;
-    private void startTracking(Message msg){
+    @Override
+    public void onReceive(Context context, Intent intent) {
 
-        String session = mTrackStorage.getNextAvailableId();
-        mCurrentSession= session;
-        boolean isValid= false;
+        if(intent.hasExtra(org.trace.tracker.TrackingConstants.tracker.LOCATION_EXTRA)) {
 
-        mTracker.setSession(session, isValid);
-        mTracker.updateSettings();
-        mTracker.startLocationUpdates();
-        mTracker.startActivityUpdates();
+            TraceLocation location = intent.getParcelableExtra(org.trace.tracker.TrackingConstants.tracker.LOCATION_EXTRA);
+            onHandleLocation(location);
+
+
+        }else if(intent.hasExtra(ActivityConstants.ACTIVITY_EXTRA)) {
+
+            ArrayList<DetectedActivity> updatedActivities =
+                    intent.getParcelableArrayListExtra(ActivityConstants.ACTIVITY_EXTRA);
+
+            onHandleDetectedActivity(updatedActivities);
+        }
     }
 
-    private void stopTracking(){
-        mTracker.stopLocationUpdates();
-        mTracker.stopActivityUpdates();
-
-        deleteTrackIfIrrelevant(mCurrentSession);
+    private boolean isFreshLocation(Location location){
+        long timeDiff = System.currentTimeMillis() - location.getTime();
+        return timeDiff <= 30*1000; //30s
     }
 
-    private void deleteTrackIfIrrelevant(String session){
-        Track t = mTrackStorage.getTrack(mCurrentSession);
+    private Location getLastKnownLocation(){
 
-        if(t == null || t.getTravelledDistance() <= 15 || t.getTracedTrack().size() <= 5) {
-            mTrackStorage.deleteTrackById(session);
+        if(mGoogleMan.getApiClient().isConnected())
+            return LocationServices.FusedLocationApi.getLastLocation(mGoogleMan.getApiClient());
+        else
+            return null;
 
-            //TODO: remover --- apenas para testing
-            Handler handler = new Handler(Looper.getMainLooper());
-            handler.post(new Runnable() {
+    }
 
-                @Override
-                public void run() {
-                    Toast.makeText(getApplicationContext(), "This track was not stored because it is too short.", Toast.LENGTH_LONG).show();
+    public Location getCurrentLocation() {
+
+        //Scenario 1 - There is a current location and its fresh
+        synchronized (mLocationLock) {
+            if (mCurrentLocation != null && isFreshLocation(mCurrentLocation))
+                return mCurrentLocation;
+        }
+
+        //Scenario 2 - There is no current location or it's not fresh
+        //              Using the LocationServices the last known location is retrieved.
+        Location lastKnown = getLastKnownLocation();
+        if(lastKnown != null && isFreshLocation(lastKnown)){
+            synchronized (mLocationLock){
+
+                if(mCurrentLocation != null
+                    && mCurrentLocation.getTime() >= lastKnown.getTime()) {
+
+                    mCurrentLocation = lastKnown;
+
                 }
-            });
-        }
 
-
-    }
-
-    private void broadcastCurrentLocation(){
-
-        Location location = mTracker.getCurrentLocation();
-
-        Intent locationBroadcast = new Intent();
-        locationBroadcast.setAction(org.trace.tracker.TrackingConstants.tracker.BROADCAST_LOCATION_ACTION);
-        locationBroadcast.putExtra(org.trace.tracker.TrackingConstants.tracker.BROADCAST_LOCATION_EXTRA, location);
-
-        LocalBroadcastManager.getInstance(this).sendBroadcast(locationBroadcast);
-    }
-
-
-    /* Trace Tracker Client Abstraction Layer
-    /* Trace Tracker Client Abstraction Layer
-    /* Trace Tracker Client Abstraction Layer
-     ***********************************************************************************************
-     ***********************************************************************************************
-     ***********************************************************************************************
-     */
-
-    /**
-     * The TraceTrackerClient was designed to ease communication with the TraceTracker service. It
-     * operates as an abstraction layer, that masks the communication between the activities and
-     * the TraceTracker service.
-     */
-    public static class Client {
-
-        private static void sendRequest(Messenger messenger, Message msg){
-            try {
-                messenger.send(msg);
-            } catch (RemoteException e) {
-                e.printStackTrace();
+                return lastKnown;
             }
         }
 
-        /**
-         * Initiates the location and activity tracking modules.
-         * <br>
-         * <br><b>Note:</b> It is important to assure in API version above 23, that the ACCESS_FINE_LOCATION
-         * and ACCESS_COARSE_LOCATION have been granted, and otherwise, request them.
-         *
-         * @param messenger Messenger object for Activity Service communication
-         */
-        public static void startTracking(Messenger messenger){
-            Message msg = Message.obtain(null, TRACETrackerOperations.TRACK_ACTION);
-            sendRequest(messenger, msg);
-        }
+        return lastKnown;
 
+        /* TODO: este cenário pode levar a race conditions
+        // Scenario 3 - Both scenarios failed
+        //              Turn on the FusedLocationModule and wait for mCurrentLocation to be set
+        boolean await = true;
+        startLocationUpdates();
 
-        /**
-         * Stops the location and activity tracking modules.
-         */
-        public static void stopTracking(Messenger messenger){
-            Message msg = Message.obtain(null, TRACETrackerOperations.UNTRACK_ACTION);
-            sendRequest(messenger, msg);
-        }
+        do {
+            synchronized (mLocationLock) {
+                await = mCurrentLocation != null && isFreshLocation(mCurrentLocation);
+            }
+        }while (await);
 
-        /**
-         * Request the most current location. Because the communication is made with the service
-         * this method does not actually returns the location. Instead, the location is broadcasted
-         * through the LocalBroadcastManager with the TrackingConstants.BROADCAST_LOCATION_ACTION, and
-         * under the TrackingConstants.BROADCAST_LOCATION_EXTRA extra.
-         * <br>
-         * <br><b>Note:</b> It is important to assure in API version above 23, that the ACCESS_FINE_LOCATION
-         * and ACCESS_COARSE_LOCATION have been granted, and otherwise, request them.
-         * <br>
-         * <pre>
-         *     {@code
-         *     mLocationReceiver = new BroadcastReceiver(){
-         *      {@literal @}Override
-         *      public void onReceive(Context context, Intent intent) {
-         *          Location mCurrentLocation = intent.getParcelableExtra(TrackingConstants.tracker.BROADCAST_LOCATION_EXTRA);
-         *          //Do something with the location
-         *          }
-         *     };
-         *
-         *     IntentFilter locationFilter = new IntentFilter();
-         *     locationFilter.addAction(TrackingConstants.tracker.BROADCAST_LOCATION_ACTION);
-         *
-         *     LocalBroadcastManager.getInstance(this).registerReceiver(mLocationReceiver, locationFilter);
-         *     }
-         * </pre>
-         */
-        public static void getLastLocation(Messenger messenger){
-            Message msg = Message.obtain(null, TRACETrackerOperations.LAST_LOCATION_ACTION);
-            sendRequest(messenger, msg);
-        }
+        stopLocationUpdates();
+        return mCurrentLocation;
+        */
+    }
 
-        /**
-         * Updates the tracking profile settings. These define the sampling rates used, how outliers
-         * are identified, among other information.
-         *
-         * @param profile The tracking profile.
-         *
-         * @see TrackingProfile
-         */
-        public static void updateTrackingProfile(Context context, TrackingProfile profile){
-            SettingsManager settingsManager = SettingsManager.getInstance(context);
-            settingsManager.saveTrackingProfile(profile);
-        }
+    /* Session Management
+    /* Session Management
+    /* Session Management
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+    private String mSessionId = null;
+    private boolean isValidSession = false;
 
-        /**
-         * Fetches the current tracking profile.
-         * @return The current TrackingProfile
-         * @see TrackingProfile
-         */
-        public static TrackingProfile getCurrentTrackingProfile(Context context){
-            SettingsManager settingsManager = SettingsManager.getInstance(context);
-            return settingsManager.getTrackingProfile();
-        }
+    public void setSession(String session, boolean isValid){
+        teardownSession();
+        mSessionId = session;
+        isValidSession = isValid;
+    }
 
-
-        /**
-         * Fetches all the stored tracks as a list of SimplifiedTracks
-         * @return SimplifiedTrack list
-         * @see SimplifiedTrack
-         */
-        public static List<SimplifiedTrack> getAllStoredTracks(Context context){
-            PersistentTrackStorage storage = new PersistentTrackStorage(context);
-            return storage.getTracksSessions();
-        }
-
-        /**
-         * Fetches a track identified by its session identifier as a complete track.
-         * @param sessionId The track's identifier
-         * @return The Track
-         *
-         * @see Track
-         */
-        public static Track getStoredTrack(Context context, String sessionId){
-            PersistentTrackStorage storage = new PersistentTrackStorage(context);
-            return storage.getTrack(sessionId);
-        }
-
-
-        /**
-         * Fetches the number of tracks currently stored in memory.
-         * @return The number of stored tracks.
-         */
-        public static int getStoredTracksCount(Context context){
-            PersistentTrackStorage storage = new PersistentTrackStorage(context);
-            return  storage.getTracksCount();
-        }
-
-        /**
-         * Removes the track identified by its session identifier from memory.
-         * @param sessionId The track's session identifier.
-         */
-        public static void deleteStoredTrack(Context context, String sessionId){
-            PersistentTrackStorage storage = new PersistentTrackStorage(context);
-            storage.deleteTrackById(sessionId);
-        }
-
-
-
-        /**
-         * Exports the track identified by its session identifier to external storage. The track
-         * is exported as a gpx file, which conforms to the GPS Exchange Format.
-         *
-         * <br><b>Note:</b> It is important to assure in API version above 23, that the READ and
-         * WRITE permissions for external storage have been granted.
-         *
-         * @param track The track to be exported
-         */
-        public static String exportStoredTrackToExternalMemory(Context context, Track track){
-            return GPXTrackWriter.exportAsGPX(context, track);
-        }
+    private void teardownSession(){
+        mSessionId = null;
+        isValidSession = false;
     }
 }

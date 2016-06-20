@@ -9,7 +9,7 @@ import org.trace.tracker.filter.HeuristicBasedFilter;
  * @author Rodrigo Lourenço
  * @version 0.0
  *
- * The TrackingProfile class defines the major settings values for both the tracking
+ * The ConfigurationProfile class defines the major settings values for both the tracking
  * and uploading schemes.
  * <br>
  * <emph>Notes:</emph>
@@ -25,7 +25,7 @@ import org.trace.tracker.filter.HeuristicBasedFilter;
  *     </li>
  * </ul>
  */
-public class TrackingProfile {
+public class ConfigurationProfile {
 
     //Fused TraceLocationModule
     /** The distance that should be traversed before any other location are accepted. Minimum 2m*/
@@ -58,15 +58,15 @@ public class TrackingProfile {
     private boolean isActiveOutlierRemoval = true;
 
     /**
-     * Creates a new TrackingProfile with the default values.
+     * Creates a new ConfigurationProfile with the default values.
      */
-    public TrackingProfile(){}
+    public ConfigurationProfile(){}
 
     /**
-     * Create a new TrackingProfile given a JsonObject that contains the key-value pairs.
+     * Create a new ConfigurationProfile given a JsonObject that contains the key-value pairs.
      * @param jsonProfile The profile as a JsonObject.
      */
-    public TrackingProfile(JsonObject jsonProfile){
+    public ConfigurationProfile(JsonObject jsonProfile){
         loadFromJsonProfile(jsonProfile);
     }
 

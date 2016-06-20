@@ -17,11 +17,11 @@ import org.trace.trackerproto.R;
 
 public class DynamicEntryActivity extends AppCompatActivity implements GoogleApiClient.OnConnectionFailedListener{
 
-
     private LoginBroadcastListener mListener;
     private GoogleApiClient mGoogleApiClient;
     private TraceAuthenticationManager mAuthManager;
     private MultipleCredentialsRequestHandler mHandler;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 

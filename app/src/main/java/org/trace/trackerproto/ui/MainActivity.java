@@ -33,7 +33,7 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import org.trace.storeclient.TraceAuthenticationManager;
 import org.trace.storeclient.auth.AuthenticationRenewalListener;
 import org.trace.storeclient.exceptions.UserIsNotLoggedException;
-import org.trace.tracker.TRACETracker;
+import org.trace.tracker.TRACETrackerService;
 import org.trace.tracker.TrackingConstants;
 import org.trace.trackerproto.R;
 import org.trace.trackerproto.ui.slidingmenu.adapter.NavDrawerListAdapter;
@@ -54,6 +54,8 @@ public class MainActivity extends AppCompatActivity
     private Fragment mCurrentFragment = null;
 
     private AuthenticationRenewalListener authRenewalListener;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,14 +83,14 @@ public class MainActivity extends AppCompatActivity
 
     private boolean isBound = false;
     private Messenger mService = null;
-    private TRACETracker.Client mTrakerClient = null;
+    private TRACETrackerService.Client mTrakerClient = null;
 
     private ServiceConnection mConnection = new ServiceConnection() {
 
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             mService= new Messenger(service);
-            //mTrakerClient = new TRACETracker.Client(MainActivity.this, mService);
+            //mTrakerClient = new TRACETrackerService.Client(MainActivity.this, mService);
         }
 
         @Override
@@ -103,7 +105,7 @@ public class MainActivity extends AppCompatActivity
     protected void onStart() {
         super.onStart();
 
-        Intent trackerService = new Intent(this, TRACETracker.class);
+        Intent trackerService = new Intent(this, TRACETrackerService.class);
         trackerService.setFlags(Service.START_STICKY);
         bindService(trackerService, mConnection, Context.BIND_AUTO_CREATE);
 
@@ -186,7 +188,7 @@ public class MainActivity extends AppCompatActivity
         // Home
         navDrawerItems.add(new NavDrawerItem(navMenuTitles[0], navMenuIcons.getResourceId(0, -1)));
         // Tracks
-        int count = TRACETracker.Client.getStoredTracksCount(this);
+        int count = TRACETrackerService.Client.getStoredTracksCount(this);
         navDrawerItems.add(new NavDrawerItem(navMenuTitles[1], navMenuIcons.getResourceId(1, -1), true, String.valueOf(count)));
         // Settings
         navDrawerItems.add(new NavDrawerItem(navMenuTitles[2], navMenuIcons.getResourceId(2, -1)));
@@ -510,7 +512,7 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public void updateTrackCount(){
-        int count = TRACETracker.Client.getStoredTracksCount(this);
+        int count = TRACETrackerService.Client.getStoredTracksCount(this);
         navDrawerItems.get(1).setCount(String.valueOf(count));
     }
 

@@ -18,15 +18,15 @@ import com.google.gson.JsonParser;
  * The direct use of this class is unadvisable, instead, the Client should be used.
  * TODO: dar suporte a partir do Client
  */
-public class SettingsManager {
+public class ConfigurationsManager {
 
     private Context mContext;
-    private TrackingProfile mTrackingProfile;
+    private ConfigurationProfile mTrackingProfile;
     private Object mLock = new Object();
 
-    private static SettingsManager MANAGER = null;
+    private static ConfigurationsManager MANAGER = null;
 
-    private SettingsManager(Context context){
+    private ConfigurationsManager(Context context){
         mContext = context;
 
         String profile =
@@ -34,11 +34,11 @@ public class SettingsManager {
                         .getString(Constants.TRACKING_PROFILE_KEY, "");
 
         if(profile.isEmpty()) {
-            mTrackingProfile = new TrackingProfile();
+            mTrackingProfile = new ConfigurationProfile();
             saveTrackingProfile(mTrackingProfile);
         }else{
             JsonParser parser = new JsonParser();
-            mTrackingProfile = new TrackingProfile((JsonObject) parser.parse(profile));
+            mTrackingProfile = new ConfigurationProfile((JsonObject) parser.parse(profile));
         }
     }
 
@@ -47,11 +47,11 @@ public class SettingsManager {
      * @param context
      * @return An instance of the Setting Manager singleton.
      */
-    public static SettingsManager getInstance(Context context){
+    public static ConfigurationsManager getInstance(Context context){
 
-        synchronized (SettingsManager.class){
+        synchronized (ConfigurationsManager.class){
             if(MANAGER == null)
-                MANAGER = new SettingsManager(context);
+                MANAGER = new ConfigurationsManager(context);
         }
 
         return MANAGER;
@@ -59,19 +59,19 @@ public class SettingsManager {
 
     /**
      * Fetches the current tracking profile.
-     * @return The TrackingProfile
+     * @return The ConfigurationProfile
      */
-    public TrackingProfile getTrackingProfile(){
+    public ConfigurationProfile getTrackingProfile(){
         synchronized (mLock) {
             return mTrackingProfile;
         }
     }
 
     /**
-     * Saves the provided TrackingProfile as the current tracking profile.
-     * @param profile The new TrackingProfile.
+     * Saves the provided ConfigurationProfile as the current tracking profile.
+     * @param profile The new ConfigurationProfile.
      */
-    public void saveTrackingProfile(TrackingProfile profile){
+    public void saveTrackingProfile(ConfigurationProfile profile){
 
         SharedPreferences.Editor editor =
                 mContext.getSharedPreferences(Constants.SETTINGS_PREFERENCES, Context.MODE_PRIVATE).edit();

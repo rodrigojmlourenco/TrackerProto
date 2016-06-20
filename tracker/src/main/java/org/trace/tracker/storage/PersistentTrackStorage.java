@@ -12,7 +12,7 @@ import android.util.Log;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-import org.trace.tracker.storage.data.SimplifiedTrack;
+import org.trace.tracker.storage.data.TrackSummary;
 import org.trace.tracker.storage.data.TraceLocation;
 import org.trace.tracker.storage.data.Track;
 
@@ -179,11 +179,11 @@ public class PersistentTrackStorage {
      * Fetches a list of all stored tracks. These are provided as simplified Tracks that contain only
      * top level information.
      * @return List of simplified tracks
-     * @see SimplifiedTrack
+     * @see TrackSummary
      */
-    public List<SimplifiedTrack> getTracksSessions(){
+    public List<TrackSummary> getTracksSessions(){
 
-        List<SimplifiedTrack> simplifiedTracks = new ArrayList<>();
+        List<TrackSummary> simplifiedTracks = new ArrayList<>();
         SQLiteDatabase db = mDBHelper.getReadableDatabase();
 
         String[] projection = {
@@ -207,7 +207,7 @@ public class PersistentTrackStorage {
                 isClosed= c.getInt(c.getColumnIndex(TraceEntry.COLUMN_NAME_IS_CLOSED)) == 1;
                 isValid = c.getInt(c.getColumnIndex(TraceEntry.COLUMN_NAME_IS_VALID)) == 1;
 
-                simplifiedTracks.add(new SimplifiedTrack(session, isClosed, isValid));
+                simplifiedTracks.add(new TrackSummary(session, isClosed, isValid));
 
             } while (c.moveToNext());
         }

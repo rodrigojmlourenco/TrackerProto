@@ -30,7 +30,8 @@ import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.MapView;
 import org.trace.storeclient.TRACEStore;
 import org.trace.storeclient.TRACEStoreReceiver;
-import org.trace.tracker.TRACETracker;
+import org.trace.tracker.TRACETrackerService;
+import org.trace.tracker.Tracker;
 import org.trace.tracker.TrackingConstants;
 import org.trace.trackerproto.R;
 
@@ -59,6 +60,9 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
     private Location mCurrentLocation;
     private BroadcastReceiver mLocationReceiver;
 
+
+    //TODO: TESTING
+    private Tracker mTracker;
 
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
@@ -115,7 +119,7 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
                 if (isGPSEnabled()) {
 
                     if (EasyPermissions.hasPermissions(getActivity(), TrackingConstants.permissions.TRACKING_PERMISSIONS))
-                        TRACETracker.Client.getLastLocation(mService);
+                        TRACETrackerService.Client.getLastLocation(mService);
                     else
                         EasyPermissions.requestPermissions(
                                 getActivity(),
@@ -164,7 +168,7 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
     public void onStart() {
         super.onStart();
 
-        Intent trackerService = new Intent(getActivity(), TRACETracker.class);
+        Intent trackerService = new Intent(getActivity(), TRACETrackerService.class);
         trackerService.setFlags(Service.START_STICKY);
         getActivity().bindService(trackerService, mConnection, Context.BIND_AUTO_CREATE);
         isBound = true;
@@ -284,9 +288,9 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
         LocalBroadcastManager.getInstance(getActivity()).registerReceiver(new TRACEStoreReceiver(), filter);
     }
 
-    /* TRACE Tracker
-    /* TRACE Tracker
-    /* TRACE Tracker
+    /* TRACE TRACETracker
+    /* TRACE TRACETracker
+    /* TRACE TRACETracker
      ***********************************************************************************************
      ***********************************************************************************************
      ***********************************************************************************************
@@ -300,6 +304,7 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             mService= new Messenger(service);
+            mTracker = Tracker.getInstance(getActivity(), mService); //TODO: testing
             isBound = true;
         }
 
@@ -332,7 +337,7 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
     @Override
     public void stopTracking() {
 
-        TRACETracker.Client.stopTracking(mService);
+        TRACETrackerService.Client.stopTracking(mService);
         isTracking = false;
         toggleButtons(isBound, false);
 
@@ -350,7 +355,8 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
 
         if (EasyPermissions.hasPermissions(getActivity(), TrackingConstants.permissions.TRACKING_PERMISSIONS)) {
 
-            TRACETracker.Client.startTracking(mService);
+            //TRACETrackerService.Client.startTracking(mService); TODO: TESTING
+            mTracker.startTracking();
             isTracking = true;
             toggleButtons(isBound, true);
 
@@ -366,7 +372,8 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
     private void stopTrackingOnClick(){
         SessionHandler handler = (SessionHandler)getActivity();
         handler.teardownTrackingSession();
-        TRACETracker.Client.stopTracking(mService);
+        //TRACETrackerService.Client.stopTracking(mService); TODO: TESTING
+        mTracker.stopTracking();
         isTracking = false;
         toggleButtons(isBound, false);
     }
@@ -420,6 +427,9 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
 
         osmMapView.invalidate();
 
+
+        //TESTING
+        TRACEStore.Client.fetchShopsWithRewards(getActivity(), latitude, longitude, 5);
     }
 
 
@@ -477,7 +487,7 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
 
         @Override
         public void run() {
-            TRACETracker.Client.getLastLocation(mService);
+            TRACETrackerService.Client.getLastLocation(mService);
         }
     }
 
