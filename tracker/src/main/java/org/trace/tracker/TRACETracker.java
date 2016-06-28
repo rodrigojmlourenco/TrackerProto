@@ -12,7 +12,7 @@ import com.google.android.gms.location.LocationServices;
 import org.trace.tracker.google.GoogleClientManager;
 import org.trace.tracker.modules.activity.ActivityConstants;
 import org.trace.tracker.modules.activity.ActivityRecognitionModule;
-import org.trace.tracker.modules.location.FusedLocationModule;
+import org.trace.tracker.modules.location.FusedLocationModuleOutlierAware;
 import org.trace.tracker.settings.ConfigurationProfile;
 import org.trace.tracker.settings.ConfigurationsManager;
 import org.trace.tracker.storage.PersistentTrackStorage;
@@ -37,7 +37,7 @@ public class TRACETracker extends BroadcastReceiver implements CollectorManager 
 
     //Location Modules
     private double travelledDistance = 0;
-    private FusedLocationModule mFusedLocationModule = null;
+    private FusedLocationModuleOutlierAware mFusedLocationModule = null;
 
 
     //Activity Modules
@@ -75,7 +75,7 @@ public class TRACETracker extends BroadcastReceiver implements CollectorManager 
 
     private void init(){
 
-        mFusedLocationModule = new FusedLocationModule(
+        mFusedLocationModule = new FusedLocationModuleOutlierAware(
                 mContext,
                 mGoogleMan.getApiClient());
 

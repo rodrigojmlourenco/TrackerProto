@@ -12,9 +12,9 @@ import android.util.Log;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-import org.trace.tracker.storage.data.TrackSummary;
 import org.trace.tracker.storage.data.TraceLocation;
 import org.trace.tracker.storage.data.Track;
+import org.trace.tracker.storage.data.TrackSummary;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,6 +32,32 @@ public class PersistentTrackStorage {
     public PersistentTrackStorage(Context context){
         mDBHelper = new TrackStorageDBHelper(context);
     }
+
+    /* Version 2.0
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+    public TrackSummary createNewTrackSummary(long startTime, int modality, int sensingType){
+        //TODO: implement this
+        throw new UnsupportedOperationException("createNewTrackSummary@PersistentTrackStorage");
+    }
+
+    public void updateTrackSummary(TrackSummary summary){
+        //TODO: implement this
+        throw new UnsupportedOperationException("createNewTrackSummary@PersistentTrackStorage");
+    }
+
+    public Track getCompleteTrack(TrackSummary summary){
+        //TODO: implement this
+        throw new UnsupportedOperationException("createNewTrackSummary@PersistentTrackStorage");
+    }
+
+    public boolean removeTrackSummaryAndTrace(TrackSummary track){
+        //TODO: implement this
+        throw new UnsupportedOperationException("createNewTrackSummary@PersistentTrackStorage");
+    }
+
 
     /* Constructors
     /* Constructors
@@ -405,6 +431,31 @@ public class PersistentTrackStorage {
     }
 
 
+    private abstract class RouteSummaryEntry implements BaseColumns {
+
+        public static final String TABLE_NAME = "RouteSummary";
+
+        public static final String COLUMN_START             = "start";
+        public static final String COLUMN_END               = "end";
+        public static final String COLUMN_MODALITY          = "modality";
+        public static final String COLUMN_SENSING_TYPE      = "sensingType";
+        public static final String COLUMN_DISTANCE          = "distance";
+        public static final String COLUMN_START_LATITUDE    = "startLat";
+        public static final String COLUMN_START_LONGITUDE   = "startLon";
+        public static final String COLUMN_END_LATITUDE      = "endLat";
+        public static final String COLUMN_END_LONGITUDE     = "endLon";
+    }
+
+    private abstract class RoutePositionEntry implements BaseColumns {
+
+        public static final String TABLE_NAME = "Positions";
+
+        public static final String COLUMN_ROUTE     = "routeId";
+        public static final String COLUMN_LATITUDE  = "latitude";
+        public static final String COLUMN_LONGITUDE = "longitude";
+        public static final String COLUMN_TIMESTAMP = "timestamp";
+        public static final String COLUMN_ATTRIBUTES= "attributes";
+    }
 
     public static abstract class TraceEntry implements BaseColumns {
         public static final String TABLE_NAME_TRACKS = "tracks";
@@ -421,6 +472,22 @@ public class PersistentTrackStorage {
         public static final String COLUMN_NAME_TIMESTAMP = "timestamp";
         public static final String COLUMN_NAME_ATTRIBUTES = "attributes";
         public static final String COLUMN_NAME_TRACK_ID = "trackId";
+    }
+
+    private interface ColumnBaseTypes {
+        String TEXT_TYPE        = " TEXT";
+        String IDENTIFIER_TYPE  = " INTEGER PRIMARY KEY AUTOINCREMENT";
+        String DOUBLE_TYPE      = " DOUBLE";
+        String DATE_TYPE        = " LONG";
+        String BOOLEAN_TYPE     = " INTEGER DEFAULT 0";
+        String INT_TYPE         = " INTEGER";
+
+        String SEPARATOR = ", ";
+    }
+
+    private interface RouteSummaryContractHelper {
+        String SQL_CREATE_TABLE = "";
+
     }
 
     private interface ContractHelper {

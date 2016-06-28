@@ -85,9 +85,8 @@ public class RouteRecorder {
         if(isRecording){
             //TODO: check if failed first
             return;
-        }
-
-        logStartRecording();
+        }else
+            logStartRecording();
 
         //Set RouteRecorder State
         isRecording = true;

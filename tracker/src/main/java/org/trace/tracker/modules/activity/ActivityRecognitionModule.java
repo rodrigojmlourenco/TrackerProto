@@ -83,6 +83,11 @@ public class ActivityRecognitionModule implements ModuleInterface, ResultCallbac
 
     }
 
+    @Override
+    public boolean isTracking() {
+        return isTracking;
+    }
+
     private PendingIntent getActivityDetectionPendingIntent() {
         Intent intent = new Intent(mContext, ActivityRecognitionHandler.class);
 
