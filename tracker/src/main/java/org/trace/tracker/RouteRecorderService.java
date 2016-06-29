@@ -20,6 +20,8 @@
 package org.trace.tracker;
 
 import android.app.Service;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.location.Location;
@@ -40,10 +42,6 @@ import org.trace.tracker.storage.data.TrackSummary;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 
 import pub.devrel.easypermissions.EasyPermissions;
 
@@ -70,8 +68,6 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
         mTracker = IJsbergTracker.getTracker(this);
         mTrackStorage = new PersistentTrackStorage(this);
         mConfigManager = ConfigurationsManager.getInstance(this);
-
-        mIdleTimer = mExecutorService.schedule(new IdleElapsed(), 20, TimeUnit.MINUTES); //TODO: should not be hardcoded
     }
 
 
@@ -88,15 +84,7 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-
-
-
         return mBinder;
-    }
-
-    @Override
-    public boolean onUnbind(Intent intent) {
-        return super.onUnbind(intent);
     }
 
     public class RouteRecorderBinder extends Binder {
@@ -112,7 +100,7 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
      */
 
     private String mCurrentSession;
-    private RouteRecorderState mState;
+    private RouteRecorderState mState = new RouteRecorderState();
 
     private final Object finishLock = new Object();
 
@@ -152,14 +140,12 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
         mState.setTracking(true);
         mState.setAutomaticTracking(isAutomatic);
         mState.setSilentStart(isSilent);
-        mState.setElapsedDistance(0);
-        mState.setCurrentTrackSummary(
-                mTrackStorage.createNewTrackSummary(startTime, modality, isAutomatic ? 0 : 2));
+        mTracker.setCurrentTrack(mTrackStorage.createNewTrackSummary(startTime, modality, isAutomatic ? 0 : 2));
 
         Log.i(LOG_TAG, "Starting a new route @"+mSDF.format(new Date(startTime)));
 
         //Step 2.b - Reset the idle timer
-        resetIdleTimer();
+        mTracker.resetIdleTimer();
 
         //Step 3 - Analyze question IJsberg
         if(isAutomatic){
@@ -177,11 +163,15 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
         mTracker.startActivityUpdates();
 
         //Step 4 - Register the receiver, which are responsible for handling new locations and activities.
-        IntentFilter listenerFilter = new IntentFilter();
-        listenerFilter.addAction(ActivityConstants.COLLECT_ACTION);
-        listenerFilter.addAction(TrackingConstants.tracker.COLLECT_LOCATIONS_ACTION);
+        IntentFilter trackingFilter = new IntentFilter();
+        trackingFilter.addAction(ActivityConstants.COLLECT_ACTION);
+        trackingFilter.addAction(TrackingConstants.tracker.COLLECT_LOCATIONS_ACTION);
 
-        LocalBroadcastManager.getInstance(this).registerReceiver(mTracker, listenerFilter);
+        LocalBroadcastManager.getInstance(this).registerReceiver(mTracker, trackingFilter);
+
+        //Step 5 - Register the receiver, which is responsible for handling idle timeouts.
+        IntentFilter timeoutFilter = new IntentFilter(IJsbergTracker.Extras.IDLE_TIMEOUT_ACTION);
+        LocalBroadcastManager.getInstance(this).registerReceiver(mTimeoutReceiver, timeoutFilter);
 
         return mCurrentSession;
     }
@@ -212,20 +202,21 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
         }else
             mState.setTracking(false);
 
-        TrackSummary currentTrack = mState.currentTrackSummary;
+        TrackSummary currentTrack = mTracker.getCurrentTrack();
 
         //Step 1 - Check if the route was automatic
         //          if so, delete tracks with less than 250m
-        if(mState.isAutomaticTracking() && mState.getElapsedDistance() < 250) { //TODO: should not be hardcoded
+        if(mState.isAutomaticTracking() && currentTrack.getElapsedDistance() < 250) { //TODO: should not be hardcoded
             Log.w(LOG_TAG, "The track "+currentTrack.getSession()+" was ignored because of its size.");
-            mTrackStorage.removeTrackSummaryAndTrace(mState.getCurrentTrackSummary());
+            mTrackStorage.removeTrackSummaryAndTrace(mTracker.getCurrentTrack());
             return null;
         }
 
         //Step 2 - Update the track summary sensing type in case of manual sensing.
         if(isManual){
             //currentTrack.setSensingType(1);
-            mTrackStorage.updateTrackSummary(currentTrack);
+            mTrackStorage.updateTrackSummaryDistanceAndTime(currentTrack);
+            mTracker.setCurrentTrack(new TrackSummary());
         }
 
         //Step 3 - Stop location and activity updates and unregister the receiver
@@ -246,7 +237,7 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
         //Step 6 - The automatic tracking is re-enabled.
 
         //Step 7 - Stop the timers
-        stopIdleTimer();
+        mTracker.stopIdleTimer();
 
 
         deleteTrackIfIrrelevant(mCurrentSession);
@@ -309,12 +300,6 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
         protected boolean isSilentStart = false;
         protected boolean isFinishing = false;
 
-        @Deprecated //TODO: migrate to the tracker
-        protected long elapsedDistance = 0;
-
-        @Deprecated //TODO: migrate to the tracker
-        private TrackSummary currentTrackSummary;
-
         protected RouteRecorderState(){}
 
         public boolean isTracking() {
@@ -341,32 +326,12 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
             isSilentStart = silentStart;
         }
 
-        @Deprecated
-        public long getElapsedDistance() {
-            return elapsedDistance;
-        }
-
-        @Deprecated
-        public void setElapsedDistance(long elapsedDistance) {
-            this.elapsedDistance = elapsedDistance;
-        }
-
         public boolean isFinishing() {
             return isFinishing;
         }
 
         public void setFinishing(boolean finishing) {
             isFinishing = finishing;
-        }
-
-        @Deprecated
-        public TrackSummary getCurrentTrackSummary() {
-            return currentTrackSummary;
-        }
-
-        @Deprecated
-        public void setCurrentTrackSummary(TrackSummary currentTrackSummary) {
-            this.currentTrackSummary = currentTrackSummary;
         }
     }
 
@@ -375,35 +340,18 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
      ***********************************************************************************************
      ***********************************************************************************************
      */
-
-    //TODO: migrate to IJsbergTracker
-    private ScheduledFuture mIdleTimer;
-    private ScheduledExecutorService mExecutorService = Executors.newScheduledThreadPool(1);
-
-
-    protected void startIdleTimer(){
-        mIdleTimer = mExecutorService.schedule(new IdleElapsed(), 20, TimeUnit.MINUTES);
-    }
-    protected void stopIdleTimer(){
-        mIdleTimer.cancel(true);
-    }
-
-    protected void resetIdleTimer(){
-        stopIdleTimer();
-        startIdleTimer();
-    }
-
-    private class IdleElapsed implements Runnable {
+    private BroadcastReceiver mTimeoutReceiver = new BroadcastReceiver() {
         @Override
-        public void run() {
-
-            if(!mState.isTracking){
-                Log.i(LOG_TAG, "IdleTime complete, however not tracking.");
+        public void onReceive(Context context, Intent intent) {
+            if(!mState.isTracking()){
+                Log.i(LOG_TAG, "IdleTimer complete, however not tracking.");
                 return;
             }
 
             stopTracking();
-            stopIdleTimer();
+            mTracker.stopIdleTimer();
         }
-    }
+    };
+
+
 }

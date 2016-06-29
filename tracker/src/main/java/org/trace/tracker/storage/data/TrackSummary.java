@@ -1,12 +1,11 @@
 package org.trace.tracker.storage.data;
 
-/**
- * Created by Rodrigo Lourenço on 11/03/2016.
- */
+
 public class TrackSummary {
     private String session;
     private boolean isClosed, isValid;
     private double elapsedTime, elapsedDistance;
+    private long startTimestamp, stopTimestamp;
 
     public TrackSummary(){}
 
@@ -16,18 +15,22 @@ public class TrackSummary {
         this.isValid = isValid;
     }
 
+    @Deprecated
     public String getSession() {
         return session;
     }
 
+    @Deprecated
     public void setSession(String session) {
         this.session = session;
     }
 
+    @Deprecated
     public boolean isClosed() {
         return isClosed;
     }
 
+    @Deprecated
     public boolean isValid() {
         return isValid;
     }
@@ -36,6 +39,7 @@ public class TrackSummary {
         return elapsedTime;
     }
 
+    @Deprecated
     public void setElapsedTime(double elapsedTime) {
         this.elapsedTime = elapsedTime;
     }
@@ -47,4 +51,31 @@ public class TrackSummary {
     public void setElapsedDistance(double elapsedDistance) {
         this.elapsedDistance = elapsedDistance;
     }
+
+    public void setStartTimestamp(long startedAt) {
+        this.startTimestamp = startedAt;
+    }
+
+    public void setStoppedTimestamp(long endedAt) {
+        this.stopTimestamp = endedAt;
+    }
+
+    public long getStart() {
+        return startTimestamp;
+    }
+
+    public long getStop() {
+        return stopTimestamp;
+    }
+
+    private int modality;
+    private int sensingType;
+    public void setModality(int modality) {
+        this.modality = modality;
+    }
+
+    public void setSensingType(int sensingType){
+        this.sensingType = sensingType;
+    }
+
 }

@@ -39,23 +39,67 @@ public class PersistentTrackStorage {
      ***********************************************************************************************
      */
     public TrackSummary createNewTrackSummary(long startTime, int modality, int sensingType){
-        //TODO: implement this
-        throw new UnsupportedOperationException("createNewTrackSummary@PersistentTrackStorage");
+
+        String trackID = this.getNextAvailableId();
+        this.createTrack(trackID, false); //TODO: remove this once this is arranged for
+
+        SQLiteDatabase db = mDBHelper.getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put(TrackSummaryEntry._ID, trackID);
+        values.put(TrackSummaryEntry.COLUMN_ID, trackID);
+        values.put(TrackSummaryEntry.COLUMN_STARTED_AT, startTime);
+        values.put(TrackSummaryEntry.COLUMN_FINISHED_AT, startTime);
+        values.put(TrackSummaryEntry.COLUMN_DISTANCE, 0);
+        values.put(TrackSummaryEntry.COLUMN_SENSING_TYPE, sensingType);
+        values.put(TrackSummaryEntry.COLUMN_MODALITY, modality);
+
+        long success = db.insert(TrackSummaryEntry.TABLE_NAME, null, values);
+        db.close();
+
+        if(success == -1)
+            //TODO: deal with unsuccess better somehow...
+            throw new RuntimeException("Unable to create a new track summary");
+        else {
+            TrackSummary summary = new TrackSummary();
+            summary.setSession(trackID);
+            summary.setStartTimestamp(startTime);
+            summary.setStoppedTimestamp(startTime);
+            summary.setElapsedDistance(0);
+            summary.setModality(modality);
+            summary.setSensingType(sensingType);
+
+            return summary;
+        }
     }
 
-    public void updateTrackSummary(TrackSummary summary){
-        //TODO: implement this
-        throw new UnsupportedOperationException("createNewTrackSummary@PersistentTrackStorage");
+    public void updateTrackSummaryDistanceAndTime(TrackSummary summary){
+
+        SQLiteDatabase db = mDBHelper.getWritableDatabase();
+        String selectionClause = TrackSummaryEntry.COLUMN_ID + " = ?";
+        String[] selectionArgs = new String[1];
+
+        ContentValues values = new ContentValues();
+        values.put(TrackSummaryEntry.COLUMN_FINISHED_AT, summary.getStop());
+        values.put(TrackSummaryEntry.COLUMN_DISTANCE, summary.getElapsedDistance());
+        selectionArgs[0] = summary.getSession();
+
+
+        int affected = db.update(TrackSummaryEntry.TABLE_NAME, values,selectionClause, selectionArgs);
+
+        db.close();
+
+        if(affected < 0)
+            throw new RuntimeException("Did not update any row!!! updateTrackSummaryDistanceAndTime@PersistentTrackStorage");
+
     }
 
     public Track getCompleteTrack(TrackSummary summary){
-        //TODO: implement this
-        throw new UnsupportedOperationException("createNewTrackSummary@PersistentTrackStorage");
+        return  this.getTrack(summary.getSession());
     }
 
-    public boolean removeTrackSummaryAndTrace(TrackSummary track){
-        //TODO: implement this
-        throw new UnsupportedOperationException("createNewTrackSummary@PersistentTrackStorage");
+    public boolean removeTrackSummaryAndTrace(TrackSummary summary){
+        return this.deleteTrackById(summary.getSession());
     }
 
 
@@ -404,7 +448,7 @@ public class PersistentTrackStorage {
      */
     private class TrackStorageDBHelper extends SQLiteOpenHelper {
 
-        public static final int DATABASE_VERSION = 2;
+        public static final int DATABASE_VERSION = 5;
         public static final String DATABASE_NAME = "TraceTracker.db";
 
         public TrackStorageDBHelper(Context context){
@@ -415,12 +459,14 @@ public class PersistentTrackStorage {
         public void onCreate(SQLiteDatabase db) {
             db.execSQL(ContractHelper.SQL_CREATE_TRACKS);
             db.execSQL(ContractHelper.SQL_CREATE_TRACES);
+            db.execSQL(TrackSummaryEntry.SQL_CREATE);
         }
 
         @Override
         public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
             db.execSQL(ContractHelper.SQL_DELETE_TRACES_TABLE);
             db.execSQL(ContractHelper.SQL_DELETE_TRACKS_TABLE);
+            db.execSQL(TrackSummaryEntry.SQL_DELETE);
             onCreate(db);
         }
 
@@ -428,33 +474,6 @@ public class PersistentTrackStorage {
         public void onDowngrade(SQLiteDatabase db, int oldVersion, int newVersion) {
             onUpgrade(db, oldVersion, newVersion);
         }
-    }
-
-
-    private abstract class RouteSummaryEntry implements BaseColumns {
-
-        public static final String TABLE_NAME = "RouteSummary";
-
-        public static final String COLUMN_START             = "start";
-        public static final String COLUMN_END               = "end";
-        public static final String COLUMN_MODALITY          = "modality";
-        public static final String COLUMN_SENSING_TYPE      = "sensingType";
-        public static final String COLUMN_DISTANCE          = "distance";
-        public static final String COLUMN_START_LATITUDE    = "startLat";
-        public static final String COLUMN_START_LONGITUDE   = "startLon";
-        public static final String COLUMN_END_LATITUDE      = "endLat";
-        public static final String COLUMN_END_LONGITUDE     = "endLon";
-    }
-
-    private abstract class RoutePositionEntry implements BaseColumns {
-
-        public static final String TABLE_NAME = "Positions";
-
-        public static final String COLUMN_ROUTE     = "routeId";
-        public static final String COLUMN_LATITUDE  = "latitude";
-        public static final String COLUMN_LONGITUDE = "longitude";
-        public static final String COLUMN_TIMESTAMP = "timestamp";
-        public static final String COLUMN_ATTRIBUTES= "attributes";
     }
 
     public static abstract class TraceEntry implements BaseColumns {
@@ -474,20 +493,59 @@ public class PersistentTrackStorage {
         public static final String COLUMN_NAME_TRACK_ID = "trackId";
     }
 
-    private interface ColumnBaseTypes {
+
+    private interface BaseTypes {
         String TEXT_TYPE        = " TEXT";
         String IDENTIFIER_TYPE  = " INTEGER PRIMARY KEY AUTOINCREMENT";
         String DOUBLE_TYPE      = " DOUBLE";
         String DATE_TYPE        = " LONG";
+        String TIMESTAMP_TYPE   = " LONG NOT NULL";
         String BOOLEAN_TYPE     = " INTEGER DEFAULT 0";
+        String STRING_TYPE      = " VARCHAR(255)";
+        String POINT_TYPE       = " VARCHAR(128)";
         String INT_TYPE         = " INTEGER";
 
         String SEPARATOR = ", ";
     }
 
-    private interface RouteSummaryContractHelper {
-        String SQL_CREATE_TABLE = "";
+    private interface TrackSummaryEntry extends BaseColumns, BaseTypes {
+        String TABLE_NAME = "TrackSummaries";
 
+        String COLUMN_ID            = " id ";
+        String COLUMN_STARTED_AT    = " startedAt ";
+        String COLUMN_FINISHED_AT   = " finishedAt ";
+        String COLUMN_FROM_LAT      = " fromLat ";
+        String COLUMN_FROM_LON      = " fromLon ";
+        String COLUMN_TO_LAT        = " toLat ";
+        String COLUMN_TO_LON        = " toLon ";
+        String COLUMN_DISTANCE      = " distance ";
+        String COLUMN_SENSING_TYPE  = " sensingType ";
+        String COLUMN_MODALITY      = " modality ";
+        String COLUMNS_FROM         = " fromLocation ";
+        String COLUMNS_TO           = " toLocation ";
+
+        String SQL_CREATE =
+                "CREATE TABLE "+ TABLE_NAME +" ( " +
+                        _ID                 + IDENTIFIER_TYPE   + SEPARATOR +
+                        COLUMN_ID           + INT_TYPE          + SEPARATOR +
+                        COLUMN_FROM_LAT     + DOUBLE_TYPE       + SEPARATOR +
+                        COLUMN_FROM_LON     + DOUBLE_TYPE       + SEPARATOR +
+                        COLUMN_TO_LAT       + POINT_TYPE        + SEPARATOR +
+                        COLUMN_TO_LON       + POINT_TYPE        + SEPARATOR +
+                        COLUMN_STARTED_AT   + TIMESTAMP_TYPE    + SEPARATOR +
+                        COLUMN_FINISHED_AT  + TIMESTAMP_TYPE    + SEPARATOR +
+                        COLUMN_DISTANCE     + DOUBLE_TYPE       + SEPARATOR +
+                        COLUMN_SENSING_TYPE + INT_TYPE          + SEPARATOR +
+                        COLUMN_MODALITY     + INT_TYPE          + SEPARATOR +
+                        COLUMNS_FROM        + TEXT_TYPE         + SEPARATOR +
+                        COLUMNS_TO          + TEXT_TYPE         + SEPARATOR +
+                        /*TODO: this bellow should eventually be deprecated*/
+                        " FOREIGN KEY ( "+ COLUMN_ID +" ) " +
+                        " REFERENCES "+ TraceEntry.TABLE_NAME_TRACKS+ " ( "+ TraceEntry._ID+" ) " +
+                        " ON DELETE CASCADE)";
+
+        String SQL_DELETE =
+                "DROP TABLE IF EXISTS " + TABLE_NAME;
     }
 
     private interface ContractHelper {

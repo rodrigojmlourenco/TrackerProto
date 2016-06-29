@@ -117,6 +117,10 @@ public class ActivityRecognitionModule implements ModuleInterface, ResultCallbac
         this.minimumConfidence = minimumConfidence;
     }
 
+    public int getMinimumConfidence() {
+        return minimumConfidence;
+    }
+
     /**
      * Returns a human readable String corresponding to a detected activity type.
      */

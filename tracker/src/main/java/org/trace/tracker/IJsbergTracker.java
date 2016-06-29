@@ -22,7 +22,12 @@ package org.trace.tracker;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.location.Address;
+import android.location.Geocoder;
 import android.location.Location;
+import android.os.Handler;
+import android.support.v4.content.LocalBroadcastManager;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.google.android.gms.location.DetectedActivity;
@@ -34,9 +39,17 @@ import org.trace.tracker.modules.activity.ActivityRecognitionModule;
 import org.trace.tracker.modules.location.FusedLocationModule;
 import org.trace.tracker.settings.ConfigurationProfile;
 import org.trace.tracker.settings.ConfigurationsManager;
+import org.trace.tracker.storage.PersistentTrackStorage;
 import org.trace.tracker.storage.data.TraceLocation;
+import org.trace.tracker.storage.data.TrackSummary;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 public class IJsbergTracker extends BroadcastReceiver implements CollectorManager {
@@ -44,10 +57,13 @@ public class IJsbergTracker extends BroadcastReceiver implements CollectorManage
     private static final String LOG_TAG = "IJsbergTracker";
 
     private static IJsbergTracker TRACKER = null;
+    private final PersistentTrackStorage mTrackStorage;
 
     private Context mContext;
     private GoogleClientManager mGoogleMan; //TODO: this is dangerous cause it hides the possibility of a disconnected googleclientapi
 
+    //State
+    private TrackSummary mCurrentTrack;
 
     private IJsbergTracker(Context context){
         mContext = context;
@@ -57,6 +73,10 @@ public class IJsbergTracker extends BroadcastReceiver implements CollectorManage
 
         //Settings
         mSettingsManager = ConfigurationsManager.getInstance(context);
+
+        mTrackStorage = new PersistentTrackStorage(context);
+
+        mIdleTimer = mExecutorService.schedule(new IdleElapsed(), 20, TimeUnit.MINUTES); //TODO: should not be hardcoded
     }
 
     protected static IJsbergTracker getTracker(Context ctx){
@@ -113,7 +133,7 @@ public class IJsbergTracker extends BroadcastReceiver implements CollectorManage
      * IJsberg positionChanged@RouteRecorder.cs:357
      * @param location
      */
-    private void onHandleLocation(TraceLocation location){
+    private void onHandleLocation(final TraceLocation location){
 
         if(location != null || !mLocationModule.isTracking()){
             Log.w(LOG_TAG, location == null ? "Null position" : "NOT supposed to be tracking");
@@ -141,28 +161,68 @@ public class IJsbergTracker extends BroadcastReceiver implements CollectorManage
         }
 
         //Step 2 - Update the current activity
-        if(mCurrentActivity != null)
-            location.setActivityMode(mCurrentActivity);
+        synchronized (mActivityLock) {
+            if (mCurrentActivity != null)
+                location.setActivityMode(mCurrentActivity);
+        }
 
 
         //Step 3 -
-
-
         if(isAcceptableAccuracy(location)){
 
             if(mLastKnownLocation == null) { //1st recorded position
 
-                //Save the route summary in a database with the new point
+                mCurrentTrack.setElapsedDistance(0);
+                mCurrentTrack.setStartTimestamp(location.getTime());
+                mCurrentTrack.setStoppedTimestamp(location.getTime());
 
+                mTrackStorage.updateTrackSummaryDistanceAndTime(mCurrentTrack);
+                //TODO: update the starting location coordinates in the storage
+                //TODO: this must also be done when stopping
 
-                ((RouteRecorderService)mContext).resetIdleTimer();
+                mTrackStorage.storeLocation(location, mCurrentTrack.getSession(), false);
+
+                Handler handler = new Handler();
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        Geocoder geocoder = new Geocoder(mContext, Locale.getDefault());
+                        List<Address> addresses = null;
+                        try {
+                            addresses = geocoder.getFromLocation(location.getLatitude(), location.getLongitude(),1);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+
+                        if(addresses != null && addresses.size() > 0){
+                            Address address = addresses.get(0);
+                            ArrayList<String> addressFragments = new ArrayList<String>();
+
+                            // Fetch the address lines using getAddressLine,
+                            // join them, and send them to the thread.
+                            for(int i = 0; i < address.getMaxAddressLineIndex(); i++) {
+                                addressFragments.add(address.getAddressLine(i));
+                            }
+                            Log.i(LOG_TAG, TextUtils.join(System.getProperty("line.separator"),
+                                            addressFragments));
+                        }
+                    }
+                });
+
+                resetIdleTimer();
                 mLastKnownLocation = location;
 
             }else if(isInterestingNewPosition(location, (TraceLocation) mLastKnownLocation)){ //This is a new location
 
                 //Update the route summary in a database with the new point
+                double travelledDistance = mLastKnownLocation.distanceTo(location);
+                mCurrentTrack.setElapsedDistance(mCurrentTrack.getElapsedDistance() + travelledDistance);
+                mCurrentTrack.setStoppedTimestamp(location.getTime());
 
-                ((RouteRecorderService)mContext).resetIdleTimer();
+                //TODO: Update the route summary
+                //TODO: Save the location, which is associated to the summary
+
+                resetIdleTimer();
                 mLastKnownLocation = location;
             }
 
@@ -268,6 +328,7 @@ public class IJsbergTracker extends BroadcastReceiver implements CollectorManage
      ***********************************************************************************************
      ***********************************************************************************************
      */
+    private final Object mActivityLock = new Object();
     private DetectedActivity mCurrentActivity = null;
     private ActivityRecognitionModule mActivityRecognitionModule = null;
 
@@ -276,7 +337,23 @@ public class IJsbergTracker extends BroadcastReceiver implements CollectorManage
     }
 
     private void onHandleDetectedActivity(ArrayList<DetectedActivity> detectedActivities){
-        //TODO:
+        if(detectedActivities.isEmpty()) return;
+
+        DetectedActivity aux = detectedActivities.get(0);
+
+        for(DetectedActivity activity : detectedActivities)
+            if (aux.getConfidence() > activity.getConfidence())
+                aux = activity;
+
+        if(aux.getConfidence() < mActivityRecognitionModule.getMinimumConfidence()) {
+            String activityName = ActivityRecognitionModule.getActivityString(aux.getType());
+            Log.d(LOG_TAG, "Confidence on the activity '"+activityName+"' is too low, keeping the previous...");
+            return;
+        }
+
+        synchronized (mActivityLock) {
+            mCurrentActivity = aux;
+        }
     }
 
 
@@ -328,8 +405,63 @@ public class IJsbergTracker extends BroadcastReceiver implements CollectorManage
         if(mActivityRecognitionModule ==null) init();
         mActivityRecognitionModule.setInterval(profile.getActivityInterval());
         mActivityRecognitionModule.setMinimumConfidence(profile.getActivityMinimumConfidence());
+    }
 
-        //TODO: this should be in the ActivityRecognitionModule
-        //mMinimumActivityConfidence = profile.getActivityMinimumConfidence();
+    /* Timers
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+    private ScheduledFuture mIdleTimer;
+    private ScheduledExecutorService mExecutorService = Executors.newScheduledThreadPool(1);
+
+
+    protected void startIdleTimer(){
+        mIdleTimer = mExecutorService.schedule(new IdleElapsed(), 20, TimeUnit.MINUTES);
+    }
+    protected void stopIdleTimer(){
+        mIdleTimer.cancel(true);
+    }
+
+    protected void resetIdleTimer(){
+        stopIdleTimer();
+        startIdleTimer();
+    }
+
+    private class IdleElapsed implements Runnable {
+        @Override
+        public void run() {
+
+            if(!mLocationModule.isTracking()){
+                Log.i(LOG_TAG, "IdleTimer complete, however not tracking.");
+                return;
+            }
+
+            stopIdleTimer();
+            LocalBroadcastManager.getInstance(mContext)
+                    .sendBroadcast(new Intent(Extras.IDLE_TIMEOUT_ACTION));
+
+        }
+    }
+
+    /* Other (Refactor)
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+    public void setCurrentTrack(TrackSummary summary) {
+        mCurrentTrack = summary;
+    }
+
+    public TrackSummary getCurrentTrack(){
+        return  mCurrentTrack;
+    }
+
+    public void updateTravelledDistance(double distance){
+        mCurrentTrack.setElapsedDistance(distance);
+    }
+
+    public interface Extras {
+        String IDLE_TIMEOUT_ACTION = "IDLE_TIMEOUT_ACTION";
     }
 }
