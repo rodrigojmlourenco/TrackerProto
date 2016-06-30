@@ -207,7 +207,7 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
         //Step 1 - Check if the route was automatic
         //          if so, delete tracks with less than 250m
         if(mState.isAutomaticTracking() && currentTrack.getElapsedDistance() < 250) { //TODO: should not be hardcoded
-            Log.w(LOG_TAG, "The track "+currentTrack.getSession()+" was ignored because of its size.");
+            Log.w(LOG_TAG, "The track "+currentTrack.getTrackId()+" was ignored because of its size.");
             mTrackStorage.removeTrackSummaryAndTrace(currentTrack);
             return null;
         }
@@ -238,7 +238,7 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
 
 
         //Step 3 - Stop location and activity updates and unregister the receiver
-        boolean wasDeleted = deleteTrackIfIrrelevant(currentTrack.getSession());
+        boolean wasDeleted = deleteTrackIfIrrelevant(currentTrack.getTrackId());
         mTracker.stopTracking(!wasDeleted);
         LocalBroadcastManager.getInstance(this).unregisterReceiver(mTracker);
 
@@ -280,7 +280,8 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
 
     @Override
     public List<TrackSummary> getAllTracedTracks() {
-        return mTrackStorage.getTracksSessions();
+        mTrackStorage.dumpTrackSummaryTable();
+        return mTrackStorage.getAllTrackSummaries();
     }
 
     @Override

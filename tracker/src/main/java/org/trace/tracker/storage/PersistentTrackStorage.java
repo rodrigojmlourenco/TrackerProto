@@ -63,7 +63,7 @@ public class PersistentTrackStorage {
             throw new RuntimeException("Unable to create a new track summary");
         else {
             TrackSummary summary = new TrackSummary();
-            summary.setSession(trackID);
+            summary.setTrackId(trackID);
             summary.setStartTimestamp(startTime);
             summary.setStoppedTimestamp(startTime);
             summary.setElapsedDistance(0);
@@ -83,7 +83,7 @@ public class PersistentTrackStorage {
         ContentValues values = new ContentValues();
         values.put(TrackSummaryEntry.COLUMN_FINISHED_AT, summary.getStop());
         values.put(TrackSummaryEntry.COLUMN_DISTANCE, summary.getElapsedDistance());
-        selectionArgs[0] = summary.getSession();
+        selectionArgs[0] = summary.getTrackId();
 
 
         int affected = db.update(TrackSummaryEntry.TABLE_NAME, values,selectionClause, selectionArgs);
@@ -115,7 +115,7 @@ public class PersistentTrackStorage {
         ContentValues values = new ContentValues();
         values.put(TrackSummaryEntry.COLUMN_FROM_LAT, location.getLatitude());
         values.put(TrackSummaryEntry.COLUMN_FROM_LON, location.getLongitude());
-        selectionArgs[0] = summary.getSession();
+        selectionArgs[0] = summary.getTrackId();
 
         int affected = db.update(TrackSummaryEntry.TABLE_NAME, values, selectionClause, selectionArgs);
 
@@ -148,12 +148,12 @@ public class PersistentTrackStorage {
         }
 
         if(summary.getSemanticFromLocation() != null && !summary.getSemanticFromLocation().isEmpty())
-            values.put(TrackSummaryEntry.COLUMNS_FROM, summary.getSemanticFromLocation());
+            values.put(TrackSummaryEntry.COLUMN_FROM, summary.getSemanticFromLocation());
 
         if(summary.getSemanticToLocation() != null && !summary.getSemanticToLocation().isEmpty())
-            values.put(TrackSummaryEntry.COLUMNS_FROM, summary.getSemanticToLocation());
+            values.put(TrackSummaryEntry.COLUMN_FROM, summary.getSemanticToLocation());
 
-        selectionArgs[0] = summary.getSession();
+        selectionArgs[0] = summary.getTrackId();
 
         int affected = db.update(TrackSummaryEntry.TABLE_NAME, values, selectionClause, selectionArgs);
 
@@ -165,11 +165,73 @@ public class PersistentTrackStorage {
     }
 
     public Track getCompleteTrack(TrackSummary summary){
-        return  this.getTrack(summary.getSession());
+        return  this.getTrack(summary.getTrackId());
     }
 
     public boolean removeTrackSummaryAndTrace(TrackSummary summary){
-        return this.deleteTrackById(summary.getSession());
+        return this.deleteTrackById(summary.getTrackId());
+    }
+
+    public List<TrackSummary> getAllTrackSummaries(){
+
+        List<TrackSummary> summaries = new ArrayList<>();
+
+        SQLiteDatabase db = mDBHelper.getReadableDatabase();
+        String[] columns = new String[]{
+                TrackSummaryEntry.COLUMN_ID,
+                TrackSummaryEntry.COLUMN_STARTED_AT,
+                TrackSummaryEntry.COLUMN_FINISHED_AT,
+                TrackSummaryEntry.COLUMN_DISTANCE,
+                TrackSummaryEntry.COLUMN_MODALITY,
+                TrackSummaryEntry.COLUMN_SENSING_TYPE,
+                TrackSummaryEntry.COLUMN_FROM,
+                TrackSummaryEntry.COLUMN_TO,
+                TrackSummaryEntry.COLUMN_FROM_LAT,
+                TrackSummaryEntry.COLUMN_FROM_LON,
+                TrackSummaryEntry.COLUMN_TO_LAT,
+                TrackSummaryEntry.COLUMN_TO_LON
+        };
+
+        Cursor cursor = db.query(TrackSummaryEntry.TABLE_NAME, columns, "", new String[]{}, "", "" ,"");
+
+        while (cursor.moveToNext()){
+            String _session = cursor.getString(0);
+            long _start     = cursor.getLong(1);
+            long _stopped   = cursor.getLong(2);
+            double _length  = cursor.getDouble(3);
+            int _mod        = cursor.getInt(4);
+            int _sens       = cursor.getInt(5);
+            String _from    = cursor.getString(6);
+            String _to      = cursor.getString(7);
+            double _fromLat = cursor.getDouble(8);
+            double _fromLon = cursor.getDouble(9);
+            double _toLat   = cursor.getDouble(10);
+            double _toLon   = cursor.getDouble(11);
+
+            TrackSummary summary = new TrackSummary();
+            summary.setTrackId(_session);
+            summary.setStartTimestamp(_start);
+            summary.setStoppedTimestamp(_stopped);
+            summary.setElapsedDistance(_length);
+            summary.setModality(_mod);
+            summary.setSensingType(_sens);
+            summary.setSemanticFromLocation(_from);
+            summary.setSemanticToLocation(_to);
+
+            Location from = new Location(""), to = new Location("");
+            from.setLatitude(_fromLat);
+            from.setLongitude(_fromLon);
+            to.setLatitude(_toLat);
+            to.setLongitude(_toLon);
+
+            summary.setFromLocation(from);
+            summary.setToLocation(to);
+
+
+            summaries.add(summary);
+        }
+
+        return summaries;
     }
 
     public void dumpTrackSummaryTable(){
@@ -184,8 +246,12 @@ public class PersistentTrackStorage {
                 TrackSummaryEntry.COLUMN_DISTANCE,
                 TrackSummaryEntry.COLUMN_MODALITY,
                 TrackSummaryEntry.COLUMN_SENSING_TYPE,
-                TrackSummaryEntry.COLUMNS_FROM,
-                TrackSummaryEntry.COLUMNS_TO,
+                TrackSummaryEntry.COLUMN_FROM,
+                TrackSummaryEntry.COLUMN_TO,
+                TrackSummaryEntry.COLUMN_FROM_LAT,
+                TrackSummaryEntry.COLUMN_FROM_LON,
+                TrackSummaryEntry.COLUMN_TO_LAT,
+                TrackSummaryEntry.COLUMN_TO_LON,
         };
 
         Cursor cursor = db.query(TrackSummaryEntry.TABLE_NAME, columns, "", new String[]{}, "", "" ,"");
@@ -214,8 +280,6 @@ public class PersistentTrackStorage {
             track.addProperty("length", _length);
             track.addProperty("from", _from);
             track.addProperty("to", _to);
-
-
 
             Log.i("TrackSummary", track.toString());
         }
@@ -370,6 +434,7 @@ public class PersistentTrackStorage {
      * @return List of simplified tracks
      * @see TrackSummary
      */
+    @Deprecated
     public List<TrackSummary> getTracksSessions(){
 
         List<TrackSummary> simplifiedTracks = new ArrayList<>();
@@ -384,8 +449,6 @@ public class PersistentTrackStorage {
 
         Cursor c = db.query(true, TraceEntry.TABLE_NAME_TRACKS, projection, "", null, "", "", "", "");
 
-
-
         if(c.moveToFirst()) {
 
             boolean isClosed, isValid;
@@ -396,7 +459,8 @@ public class PersistentTrackStorage {
                 isClosed= c.getInt(c.getColumnIndex(TraceEntry.COLUMN_NAME_IS_CLOSED)) == 1;
                 isValid = c.getInt(c.getColumnIndex(TraceEntry.COLUMN_NAME_IS_VALID)) == 1;
 
-                simplifiedTracks.add(new TrackSummary(session, isClosed, isValid));
+                //simplifiedTracks.add(new TrackSummary(session, isClosed, isValid));
+                simplifiedTracks.add(new TrackSummary(session));
 
             } while (c.moveToNext());
         }
@@ -641,8 +705,8 @@ public class PersistentTrackStorage {
         String COLUMN_DISTANCE      = " distance ";
         String COLUMN_SENSING_TYPE  = " sensingType ";
         String COLUMN_MODALITY      = " modality ";
-        String COLUMNS_FROM         = " fromLocation ";
-        String COLUMNS_TO           = " toLocation ";
+        String COLUMN_FROM = " fromLocation ";
+        String COLUMN_TO = " toLocation ";
 
         String SQL_CREATE =
                 "CREATE TABLE "+ TABLE_NAME +" ( " +
@@ -657,8 +721,8 @@ public class PersistentTrackStorage {
                         COLUMN_DISTANCE     + DOUBLE_TYPE       + SEPARATOR +
                         COLUMN_SENSING_TYPE + INT_TYPE          + SEPARATOR +
                         COLUMN_MODALITY     + INT_TYPE          + SEPARATOR +
-                        COLUMNS_FROM        + ADDR_TYPE         + SEPARATOR +
-                        COLUMNS_TO          + ADDR_TYPE         + ")" ; /*SEPARATOR +
+                        COLUMN_FROM + ADDR_TYPE         + SEPARATOR +
+                        COLUMN_TO + ADDR_TYPE         + ")" ; /*SEPARATOR +
                         //TODO: this bellow should eventually be deprecated
                         " FOREIGN KEY ( "+ COLUMN_ID +" ) " +
                         " REFERENCES "+ TraceEntry.TABLE_NAME_TRACKS+ " ( "+ TraceEntry._ID+" ) " +

@@ -111,6 +111,8 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
             @Override
             public void onClick(View v) {
 
+                mRouteRecorder.getAllTracedTracks();
+                /*
                 if (isGPSEnabled()) {
 
                     if (EasyPermissions.hasPermissions(getActivity(), TrackingConstants.permissions.TRACKING_PERMISSIONS))
@@ -124,7 +126,9 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
                 }else{
                     buildAlertMessageNoGps();
                 }
+                */
             }
+
         });
 
         toggleTrackingBtn.setOnClickListener(new View.OnClickListener() {

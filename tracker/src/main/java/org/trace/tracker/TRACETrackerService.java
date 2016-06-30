@@ -292,7 +292,7 @@ public class TRACETrackerService extends Service {
          */
         public static List<TrackSummary> getAllStoredTracks(Context context){
             PersistentTrackStorage storage = new PersistentTrackStorage(context);
-            return storage.getTracksSessions();
+            return storage.getAllTrackSummaries();
         }
 
         /**

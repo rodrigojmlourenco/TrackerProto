@@ -196,8 +196,10 @@ public class Tracker {
      * @return TrackSummary list
      * @see TrackSummary
      */
+    @Deprecated
     public List<TrackSummary> getAllTracedTracks(Context context){
-        return mTrackStorage.getTracksSessions();
+        //return mTrackStorage.getTracksSessions();
+        throw new RuntimeException("getAllTracedTracks@Tracker is deprecated");
     }
 
     /**

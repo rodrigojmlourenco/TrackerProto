@@ -67,7 +67,7 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
         String[] tracks = new String[simplifiedTracks.size()];
 
         for(int i=0; i < simplifiedTracks.size(); i++) //Remove the file prefix
-            tracks[i] = simplifiedTracks.get(i).getSession();
+            tracks[i] = simplifiedTracks.get(i).getTrackId();
 
         mAdapter = new TrackItemAdapter(getActivity(), tracks);
         ListView list = (ListView) getView().findViewById(R.id.trackListView);
