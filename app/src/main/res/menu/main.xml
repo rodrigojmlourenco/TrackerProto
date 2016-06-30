@@ -4,5 +4,10 @@
         android:orderInCategory="100"
 
         android:title="@string/action_settings"/>
+    <item
+        android:id="@+id/tracks_list_action"
+        android:orderInCategory="100"
+
+        android:title="@string/tracks"/>
     <!--android:showAsAction="never"-->
 </menu>

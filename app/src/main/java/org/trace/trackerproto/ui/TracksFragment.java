@@ -174,9 +174,24 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
 
             DecimalFormat df = new DecimalFormat("#.0");
             final Track t = tracks.get(values.get(position));
-            sessionView.setText(t.getSessionId());
-            timeView.setText(df.format(t.getElapsedTime())+getString(R.string.millis));
-            distanceView.setText(df.format(t.getTravelledDistance()) + getString(R.string.meters));
+            try {
+                sessionView.setText(t.getSessionId());
+            }catch (NullPointerException e){
+                sessionView.setText("Unknown session");
+            }
+
+            try{
+                timeView.setText(df.format(t.getElapsedTime())+getString(R.string.millis));
+            }catch (NullPointerException e){
+                timeView.setText("??"+getString(R.string.millis));
+            }
+
+            try{
+                distanceView.setText(df.format(t.getTravelledDistance()) + getString(R.string.meters));
+            }catch (NullPointerException e){
+                distanceView.setText("??" + getString(R.string.meters));
+            }
+
 
             rowView.setOnClickListener(new View.OnClickListener() {
                 @Override

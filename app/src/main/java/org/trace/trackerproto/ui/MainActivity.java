@@ -234,6 +234,9 @@ public class MainActivity extends AppCompatActivity
             case R.id.action_settings:
                 displayView(2);
                 return true;
+            case R.id.tracks_list_action:
+                displayView(1);
+                return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
