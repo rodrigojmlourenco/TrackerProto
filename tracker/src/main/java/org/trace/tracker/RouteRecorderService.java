@@ -214,7 +214,7 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
 
         //Step 2 - Update the track summary sensing type in case of manual sensing.
         if(isManual){
-            //currentTrack.setSensingType(1);
+            //currentTrack.setSensingType(1); //TODO: somthing is missing here
             mTrackStorage.updateTrackSummaryDistanceAndTime(currentTrack);
             mTracker.setCurrentTrack(new TrackSummary());
         }

@@ -182,7 +182,7 @@ public class IJsbergTracker extends BroadcastReceiver implements CollectorManage
                 mCurrentTrack.setFromLocation(location);
 
                 mTrackStorage.updateTrackSummary(mCurrentTrack);
-                mTrackStorage.storeLocation(location, mCurrentTrack.getTrackId(), false);
+                mTrackStorage.storeLocation(location, mCurrentTrack.getTrackId());
 
                 //Get the semantic address of the start location
                 Handler handler = new Handler();
@@ -227,7 +227,7 @@ public class IJsbergTracker extends BroadcastReceiver implements CollectorManage
                 mCurrentTrack.setStoppedTimestamp(location.getTime());
 
                 mTrackStorage.updateTrackSummary(mCurrentTrack);
-                mTrackStorage.storeLocation(location, mCurrentTrack.getTrackId(), false);
+                mTrackStorage.storeLocation(location, mCurrentTrack.getTrackId());
 
                 resetIdleTimer();
                 mLastKnownLocation = location;
@@ -469,6 +469,8 @@ public class IJsbergTracker extends BroadcastReceiver implements CollectorManage
     }
 
     public void stopTracking(boolean updateLastLocation){
+
+        //TODO: maybe update the track in the storage
 
         stopLocationUpdates();
         stopActivityUpdates();

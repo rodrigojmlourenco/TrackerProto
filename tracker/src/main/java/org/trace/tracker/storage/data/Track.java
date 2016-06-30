@@ -20,7 +20,7 @@ import java.util.LinkedList;
  * @version 1.0
  * @author Rodrigo Lourenço
  */
-public class Track implements Parcelable{
+public class Track extends TrackSummary implements Parcelable{
 
     private String sessionId;
     private long startTime, stopTime;
@@ -28,7 +28,9 @@ public class Track implements Parcelable{
     private double elapsedDistance;
     private double averageSpeed, medianSpeed, topSpeed;
 
+    @Deprecated
     private boolean isLocalOnly;
+    @Deprecated
     private boolean isValid = false;
 
     public Track(){
@@ -88,10 +90,12 @@ public class Track implements Parcelable{
         return stopTime-startTime;
     }
 
+    @Deprecated
     public void upload(){
         isLocalOnly = false;
     }
 
+    @Deprecated
     public boolean isLocalOnly(){
         return isLocalOnly;
     }
@@ -108,10 +112,12 @@ public class Track implements Parcelable{
         return tracedTrack.getLast();
     }
 
+    @Deprecated
     public boolean isValid() {
         return isValid;
     }
 
+    @Deprecated
     public void setIsValid(boolean isValid) {
         this.isValid = isValid;
     }

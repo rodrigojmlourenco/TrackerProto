@@ -42,7 +42,6 @@ public class PersistentTrackStorage {
     public TrackSummary createNewTrackSummary(long startTime, int modality, int sensingType){
 
         String trackID = this.getNextAvailableId();
-        this.createTrack(trackID, false); //TODO: remove this once this is arranged for
 
         SQLiteDatabase db = mDBHelper.getWritableDatabase();
 
@@ -107,23 +106,6 @@ public class PersistentTrackStorage {
             throw new RuntimeException("Did not remove any row!!! deleteTrackSummary@PersistentTrackStorage");
     }
 
-    public void updateTrackSummaryStartingLocation(TrackSummary summary, Location location){
-        SQLiteDatabase db = mDBHelper.getWritableDatabase();
-        String selectionClause = TrackSummaryEntry.COLUMN_ID + "=?";
-        String[] selectionArgs = new String[1];
-
-        ContentValues values = new ContentValues();
-        values.put(TrackSummaryEntry.COLUMN_FROM_LAT, location.getLatitude());
-        values.put(TrackSummaryEntry.COLUMN_FROM_LON, location.getLongitude());
-        selectionArgs[0] = summary.getTrackId();
-
-        int affected = db.update(TrackSummaryEntry.TABLE_NAME, values, selectionClause, selectionArgs);
-
-        db.close();
-
-        if(affected < 0)
-            throw new RuntimeException("Did not update any row!!! updateTrackSummaryStartingLocation@PersistentTrackStorage");
-    }
 
 
     public void updateTrackSummary(TrackSummary summary){
@@ -165,11 +147,75 @@ public class PersistentTrackStorage {
     }
 
     public Track getCompleteTrack(TrackSummary summary){
-        return  this.getTrack(summary.getTrackId());
+        return  this.getTrack_NEW(summary.getTrackId());
     }
 
     public boolean removeTrackSummaryAndTrace(TrackSummary summary){
+        deleteTrackSummary(summary.getTrackId());
         return this.deleteTrackById(summary.getTrackId());
+    }
+
+    public TrackSummary getTrackSummary(String trackId){
+        TrackSummary summary = null;
+
+        SQLiteDatabase db = mDBHelper.getReadableDatabase();
+
+        String[] columns = new String[]{
+                TrackSummaryEntry.COLUMN_ID,
+                TrackSummaryEntry.COLUMN_STARTED_AT,
+                TrackSummaryEntry.COLUMN_FINISHED_AT,
+                TrackSummaryEntry.COLUMN_DISTANCE,
+                TrackSummaryEntry.COLUMN_MODALITY,
+                TrackSummaryEntry.COLUMN_SENSING_TYPE,
+                TrackSummaryEntry.COLUMN_FROM,
+                TrackSummaryEntry.COLUMN_TO,
+                TrackSummaryEntry.COLUMN_FROM_LAT,
+                TrackSummaryEntry.COLUMN_FROM_LON,
+                TrackSummaryEntry.COLUMN_TO_LAT,
+                TrackSummaryEntry.COLUMN_TO_LON
+        };
+
+        String selectionClause = TrackSummaryEntry.COLUMN_ID + "=?";
+        String[] selectionArgs = new String[]{ trackId };
+
+        Cursor cursor = db.query(TrackSummaryEntry.TABLE_NAME, columns, selectionClause, selectionArgs, "", "" ,"");
+
+        if (cursor.moveToNext()){
+            String _session = cursor.getString(0);
+            long _start     = cursor.getLong(1);
+            long _stopped   = cursor.getLong(2);
+            double _length  = cursor.getDouble(3);
+            int _mod        = cursor.getInt(4);
+            int _sens       = cursor.getInt(5);
+            String _from    = cursor.getString(6);
+            String _to      = cursor.getString(7);
+            double _fromLat = cursor.getDouble(8);
+            double _fromLon = cursor.getDouble(9);
+            double _toLat   = cursor.getDouble(10);
+            double _toLon   = cursor.getDouble(11);
+
+            summary.setTrackId(_session);
+            summary.setStartTimestamp(_start);
+            summary.setStoppedTimestamp(_stopped);
+            summary.setElapsedDistance(_length);
+            summary.setModality(_mod);
+            summary.setSensingType(_sens);
+            summary.setSemanticFromLocation(_from);
+            summary.setSemanticToLocation(_to);
+
+            Location from = new Location(""), to = new Location("");
+            from.setLatitude(_fromLat);
+            from.setLongitude(_fromLon);
+            to.setLatitude(_toLat);
+            to.setLongitude(_toLon);
+
+            summary.setFromLocation(from);
+            summary.setToLocation(to);
+        }else
+            throw new RuntimeException("No track with id = {"+trackId+"} getTrackSummary@PersistentTrackStorage");
+
+        return summary;
+
     }
 
     public List<TrackSummary> getAllTrackSummaries(){
@@ -234,6 +280,55 @@ public class PersistentTrackStorage {
         return summaries;
     }
 
+    public Track getTrack_NEW(String trackId){
+
+        Track track = (Track) this.getTrackSummary(trackId);
+
+        List<TraceLocation> trace = getTrackTraces(trackId);
+
+        for(TraceLocation location : trace)
+            track.addTracedLocation(location);
+
+        return track;
+    }
+
+    private List<TraceLocation> getTrackTraces(String trackId){
+
+        List<TraceLocation> trace = new ArrayList<>();
+
+        SQLiteDatabase db = mDBHelper.getReadableDatabase();
+
+        String[] columns = new String[]{
+                TrackLocationEntry.COLUMN_TRACK_ID,
+                TrackLocationEntry.COLUMN_LATITUDE,
+                TrackLocationEntry.COLUMN_LONGITUDE,
+                TrackLocationEntry.COLUMN_TIMESTAMP,
+                TrackLocationEntry.COLUMN_ATTRIBUTES
+        };
+
+        String selectionClause = TrackLocationEntry.COLUMN_TRACK_ID + "=?";
+        String[] selectionArgs = new String[]{ trackId };
+
+        Cursor c = db.query(TrackLocationEntry.TABLE_NAME, columns, selectionClause, selectionArgs, "", "", "");
+
+        JsonParser parser = new JsonParser();
+        TraceLocation location;
+        while(c.moveToNext()) {
+            location = new TraceLocation();
+
+            location.setLatitude(c.getDouble(c.getColumnIndex(TrackLocationEntry.COLUMN_LATITUDE)));
+            location.setLongitude(c.getDouble(c.getColumnIndex(TrackLocationEntry.COLUMN_LONGITUDE)));
+            location.setTime(c.getLong(c.getColumnIndex(TrackLocationEntry.COLUMN_TIMESTAMP)));
+
+            String attributes = c.getString(c.getColumnIndex(TrackLocationEntry.COLUMN_ATTRIBUTES));
+            location.setSecondaryAttributes((JsonObject) parser.parse(attributes));
+
+            trace.add(location);
+        }
+
+        return trace;
+    }
+
     public void dumpTrackSummaryTable(){
 
         SQLiteDatabase db = mDBHelper.getReadableDatabase();
@@ -263,12 +358,9 @@ public class PersistentTrackStorage {
 
 
             String _id = cursor.getString(0);
-            String _session = cursor.getString(1);
             String _start   = cursor.getString(2);
             String _stopped = cursor.getString(3);
             String _length  = cursor.getString(4);
-            String _mod     = cursor.getString(5);
-            String _sens    = cursor.getString(6);
             String _from    = cursor.getString(7);
             String _to    = cursor.getString(8);
 
@@ -301,6 +393,7 @@ public class PersistentTrackStorage {
      *
      * @return The track's identifier.
      */
+    @Deprecated
     public long createTrack(String session, boolean isValid){
 
         SQLiteDatabase db = mDBHelper.getWritableDatabase();
@@ -320,26 +413,35 @@ public class PersistentTrackStorage {
      * Stores a new location, which is associated with a track.
      *
      * @param location The new location.
-     * @param session The session identifier that identifies the track.
-     * @param isRemote True if the session identifier is valid, false otherwise. I.e, if the session is not local.
+     * @param trackId The session identifier that identifies the track.
      */
-    public void storeLocation(TraceLocation location, String session, boolean isRemote){
-
-        long trackId;
-
-        if((trackId = getTrackId(session)) == -1)
-            trackId = createTrack(session, isRemote);
+    public void storeLocation(TraceLocation location, String trackId){
 
         SQLiteDatabase db = mDBHelper.getWritableDatabase();
 
         ContentValues values = new ContentValues();
-        values.put(TraceEntry.COLUMN_NAME_LATITUDE, location.getLatitude());
-        values.put(TraceEntry.COLUMN_NAME_LONGITUDE, location.getLongitude());
-        values.put(TraceEntry.COLUMN_NAME_ATTRIBUTES, location.getSecondaryAttributesAsJson().toString());
-        values.put(TraceEntry.COLUMN_NAME_TIMESTAMP, location.getTime());
-        values.put(TraceEntry.COLUMN_NAME_TRACK_ID, trackId);
+        values.put(TrackLocationEntry.COLUMN_LATITUDE, location.getLatitude());
+        values.put(TrackLocationEntry.COLUMN_LONGITUDE, location.getLongitude());
+        values.put(TrackLocationEntry.COLUMN_ATTRIBUTES, location.getSecondaryAttributesAsJson().toString());
+        values.put(TrackLocationEntry.COLUMN_TIMESTAMP, location.getTime());
+        values.put(TrackLocationEntry.COLUMN_TRACK_ID, trackId);
 
-        db.insert(TraceEntry.TABLE_NAME_TRACES, null, values);
+        db.insert(TrackLocationEntry.TABLE_NAME, null, values);
+    }
+
+    @Deprecated
+    public void storeLocation(TraceLocation location, String trackId, boolean isRemote){
+
+        SQLiteDatabase db = mDBHelper.getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put(TrackLocationEntry.COLUMN_LATITUDE, location.getLatitude());
+        values.put(TrackLocationEntry.COLUMN_LONGITUDE, location.getLongitude());
+        values.put(TrackLocationEntry.COLUMN_ATTRIBUTES, location.getSecondaryAttributesAsJson().toString());
+        values.put(TrackLocationEntry.COLUMN_TIMESTAMP, location.getTime());
+        values.put(TrackLocationEntry.COLUMN_TRACK_ID, trackId);
+
+        db.insert(TrackLocationEntry.TABLE_NAME, null, values);
     }
 
     /* Getters
@@ -383,6 +485,7 @@ public class PersistentTrackStorage {
      * @return The Track
      * @see Track
      */
+    @Deprecated
     public Track getTrack(String session){
 
         SQLiteDatabase db = mDBHelper.getReadableDatabase();
@@ -478,31 +581,21 @@ public class PersistentTrackStorage {
 
         int count;
         SQLiteDatabase db = mDBHelper.getReadableDatabase();
-        count = (int) DatabaseUtils.queryNumEntries(db, TraceEntry.TABLE_NAME_TRACKS,"", null);
+        count = (int) DatabaseUtils.queryNumEntries(db, TrackSummaryEntry.TABLE_NAME,"", null);
 
         return count;
     }
 
-    public int getTracksCount(boolean isClosed){
-
-        int count;
-        SQLiteDatabase db = mDBHelper.getReadableDatabase();
-        count = (int) DatabaseUtils.queryNumEntries(
-                db,
-                TraceEntry.TABLE_NAME_TRACKS,
-                TraceEntry.COLUMN_NAME_IS_CLOSED+"=?",
-                new String[]{String.valueOf((isClosed ? 1 : 0))});
-
-        return count;
-    }
 
     public String getNextAvailableId(){
         int nextId;
 
         SQLiteDatabase db = mDBHelper.getReadableDatabase();
 
-        //Cursor c = db.rawQuery("SELECT MAX("+TraceEntry._ID+") FROM "+TraceEntry.TABLE_NAME_TRACKS, null);
-        Cursor c = db.query(TraceEntry.TABLE_NAME_TRACKS, new String[]{"MAX("+ TraceEntry._ID+")"}, null, null, null, null, null);
+        Cursor c = db.query(
+                TrackSummaryEntry.TABLE_NAME,
+                new String[]{"MAX("+ TrackSummaryEntry._ID+")"},
+                null, null, null, null, null);
 
         if(c.moveToFirst()){
             nextId = c.getInt(0)+1;
@@ -522,49 +615,8 @@ public class PersistentTrackStorage {
      ***********************************************************************************************
      */
 
-    public boolean updateTrackSession(String oldSession, String newSession){
 
-        int trackId = getTrackId(oldSession);
-
-        if(trackId == -1) return false;
-
-        SQLiteDatabase db = mDBHelper.getWritableDatabase();
-
-        ContentValues values = new ContentValues();
-        values.put(TraceEntry.COLUMN_NAME_SESSION, newSession);
-        values.put(TraceEntry.COLUMN_NAME_IS_VALID, 1);
-
-        String selection = TraceEntry._ID + "= ?";
-        String[] selectionArgs = {String.valueOf(trackId)};
-
-        int count = db.update(TraceEntry.TABLE_NAME_TRACKS, values, selection, selectionArgs);
-
-        db.close();
-
-        return count > 0;
-    }
-
-    public boolean uploadTrack(String session){
-
-        int trackId = getTrackId(session);
-
-        if(trackId == -1) return false;
-
-        SQLiteDatabase db = mDBHelper.getWritableDatabase();
-
-        ContentValues values = new ContentValues();
-        values.put(TraceEntry.COLUMN_NAME_IS_CLOSED, 1);
-
-        String selection = TraceEntry._ID + "= ?";
-        String[] selectionArgs = {String.valueOf(trackId)};
-
-        int count = db.update(TraceEntry.TABLE_NAME_TRACKS, values, selection, selectionArgs);
-
-        db.close();
-
-        return count > 0;
-    }
-
+    @Deprecated
     public boolean updateTravelledDistanceAndTime(String session, double distance, double time){
         int trackId = getTrackId(session);
 
@@ -594,6 +646,7 @@ public class PersistentTrackStorage {
      ***********************************************************************************************
      ***********************************************************************************************
      */
+    //TODO: está errado
     public boolean deleteTrackById(String session){
         int trackId = getTrackId(session);
 
@@ -631,7 +684,7 @@ public class PersistentTrackStorage {
      */
     private class TrackStorageDBHelper extends SQLiteOpenHelper {
 
-        public static final int DATABASE_VERSION = 10;
+        public static final int DATABASE_VERSION = 11;
         public static final String DATABASE_NAME = "TraceTracker.db";
 
         public TrackStorageDBHelper(Context context){
@@ -640,16 +693,14 @@ public class PersistentTrackStorage {
 
         @Override
         public void onCreate(SQLiteDatabase db) {
-            db.execSQL(ContractHelper.SQL_CREATE_TRACKS);
-            db.execSQL(ContractHelper.SQL_CREATE_TRACES);
-            db.execSQL(TrackSummaryEntry.SQL_CREATE);
+            db.execSQL(TrackSummaryEntry.SQL_CREATE_TABLE);
+            db.execSQL(TrackLocationEntry.SQL_CREATE_TABLE);
         }
 
         @Override
         public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-            db.execSQL(ContractHelper.SQL_DELETE_TRACES_TABLE);
-            db.execSQL(ContractHelper.SQL_DELETE_TRACKS_TABLE);
-            db.execSQL(TrackSummaryEntry.SQL_DELETE);
+            db.execSQL(TrackLocationEntry.SQL_DELETE_TABLE);
+            db.execSQL(TrackSummaryEntry.SQL_DELETE_TABLE);
             onCreate(db);
         }
 
@@ -659,6 +710,7 @@ public class PersistentTrackStorage {
         }
     }
 
+    @Deprecated
     public static abstract class TraceEntry implements BaseColumns {
         public static final String TABLE_NAME_TRACKS = "tracks";
         public static final String TABLE_NAME_TRACES = "traces";
@@ -708,7 +760,7 @@ public class PersistentTrackStorage {
         String COLUMN_FROM = " fromLocation ";
         String COLUMN_TO = " toLocation ";
 
-        String SQL_CREATE =
+        String SQL_CREATE_TABLE =
                 "CREATE TABLE "+ TABLE_NAME +" ( " +
                         _ID                 + IDENTIFIER_TYPE   + SEPARATOR +
                         COLUMN_ID           + TEXT_TYPE         + SEPARATOR +
@@ -729,7 +781,32 @@ public class PersistentTrackStorage {
                         " ON DELETE CASCADE)";
                         */
 
-        String SQL_DELETE =
+        String SQL_DELETE_TABLE =
+                "DROP TABLE IF EXISTS " + TABLE_NAME;
+    }
+
+    private interface TrackLocationEntry extends BaseColumns, BaseTypes {
+        String TABLE_NAME = "traces";
+
+        String COLUMN_TRACK_ID = "trackId";
+        String COLUMN_LATITUDE = "latitude";
+        String COLUMN_LONGITUDE = "longitude";
+        String COLUMN_TIMESTAMP = "timestamp";
+        String COLUMN_ATTRIBUTES = "attributes";
+
+        String SQL_CREATE_TABLE =
+                "CREATE TABLE "+ TABLE_NAME +" ("+
+                        _ID + " "                + IDENTIFIER_TYPE   + SEPARATOR +
+                        COLUMN_TRACK_ID + INT_TYPE          + SEPARATOR +
+                        COLUMN_LATITUDE + DOUBLE_TYPE       + SEPARATOR +
+                        COLUMN_LONGITUDE + DOUBLE_TYPE       + SEPARATOR +
+                        COLUMN_TIMESTAMP + DATE_TYPE         + SEPARATOR +
+                        COLUMN_ATTRIBUTES + TEXT_TYPE         + SEPARATOR +
+                " FOREIGN KEY ( "+ COLUMN_TRACK_ID +" ) " +
+                " REFERENCES "+ TrackSummaryEntry.TABLE_NAME + " ( "+ TrackSummaryEntry._ID+" ) " +
+                " ON DELETE CASCADE)";
+
+        String SQL_DELETE_TABLE =
                 "DROP TABLE IF EXISTS " + TABLE_NAME;
     }
 
@@ -742,6 +819,7 @@ public class PersistentTrackStorage {
         String INT_TYPE         = " INTEGER";
 
         String SEPARATOR = ", ";
+
 
         String SQL_CREATE_TRACKS =
                 "CREATE TABLE "+ TraceEntry.TABLE_NAME_TRACKS +" ( " +
@@ -769,6 +847,7 @@ public class PersistentTrackStorage {
                 "DROP TABLE IF EXISTS " + TraceEntry.TABLE_NAME_TRACES;
 
 
+        @Deprecated
         String SQL_RAW_QUERY_COMPLETE_TRACKS =
                 "SELECT "+
                         TraceEntry.COLUMN_NAME_LATITUDE         + SEPARATOR +
@@ -776,6 +855,23 @@ public class PersistentTrackStorage {
                         TraceEntry.COLUMN_NAME_TIMESTAMP        + SEPARATOR +
                         TraceEntry.COLUMN_NAME_ATTRIBUTES       + SEPARATOR +
                         TraceEntry.COLUMN_NAME_SESSION          + SEPARATOR +
+                        TraceEntry.COLUMN_NAME_IS_CLOSED        + SEPARATOR +
+                        TraceEntry.COLUMN_NAME_IS_VALID         + SEPARATOR +
+                        TraceEntry.COLUMN_NAME_ELAPSED_DISTANCE + SEPARATOR +
+                        TraceEntry.COLUMN_NAME_ELAPSED_TIME     +
+                        " FROM "+ TraceEntry.TABLE_NAME_TRACKS+ " INNER JOIN "+ TraceEntry.TABLE_NAME_TRACES +
+                        " ON "+ TraceEntry.TABLE_NAME_TRACKS+"."+ TraceEntry._ID+"="+ TraceEntry.TABLE_NAME_TRACES+"."+ TraceEntry.COLUMN_NAME_TRACK_ID+
+                        " WHERE "+ TraceEntry.COLUMN_NAME_SESSION + " = ?";
+
+
+        String SQL_RAW_QUERY_COMPLETE_TRACKS_NEW =
+                "SELECT "+
+                        TrackLocationEntry.COLUMN_TRACK_ID  + SEPARATOR +
+                        TrackLocationEntry.COLUMN_LATITUDE  + SEPARATOR +
+                        TrackLocationEntry.COLUMN_LONGITUDE + SEPARATOR +
+                        TrackLocationEntry.COLUMN_TIMESTAMP + SEPARATOR +
+                        TrackLocationEntry.COLUMN_ATTRIBUTES+ SEPARATOR +
+
                         TraceEntry.COLUMN_NAME_IS_CLOSED        + SEPARATOR +
                         TraceEntry.COLUMN_NAME_IS_VALID         + SEPARATOR +
                         TraceEntry.COLUMN_NAME_ELAPSED_DISTANCE + SEPARATOR +
