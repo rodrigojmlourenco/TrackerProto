@@ -1,6 +1,8 @@
 package org.trace.tracker.storage.data;
 
 
+import android.location.Location;
+
 public class TrackSummary {
     private String session;
     private boolean isClosed, isValid;
@@ -78,4 +80,43 @@ public class TrackSummary {
         this.sensingType = sensingType;
     }
 
+    private Location fromLocation = null, toLocation = null;
+
+    public void setFromLocation(TraceLocation location) {
+        this.fromLocation = location;
+    }
+
+    public Location getFromLocation() {
+        return fromLocation;
+    }
+
+    public void setFromLocation(Location location) {
+        this.fromLocation = location;
+    }
+
+    public Location getToLocation() {
+        return toLocation;
+    }
+
+    public void setToLocation(Location toLocation) {
+        this.toLocation = toLocation;
+    }
+
+    private String semanticFromLocation = null, semanticToLocation = null;
+
+    public String getSemanticToLocation() {
+        return semanticToLocation;
+    }
+
+    public void setSemanticToLocation(String semanticToLocation) {
+        this.semanticToLocation = semanticToLocation;
+    }
+
+    public String getSemanticFromLocation() {
+        return semanticFromLocation;
+    }
+
+    public void setSemanticFromLocation(String semanticFromLocation) {
+        this.semanticFromLocation = semanticFromLocation;
+    }
 }

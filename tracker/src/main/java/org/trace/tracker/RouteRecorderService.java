@@ -53,7 +53,7 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
     private IJsbergTracker mTracker;
     private PersistentTrackStorage mTrackStorage;
     private ConfigurationsManager mConfigManager;
-    private final IBinder mBinder = new RouteRecorderBinder();
+    private final IBinder mBinder = new CustomBinder();
 
 
     /* Service Life Cycle
@@ -87,8 +87,8 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
         return mBinder;
     }
 
-    public class RouteRecorderBinder extends Binder {
-        RouteRecorderService getService(){
+    public class CustomBinder extends Binder {
+       public RouteRecorderService getService(){
             return RouteRecorderService.this;
         }
     }
@@ -208,7 +208,7 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
         //          if so, delete tracks with less than 250m
         if(mState.isAutomaticTracking() && currentTrack.getElapsedDistance() < 250) { //TODO: should not be hardcoded
             Log.w(LOG_TAG, "The track "+currentTrack.getSession()+" was ignored because of its size.");
-            mTrackStorage.removeTrackSummaryAndTrace(mTracker.getCurrentTrack());
+            mTrackStorage.removeTrackSummaryAndTrace(currentTrack);
             return null;
         }
 
@@ -219,17 +219,15 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
             mTracker.setCurrentTrack(new TrackSummary());
         }
 
-        //Step 3 - Stop location and activity updates and unregister the receiver
-        mTracker.stopLocationUpdates();
-        mTracker.stopActivityUpdates();
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(mTracker);
+
+
 
 
         //Step 4 - ???
         // Basically, the check if there is last position (why was it not added?), and if there is
         // then the position if added to the TrackSummary and also to the sqlite storage
         if(mTracker.getCurrentLocation() != null){ //TODO: assure that is is the last acquired position and not the FusedLocation one
-
+            ;
         }
 
         //Step 5 there is a lot of UI and network effort which we deemed inappropriate for the module!
@@ -237,19 +235,25 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
         //Step 6 - The automatic tracking is re-enabled.
 
         //Step 7 - Stop the timers
-        mTracker.stopIdleTimer();
 
 
-        deleteTrackIfIrrelevant(mCurrentSession);
+        //Step 3 - Stop location and activity updates and unregister the receiver
+        boolean wasDeleted = deleteTrackIfIrrelevant(currentTrack.getSession());
+        mTracker.stopTracking(!wasDeleted);
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(mTracker);
+
+        //TODO: remover (just for debugging)
+        mTrackStorage.dumpTrackSummaryTable();
 
         return mTrackStorage.getCompleteTrack(currentTrack);
     }
 
     private boolean deleteTrackIfIrrelevant(String session){
-        Track t = mTrackStorage.getTrack(mCurrentSession);
+        Track t = mTrackStorage.getTrack(session);
 
         if(t == null || t.getTravelledDistance() <= 15 || t.getTracedTrack().size() <= 5) {
             mTrackStorage.deleteTrackById(session);
+            mTrackStorage.deleteTrackSummary(session);
 
             Log.i(LOG_TAG, "This track was not stored because it is too short.");
 

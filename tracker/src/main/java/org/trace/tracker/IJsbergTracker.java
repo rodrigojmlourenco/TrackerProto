@@ -107,8 +107,10 @@ public class IJsbergTracker extends BroadcastReceiver implements CollectorManage
 
         if(intent.hasExtra(TrackingConstants.tracker.LOCATION_EXTRA)) {
 
-            TraceLocation location = intent.getParcelableExtra(TrackingConstants.tracker.LOCATION_EXTRA);
-            onHandleLocation(location);
+            Log.d(LOG_TAG, "new location");//TODO: remove
+
+            Location location = intent.getParcelableExtra(TrackingConstants.tracker.LOCATION_EXTRA);
+            onHandleLocation(new TraceLocation(location));
 
 
         }else if(intent.hasExtra(ActivityConstants.ACTIVITY_EXTRA)) {
@@ -135,7 +137,8 @@ public class IJsbergTracker extends BroadcastReceiver implements CollectorManage
      */
     private void onHandleLocation(final TraceLocation location){
 
-        if(location != null || !mLocationModule.isTracking()){
+        if(location == null || !mLocationModule.isTracking()){
+
             Log.w(LOG_TAG, location == null ? "Null position" : "NOT supposed to be tracking");
             return;
         }else
@@ -170,18 +173,18 @@ public class IJsbergTracker extends BroadcastReceiver implements CollectorManage
         //Step 3 -
         if(isAcceptableAccuracy(location)){
 
-            if(mLastKnownLocation == null) { //1st recorded position
+            //1st recorded position
+            if(mLastKnownLocation == null) {
 
-                mCurrentTrack.setElapsedDistance(0);
                 mCurrentTrack.setStartTimestamp(location.getTime());
                 mCurrentTrack.setStoppedTimestamp(location.getTime());
+                mCurrentTrack.setElapsedDistance(0);
+                mCurrentTrack.setFromLocation(location);
 
-                mTrackStorage.updateTrackSummaryDistanceAndTime(mCurrentTrack);
-                //TODO: update the starting location coordinates in the storage
-                //TODO: this must also be done when stopping
-
+                mTrackStorage.updateTrackSummary(mCurrentTrack);
                 mTrackStorage.storeLocation(location, mCurrentTrack.getSession(), false);
 
+                //Get the semantic address of the start location
                 Handler handler = new Handler();
                 handler.post(new Runnable() {
                     @Override
@@ -203,8 +206,12 @@ public class IJsbergTracker extends BroadcastReceiver implements CollectorManage
                             for(int i = 0; i < address.getMaxAddressLineIndex(); i++) {
                                 addressFragments.add(address.getAddressLine(i));
                             }
-                            Log.i(LOG_TAG, TextUtils.join(System.getProperty("line.separator"),
-                                            addressFragments));
+                            String sLocation = TextUtils.join(", ", addressFragments);
+                            Log.i(LOG_TAG,sLocation );
+
+                            mCurrentTrack.setSemanticFromLocation(sLocation);
+                            mTrackStorage.updateTrackSummary(mCurrentTrack);
+
                         }
                     }
                 });
@@ -215,12 +222,12 @@ public class IJsbergTracker extends BroadcastReceiver implements CollectorManage
             }else if(isInterestingNewPosition(location, (TraceLocation) mLastKnownLocation)){ //This is a new location
 
                 //Update the route summary in a database with the new point
-                double travelledDistance = mLastKnownLocation.distanceTo(location);
-                mCurrentTrack.setElapsedDistance(mCurrentTrack.getElapsedDistance() + travelledDistance);
+                double travelledDistance = mCurrentTrack.getElapsedDistance() + mLastKnownLocation.distanceTo(location);
+                mCurrentTrack.setElapsedDistance(travelledDistance);
                 mCurrentTrack.setStoppedTimestamp(location.getTime());
 
-                //TODO: Update the route summary
-                //TODO: Save the location, which is associated to the summary
+                mTrackStorage.updateTrackSummary(mCurrentTrack);
+                mTrackStorage.storeLocation(location, mCurrentTrack.getSession(), false);
 
                 resetIdleTimer();
                 mLastKnownLocation = location;
@@ -461,7 +468,53 @@ public class IJsbergTracker extends BroadcastReceiver implements CollectorManage
         mCurrentTrack.setElapsedDistance(distance);
     }
 
+    public void stopTracking(boolean updateLastLocation){
+
+        stopLocationUpdates();
+        stopActivityUpdates();
+        stopIdleTimer();
+
+        final Location location = mLastKnownLocation;
+        mLastKnownLocation= null;
+
+        if(updateLastLocation){
+            Handler handler = new Handler();
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+
+                    List<Address> addresses = null;
+                    Geocoder geocoder = new Geocoder(mContext, Locale.getDefault());
+
+                    try {
+                        addresses = geocoder.getFromLocation(location.getLatitude(), location.getLongitude(), 1);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                    if (addresses != null && addresses.size() > 0) {
+                        Address address = addresses.get(0);
+                        ArrayList<String> addressFragments = new ArrayList<String>();
+
+                        // Fetch the address lines using getAddressLine,
+                        // join them, and send them to the thread.
+                        for (int i = 0; i < address.getMaxAddressLineIndex(); i++)
+                            addressFragments.add(address.getAddressLine(i));
+
+                        String sLocation = TextUtils.join(", ", addressFragments);
+                        Log.i(LOG_TAG, sLocation);
+
+                        mCurrentTrack.setSemanticToLocation(sLocation);
+                        mTrackStorage.updateTrackSummary(mCurrentTrack);
+                    }
+                }
+            });
+        }
+    }
+
     public interface Extras {
         String IDLE_TIMEOUT_ACTION = "IDLE_TIMEOUT_ACTION";
     }
+
+
 }

@@ -13,7 +13,6 @@ import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.os.Messenger;
 import android.support.annotation.Nullable;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AlertDialog;
@@ -30,8 +29,7 @@ import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.MapView;
 import org.trace.storeclient.TRACEStore;
 import org.trace.storeclient.TRACEStoreReceiver;
-import org.trace.tracker.TRACETrackerService;
-import org.trace.tracker.Tracker;
+import org.trace.tracker.RouteRecorderService;
 import org.trace.tracker.TrackingConstants;
 import org.trace.trackerproto.R;
 
@@ -60,9 +58,6 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
     private Location mCurrentLocation;
     private BroadcastReceiver mLocationReceiver;
 
-
-    //TODO: TESTING
-    private Tracker mTracker;
 
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
@@ -119,7 +114,7 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
                 if (isGPSEnabled()) {
 
                     if (EasyPermissions.hasPermissions(getActivity(), TrackingConstants.permissions.TRACKING_PERMISSIONS))
-                        TRACETrackerService.Client.getLastLocation(mService);
+                        ;
                     else
                         EasyPermissions.requestPermissions(
                                 getActivity(),
@@ -168,7 +163,7 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
     public void onStart() {
         super.onStart();
 
-        Intent trackerService = new Intent(getActivity(), TRACETrackerService.class);
+        Intent trackerService = new Intent(getActivity(), RouteRecorderService.class);
         trackerService.setFlags(Service.START_STICKY);
         getActivity().bindService(trackerService, mConnection, Context.BIND_AUTO_CREATE);
         isBound = true;
@@ -296,22 +291,27 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
      ***********************************************************************************************
      */
 
-
-    Messenger mService = null;
+    private RouteRecorderService mRouteRecorder;
 
     private ServiceConnection mConnection = new ServiceConnection() {
 
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-            mService= new Messenger(service);
-            mTracker = Tracker.getInstance(getActivity(), mService); //TODO: testing
+            RouteRecorderService.CustomBinder binder = (RouteRecorderService.CustomBinder) service;
+            mRouteRecorder = binder.getService();
             isBound = true;
+            isTracking = false;
+
+            toggleButtons(isBound, isTracking);
         }
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
-            mService= null;
+            mRouteRecorder = null;
             isBound = false;
+            isTracking = false;
+
+            toggleButtons(isBound, isTracking);
         }
     };
 
@@ -337,11 +337,11 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
     @Override
     public void stopTracking() {
 
-        TRACETrackerService.Client.stopTracking(mService);
+
         isTracking = false;
         toggleButtons(isBound, false);
 
-        Toast.makeText(getActivity(), TRACEStore.Client.getSessionId(), Toast.LENGTH_SHORT).show();
+
 
     }
 
@@ -355,10 +355,14 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
 
         if (EasyPermissions.hasPermissions(getActivity(), TrackingConstants.permissions.TRACKING_PERMISSIONS)) {
 
-            //TRACETrackerService.Client.startTracking(mService); TODO: TESTING
-            mTracker.startTracking();
-            isTracking = true;
-            toggleButtons(isBound, true);
+            if(isBound){
+                mRouteRecorder.startTracking();
+                isTracking = true;
+            }
+
+
+
+            toggleButtons(isBound, isTracking);
 
         } else {
             EasyPermissions.requestPermissions(
@@ -370,11 +374,12 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
     }
 
     private void stopTrackingOnClick(){
-        SessionHandler handler = (SessionHandler)getActivity();
-        handler.teardownTrackingSession();
-        //TRACETrackerService.Client.stopTracking(mService); TODO: TESTING
-        mTracker.stopTracking();
-        isTracking = false;
+
+        if(isBound){
+            mRouteRecorder.stopTracking(true);
+            isTracking = false;
+        }
+
         toggleButtons(isBound, false);
     }
 
@@ -487,7 +492,8 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
 
         @Override
         public void run() {
-            TRACETrackerService.Client.getLastLocation(mService);
+            //TODO: get last location
+            ;
         }
     }
 

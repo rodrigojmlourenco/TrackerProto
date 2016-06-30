@@ -3,9 +3,7 @@ package org.trace.trackerproto.ui;
 import android.app.AlertDialog;
 import android.app.Fragment;
 import android.app.FragmentManager;
-import android.app.Service;
 import android.content.ComponentName;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
@@ -13,7 +11,6 @@ import android.content.res.Configuration;
 import android.content.res.TypedArray;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.os.Messenger;
 import android.os.PersistableBundle;
 import android.support.annotation.NonNull;
 import android.support.v4.widget.DrawerLayout;
@@ -33,7 +30,6 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import org.trace.storeclient.TraceAuthenticationManager;
 import org.trace.storeclient.auth.AuthenticationRenewalListener;
 import org.trace.storeclient.exceptions.UserIsNotLoggedException;
-import org.trace.tracker.TRACETrackerService;
 import org.trace.tracker.TrackingConstants;
 import org.trace.trackerproto.R;
 import org.trace.trackerproto.ui.slidingmenu.adapter.NavDrawerListAdapter;
@@ -55,8 +51,6 @@ public class MainActivity extends AppCompatActivity
 
     private AuthenticationRenewalListener authRenewalListener;
 
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -70,6 +64,8 @@ public class MainActivity extends AppCompatActivity
 
         authRenewalListener = new AuthenticationRenewalListener(this, mAuthManager);
         registerReceiver(authRenewalListener, AuthenticationRenewalListener.getAuthenticationRenewalFilter());
+
+
     }
 
 
@@ -82,50 +78,32 @@ public class MainActivity extends AppCompatActivity
      */
 
     private boolean isBound = false;
-    private Messenger mService = null;
-    private TRACETrackerService.Client mTrakerClient = null;
 
     private ServiceConnection mConnection = new ServiceConnection() {
 
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-            mService= new Messenger(service);
-            //mTrakerClient = new TRACETrackerService.Client(MainActivity.this, mService);
+            isBound = true;
         }
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
-            mService= null;
-            mTrakerClient = null;
-
+            isBound = false;
         }
     };
 
     @Override
     protected void onStart() {
         super.onStart();
-
-        Intent trackerService = new Intent(this, TRACETrackerService.class);
-        trackerService.setFlags(Service.START_STICKY);
-        bindService(trackerService, mConnection, Context.BIND_AUTO_CREATE);
-
-        isBound = true;
-
     }
 
     @Override
     protected void onDestroy() {
 
-        if(isBound){
-            isBound = false;
-            unbindService(mConnection);
-        }
 
         if(isFinishing()) {
             unregisterReceiver(authRenewalListener);
             mAuthManager.logout();
-
-            //TRACEStore.Client.requestLogout(MainActivity.this);
         }
 
         if(mCurrentFragment instanceof MapViewFragment){
@@ -188,13 +166,13 @@ public class MainActivity extends AppCompatActivity
         // Home
         navDrawerItems.add(new NavDrawerItem(navMenuTitles[0], navMenuIcons.getResourceId(0, -1)));
         // Tracks
-        int count = TRACETrackerService.Client.getStoredTracksCount(this);
-        navDrawerItems.add(new NavDrawerItem(navMenuTitles[1], navMenuIcons.getResourceId(1, -1), true, String.valueOf(count)));
+
+        //navDrawerItems.add(new NavDrawerItem(navMenuTitles[1], navMenuIcons.getResourceId(1, -1), true, "0"));
         // Settings
-        navDrawerItems.add(new NavDrawerItem(navMenuTitles[2], navMenuIcons.getResourceId(2, -1)));
+        //navDrawerItems.add(new NavDrawerItem(navMenuTitles[2], navMenuIcons.getResourceId(0, -1)));
 
         //LogOut
-        navDrawerItems.add(new NavDrawerItem(navMenuTitles[3], navMenuIcons.getResourceId(3, -1)));
+        //navDrawerItems.add(new NavDrawerItem(navMenuTitles[3], navMenuIcons.getResourceId(0, -1)));
 
         // Recycle the typed array
         navMenuIcons.recycle();
@@ -512,8 +490,10 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public void updateTrackCount(){
+        /*
         int count = TRACETrackerService.Client.getStoredTracksCount(this);
         navDrawerItems.get(1).setCount(String.valueOf(count));
+        */
     }
 
 
