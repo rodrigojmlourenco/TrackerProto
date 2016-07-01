@@ -55,6 +55,7 @@ import java.util.concurrent.TimeUnit;
 public class IJsbergTracker extends BroadcastReceiver implements CollectorManager {
 
     private static final String LOG_TAG = "IJsbergTracker";
+    private static final boolean IS_TESTING = true; //TODO: carefull with this
 
     private static IJsbergTracker TRACKER = null;
     private final PersistentTrackStorage mTrackStorage;
@@ -221,6 +222,7 @@ public class IJsbergTracker extends BroadcastReceiver implements CollectorManage
 
             }else if(isInterestingNewPosition(location, (TraceLocation) mLastKnownLocation)){ //This is a new location
 
+
                 //Update the route summary in a database with the new point
                 double travelledDistance = mCurrentTrack.getElapsedDistance() + mLastKnownLocation.distanceTo(location);
                 mCurrentTrack.setElapsedDistance(travelledDistance);
@@ -243,6 +245,12 @@ public class IJsbergTracker extends BroadcastReceiver implements CollectorManage
     }
 
     private boolean isInterestingNewPosition(TraceLocation position, TraceLocation lastPosition) {
+
+        if(IS_TESTING) {
+            Log.w(LOG_TAG, "IS_TESTING: forcing location to interesting");
+            return true;
+        }
+
         if (lastPosition != null)
             return lastPosition.distanceTo(position) > 100 /* TODO: should not be hardcoded */
                 || position.isCorner(lastPosition.getBearing()); /*TODO: may cause infinite interesting points */

@@ -17,7 +17,9 @@ import org.trace.tracker.storage.data.TraceLocation;
 import org.trace.tracker.storage.data.Track;
 import org.trace.tracker.storage.data.TrackSummary;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 //TODO: integrar elapsedTime e elapsedDistance nas queries
@@ -156,7 +158,7 @@ public class PersistentTrackStorage {
     }
 
     public TrackSummary getTrackSummary(String trackId){
-        TrackSummary summary = null;
+        TrackSummary summary = new TrackSummary();
 
         SQLiteDatabase db = mDBHelper.getReadableDatabase();
 
@@ -211,8 +213,11 @@ public class PersistentTrackStorage {
 
             summary.setFromLocation(from);
             summary.setToLocation(to);
-        }else
+        }else{
+            dumpTrackSummaryTable();
             throw new RuntimeException("No track with id = {"+trackId+"} getTrackSummary@PersistentTrackStorage");
+        }
+
 
         return summary;
 
@@ -282,12 +287,8 @@ public class PersistentTrackStorage {
 
     public Track getTrack_NEW(String trackId){
 
-        Track track = (Track) this.getTrackSummary(trackId);
-
-        List<TraceLocation> trace = getTrackTraces(trackId);
-
-        for(TraceLocation location : trace)
-            track.addTracedLocation(location);
+        Track track = new Track(getTrackSummary(trackId));
+        track.setTracedTrack(getTrackTraces(trackId));
 
         return track;
     }
@@ -329,6 +330,18 @@ public class PersistentTrackStorage {
         return trace;
     }
 
+    public boolean deleteTrack(String trackId){
+
+        SQLiteDatabase db = mDBHelper.getWritableDatabase();
+
+        String selectionClause  = TrackSummaryEntry.COLUMN_ID + "=?";
+        String[] selectionArgs    = new String[]{ trackId };
+
+        int deleted = db.delete(TrackSummaryEntry.TABLE_NAME, selectionClause, selectionArgs);
+
+        return deleted > 0;
+    }
+
     public void dumpTrackSummaryTable(){
 
         SQLiteDatabase db = mDBHelper.getReadableDatabase();
@@ -354,6 +367,7 @@ public class PersistentTrackStorage {
         Log.d("TrackSummary", "");
         Log.d("TrackSummary", "");
         Log.d("TrackSummary", "Dumping track summaries");
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss dd/MM");
         while(cursor.moveToNext()){
 
 
@@ -367,8 +381,8 @@ public class PersistentTrackStorage {
 
             JsonObject track = new JsonObject();
             track.addProperty("id", _id);
-            track.addProperty("startedAt", _start);
-            track.addProperty("endedAt", _stopped);
+            track.addProperty("startedAt", sdf.format(new Date(Long.valueOf(_start))));
+            track.addProperty("endedAt", sdf.format(new Date(Long.valueOf(_stopped))));
             track.addProperty("length", _length);
             track.addProperty("from", _from);
             track.addProperty("to", _to);
@@ -487,7 +501,7 @@ public class PersistentTrackStorage {
         isValid = c.getInt(c.getColumnIndex(TraceEntry.COLUMN_NAME_IS_VALID)) != 0;
 
         Track track = new Track();
-        track.setSessionId(storedSession);
+        track.setTrackId(storedSession);
         if(isClosed) track.upload();
         track.setIsValid(isValid);
         track.setTravelledDistance(c.getDouble(c.getColumnIndex(TraceEntry.COLUMN_NAME_ELAPSED_DISTANCE)));
@@ -641,6 +655,7 @@ public class PersistentTrackStorage {
      ***********************************************************************************************
      */
     //TODO: está errado
+
     @Deprecated
     public boolean deleteTrackById(String session){
 

@@ -84,7 +84,7 @@ public class GPXTrackWriter {
         String response = "";
 
         String gpx = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>";
-        gpx += "<gpx>\n\t<trk><name>"+t.getSessionId()+"</name>\t\t<trkseg>\n";
+        gpx += "<gpx>\n\t<trk><name>"+t.getTrackId()+"</name>\t\t<trkseg>\n";
 
         for(TraceLocation location : t.getTracedTrack())
             gpx += locationToGpx(location)+"\n";
@@ -96,7 +96,7 @@ public class GPXTrackWriter {
         try {
             fw = new FileWriter(file);
             fw.write(gpx);
-            response = t.getSessionId() + " exported to 'Documents'";
+            response = t.getTrackId() + " exported to 'Documents'";
         } catch (IOException e) {
             e.printStackTrace();
             error = true;
@@ -112,7 +112,7 @@ public class GPXTrackWriter {
             boolean deleted = false;
             if(error) {
                 response = "Unable to export the file";
-                Log.e("GPX", "Unable to export "+t.getSessionId()+", deleting the file");
+                Log.e("GPX", "Unable to export "+t.getTrackId()+", deleting the file");
 
                 while (!deleted)
                     deleted = file.delete();
@@ -128,7 +128,7 @@ public class GPXTrackWriter {
         final File gpxTrack =
                 new File(Environment.getExternalStoragePublicDirectory(
                         Environment.DIRECTORY_DOCUMENTS),
-                        "gpx_"+track.getSessionId()+".gpx");
+                        "gpx_"+track.getTrackId()+".gpx");
 
         if(gpxTrack.exists() && !isEmptyFile(gpxTrack)) {
             response = "Already exported, skipping its creation";

@@ -64,8 +64,8 @@ public class MapActivity extends Activity {
 
         PathOverlay pathOverlay = new PathOverlay(Color.BLUE, this);
 
-        GeoPoint start  = new GeoPoint(mTrack.getTracedTrack().getFirst()),
-                 end    = new GeoPoint(mTrack.getTracedTrack().getLast());
+        GeoPoint start  = new GeoPoint(mTrack.getFromLocation()),
+                 end    = new GeoPoint(mTrack.getToLocation());
 
         for(TraceLocation location : mTrack.getTracedTrack())
             pathOverlay.addPoint(new GeoPoint(location.getLatitude(), location.getLongitude()));
@@ -91,8 +91,8 @@ public class MapActivity extends Activity {
 
         ArrayList<GeoPoint> waypoints = new ArrayList<>();
 
-        GeoPoint start  = new GeoPoint(mTrack.getTracedTrack().getFirst()),
-                end    = new GeoPoint(mTrack.getTracedTrack().getLast());
+        GeoPoint start  = new GeoPoint(mTrack.getFromLocation()),
+                end    = new GeoPoint(mTrack.getToLocation());
 
         for(TraceLocation location : mTrack.getTracedTrack())
             waypoints.add(new GeoPoint(location.getLatitude(), location.getLongitude()));

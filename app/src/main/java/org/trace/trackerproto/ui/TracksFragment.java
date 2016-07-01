@@ -175,7 +175,7 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
             DecimalFormat df = new DecimalFormat("#.0");
             final Track t = tracks.get(values.get(position));
             try {
-                sessionView.setText(t.getSessionId());
+                sessionView.setText(t.getTrackId());
             }catch (NullPointerException e){
                 sessionView.setText("Unknown session");
             }
@@ -198,7 +198,7 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
                 public void onClick(View v) {
 
                     if (EasyPermissions.hasPermissions(getActivity(), perms)) {
-                        Toast.makeText(context, tracks.get(values.get(position)).getSessionId(), Toast.LENGTH_LONG).show();
+                        Toast.makeText(context, tracks.get(values.get(position)).getTrackId(), Toast.LENGTH_LONG).show();
 
 
                         Intent maps = new Intent(context, MapActivity.class);
@@ -226,7 +226,7 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
                                 @Override
                                 public void onClick(DialogInterface dialog, int which) {
                                     String handle = values.get(position);
-                                    String sessionId = tracks.get(values.get(position)).getSessionId();
+                                    String sessionId = tracks.get(values.get(position)).getTrackId();
 
                                     TRACETrackerService.Client.deleteStoredTrack(getActivity(), sessionId);
 

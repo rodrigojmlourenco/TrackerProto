@@ -2,19 +2,49 @@ package org.trace.tracker.storage.data;
 
 
 import android.location.Location;
+import android.os.Parcel;
+import android.os.Parcelable;
 
-public class TrackSummary {
+public class TrackSummary implements Parcelable{
+
     private String trackId;
     private double elapsedDistance;
     private long startTimestamp, stopTimestamp;
     private int modality;
     private int sensingType;
+    private String semanticFromLocation = null, semanticToLocation = null;
+    private Location fromLocation = null, toLocation = null;
 
     public TrackSummary(){}
 
     public TrackSummary(String trackId){
         this.trackId = trackId;
     }
+
+    protected TrackSummary(Parcel in) {
+        trackId = in.readString();
+        elapsedDistance = in.readDouble();
+        startTimestamp = in.readLong();
+        stopTimestamp = in.readLong();
+        modality = in.readInt();
+        sensingType = in.readInt();
+        semanticFromLocation = in.readString();
+        semanticToLocation = in.readString();
+        fromLocation = in.readParcelable(Location.class.getClassLoader());
+        toLocation = in.readParcelable(Location.class.getClassLoader());
+    }
+
+    public static final Creator<TrackSummary> CREATOR = new Creator<TrackSummary>() {
+        @Override
+        public TrackSummary createFromParcel(Parcel in) {
+            return new TrackSummary(in);
+        }
+
+        @Override
+        public TrackSummary[] newArray(int size) {
+            return new TrackSummary[size];
+        }
+    };
 
     public String getTrackId() {
         return trackId;
@@ -58,7 +88,7 @@ public class TrackSummary {
         this.sensingType = sensingType;
     }
 
-    private Location fromLocation = null, toLocation = null;
+
 
     public void setFromLocation(TraceLocation location) {
         this.fromLocation = location;
@@ -80,7 +110,7 @@ public class TrackSummary {
         this.toLocation = toLocation;
     }
 
-    private String semanticFromLocation = null, semanticToLocation = null;
+
 
     public String getSemanticToLocation() {
         return semanticToLocation;
@@ -104,5 +134,24 @@ public class TrackSummary {
 
     public int getSensingType() {
         return sensingType;
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeString(trackId);
+        dest.writeDouble(elapsedDistance);
+        dest.writeLong(startTimestamp);
+        dest.writeLong(stopTimestamp);
+        dest.writeInt(modality);
+        dest.writeInt(sensingType);
+        dest.writeString(semanticFromLocation);
+        dest.writeString(semanticToLocation);
+        dest.writeParcelable(fromLocation, flags);
+        dest.writeParcelable(toLocation, flags);
     }
 }
