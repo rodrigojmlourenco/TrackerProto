@@ -46,12 +46,14 @@ import java.util.List;
 
 import pub.devrel.easypermissions.EasyPermissions;
 
-//TODO: [BUG] if the application is closed the state is never reset and it will continue thinking it is tracking
+/**
+ * <b>Note: </b>To avoid incoherent RouteRecorderState's this service should first be started and then
+ * bound.
+ */
 public class RouteRecorderService extends Service implements RouteRecorder {
 
     private static final String LOG_TAG = "RouteRecorder";
     private static final boolean IS_TESTING = true; //TODO: DANGEROUS please remove before release
-
 
     private TrackingEngine mTracker;
     private PersistentTrackStorage mTrackStorage;
@@ -71,8 +73,6 @@ public class RouteRecorderService extends Service implements RouteRecorder {
         mTracker = IJsbergTrackingEngine.getTracker(this);
         mTrackStorage = new PersistentTrackStorage(this);
         mConfigManager = ConfigurationsManager.getInstance(this);
-
-
     }
 
 
@@ -100,9 +100,10 @@ public class RouteRecorderService extends Service implements RouteRecorder {
     }
 
 
-
     @Override
     public void onDestroy() {
+        Log.e("TEST", "onDestroy");
+        mState.reset();
         super.onDestroy();
     }
 

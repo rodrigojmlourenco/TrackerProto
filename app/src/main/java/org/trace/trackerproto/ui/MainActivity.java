@@ -30,6 +30,7 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import org.trace.storeclient.TraceAuthenticationManager;
 import org.trace.storeclient.auth.AuthenticationRenewalListener;
 import org.trace.storeclient.exceptions.UserIsNotLoggedException;
+import org.trace.tracker.RouteRecorderService;
 import org.trace.tracker.TrackingConstants;
 import org.trace.trackerproto.R;
 import org.trace.trackerproto.ui.slidingmenu.adapter.NavDrawerListAdapter;
@@ -77,6 +78,7 @@ public class MainActivity extends AppCompatActivity
      ***********************************************************************************************
      */
 
+
     private boolean isBound = false;
 
     private ServiceConnection mConnection = new ServiceConnection() {
@@ -94,6 +96,7 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     protected void onStart() {
+        startService(new Intent(this, RouteRecorderService.class));
         super.onStart();
     }
 
@@ -103,7 +106,8 @@ public class MainActivity extends AppCompatActivity
 
         if(isFinishing()) {
             unregisterReceiver(authRenewalListener);
-            mAuthManager.logout();
+            //mAuthManager.logout();
+            stopService(new Intent(this, RouteRecorderService.class));
         }
 
         if(mCurrentFragment instanceof MapViewFragment){
