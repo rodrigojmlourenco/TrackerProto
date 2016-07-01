@@ -24,6 +24,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.location.Location;
 import android.os.Binder;
 import android.os.IBinder;
@@ -86,7 +87,14 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
+        mState.load();
         return mBinder;
+    }
+
+    @Override
+    public boolean onUnbind(Intent intent) {
+        mState.save();
+        return super.onUnbind(intent);
     }
 
     public class CustomBinder extends Binder {
@@ -108,7 +116,6 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
 
     private SimpleDateFormat mSDF = new SimpleDateFormat("HH:mm:ss");
 
-    //TODO: [BUG] it is possible to start tracking twice
     @Override
     public String startTracking()
             throws MissingLocationPermissionsException{
@@ -133,7 +140,8 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
             throw new MissingLocationPermissionsException();
 
         //Step 1 - Check if it is already tracking the user
-        if(mState.isTracking){
+        if(mState.isTracking
+                || mTracker.isTracking()){
             Log.w(LOG_TAG, LOG_TAG+" was already active.");
             return null;
         }
@@ -348,6 +356,34 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
 
         public void setFinishing(boolean finishing) {
             isFinishing = finishing;
+        }
+
+        public void save() {
+            SharedPreferences sharedPreferences = getApplicationContext().getSharedPreferences("STATE", Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            /*
+            protected boolean isTracking = false;
+        protected boolean isAutomaticTracking = false;
+        protected boolean isSilentStart = false;
+        protected boolean isFinishing = false;
+             */
+            editor.putBoolean("isTracking", isTracking);
+            editor.putBoolean("isAutomaticTracking", isAutomaticTracking);
+            editor.putBoolean("isSilentStart", isSilentStart);
+            editor.putBoolean("isFinishing", isFinishing);
+
+            editor.commit();
+        }
+
+        public void load(){
+            SharedPreferences sharedPreferences =
+                    getApplicationContext().getSharedPreferences("STATE", Context.MODE_PRIVATE);
+
+
+            isTracking = sharedPreferences.getBoolean("isTracking", false);
+            isAutomaticTracking = sharedPreferences.getBoolean("isAutomaticTracking", false);
+            isSilentStart = sharedPreferences.getBoolean("isSilentStart", false);
+            isFinishing = sharedPreferences.getBoolean("isFinishing", isFinishing);
         }
     }
 

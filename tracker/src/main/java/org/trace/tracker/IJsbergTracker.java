@@ -443,6 +443,14 @@ public class IJsbergTracker extends BroadcastReceiver implements CollectorManage
         startIdleTimer();
     }
 
+    //TODO: make this part of a interface
+    public boolean isTracking() {
+        if(mLocationModule != null){
+            return mLocationModule.isTracking();
+        }else
+            return false;
+    }
+
     private class IdleElapsed implements Runnable {
         @Override
         public void run() {
