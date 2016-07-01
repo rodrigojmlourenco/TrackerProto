@@ -198,6 +198,7 @@ public class TRACETrackerService extends Service {
      * operates as an abstraction layer, that masks the communication between the activities and
      * the TraceTracker service.
      */
+    @Deprecated
     public static class Client {
 
         private static void sendRequest(Messenger messenger, Message msg){

@@ -396,6 +396,7 @@ public class PersistentTrackStorage {
     @Deprecated
     public long createTrack(String session, boolean isValid){
 
+        /*
         SQLiteDatabase db = mDBHelper.getWritableDatabase();
 
         ContentValues values = new ContentValues();
@@ -406,9 +407,10 @@ public class PersistentTrackStorage {
         values.put(TraceEntry.COLUMN_NAME_ELAPSED_DISTANCE, 0);
 
         return db.insert(TraceEntry.TABLE_NAME_TRACKS,null,values);
+        */
+        throw new RuntimeException("Deprecated : createTrack@PersistentTrackStorage");
     }
 
-    // TODO: sempre que uma nova localização é adicionada é actualizado o elapsed time e distance.
     /**
      * Stores a new location, which is associated with a track.
      *
@@ -432,6 +434,7 @@ public class PersistentTrackStorage {
     @Deprecated
     public void storeLocation(TraceLocation location, String trackId, boolean isRemote){
 
+        /*
         SQLiteDatabase db = mDBHelper.getWritableDatabase();
 
         ContentValues values = new ContentValues();
@@ -442,6 +445,9 @@ public class PersistentTrackStorage {
         values.put(TrackLocationEntry.COLUMN_TRACK_ID, trackId);
 
         db.insert(TrackLocationEntry.TABLE_NAME, null, values);
+        */
+        throw new RuntimeException("Deprecated : storeLocation(TraceLocation, String, bool)@PersistentTrackStorage");
+
     }
 
     /* Getters
@@ -452,32 +458,7 @@ public class PersistentTrackStorage {
      ***********************************************************************************************
      */
 
-    /**
-     * Returns the track identifier, given the provided session identifier.
-     * @param session The track's identifier, or -1 if the track was not found.
-     * @return The track's sqlite identifier.
-     */
-    public int getTrackId(String session){
-        int trackId;
-        SQLiteDatabase db = mDBHelper.getReadableDatabase();
 
-        String[] projection = { TraceEntry._ID };
-        String selection = TraceEntry.COLUMN_NAME_SESSION+" = ?";
-        String[] selectionArgs = { session };
-
-        Cursor c = db.query(true, TraceEntry.TABLE_NAME_TRACKS, projection, selection, selectionArgs, "", "", "", "");
-
-        if(!c.moveToFirst()){
-            db.close();
-            return -1;
-        }
-
-        trackId = c.getInt(c.getColumnIndex(TraceEntry._ID));
-
-        db.close();
-
-        return trackId;
-    }
 
     /**
      * Fetches a track as a Track object, given the provided session identifier.
@@ -488,6 +469,7 @@ public class PersistentTrackStorage {
     @Deprecated
     public Track getTrack(String session){
 
+        /*
         SQLiteDatabase db = mDBHelper.getReadableDatabase();
 
         String[] selectionArgs = { session };
@@ -529,6 +511,9 @@ public class PersistentTrackStorage {
         db.close();
 
         return track;
+        */
+
+        throw new RuntimeException("Deprecated : getTrack@PersistentTrackStorage");
     }
 
     /**
@@ -540,6 +525,7 @@ public class PersistentTrackStorage {
     @Deprecated
     public List<TrackSummary> getTracksSessions(){
 
+        /*
         List<TrackSummary> simplifiedTracks = new ArrayList<>();
         SQLiteDatabase db = mDBHelper.getReadableDatabase();
 
@@ -571,6 +557,9 @@ public class PersistentTrackStorage {
         db.close();
 
         return simplifiedTracks;
+        */
+
+        return null;
     }
 
     /**
@@ -618,6 +607,8 @@ public class PersistentTrackStorage {
 
     @Deprecated
     public boolean updateTravelledDistanceAndTime(String session, double distance, double time){
+
+        /*
         int trackId = getTrackId(session);
 
         if(trackId == -1) return false;
@@ -636,6 +627,9 @@ public class PersistentTrackStorage {
         db.close();
 
         return count > 0;
+        */
+
+        throw new RuntimeException("Deprecated : updateTravelledDistanceAndTime@PersistentTrackStorage");
     }
 
 
@@ -647,7 +641,10 @@ public class PersistentTrackStorage {
      ***********************************************************************************************
      */
     //TODO: está errado
+    @Deprecated
     public boolean deleteTrackById(String session){
+
+        /*
         int trackId = getTrackId(session);
 
         if(trackId == -1) return false;
@@ -663,6 +660,8 @@ public class PersistentTrackStorage {
         db.close();
 
         return affected > 0;
+        */
+        throw new RuntimeException("Deprecated : deleteTrackById@PersistentTrackStorage");
     }
 
     /* Checks
@@ -671,10 +670,6 @@ public class PersistentTrackStorage {
      ***********************************************************************************************
      */
 
-    public boolean trackExists(String session){
-        int trackId = getTrackId(session);
-        return trackId != -1;
-    }
 
 
     /* DB Helpers
@@ -710,6 +705,7 @@ public class PersistentTrackStorage {
         }
     }
 
+    /*
     @Deprecated
     public static abstract class TraceEntry implements BaseColumns {
         public static final String TABLE_NAME_TRACKS = "tracks";
@@ -727,7 +723,7 @@ public class PersistentTrackStorage {
         public static final String COLUMN_NAME_ATTRIBUTES = "attributes";
         public static final String COLUMN_NAME_TRACK_ID = "trackId";
     }
-
+    */
 
     private interface BaseTypes {
         String TEXT_TYPE        = " TEXT";
@@ -808,76 +804,5 @@ public class PersistentTrackStorage {
 
         String SQL_DELETE_TABLE =
                 "DROP TABLE IF EXISTS " + TABLE_NAME;
-    }
-
-    private interface ContractHelper {
-        String TEXT_TYPE        = " TEXT";
-        String IDENTIFIER_TYPE  = " INTEGER PRIMARY KEY AUTOINCREMENT";
-        String DOUBLE_TYPE      = " DOUBLE";
-        String DATE_TYPE        = " LONG";
-        String BOOLEAN_TYPE     = " INTEGER DEFAULT 0";
-        String INT_TYPE         = " INTEGER";
-
-        String SEPARATOR = ", ";
-
-
-        String SQL_CREATE_TRACKS =
-                "CREATE TABLE "+ TraceEntry.TABLE_NAME_TRACKS +" ( " +
-                        TraceEntry._ID + " "                + IDENTIFIER_TYPE   + SEPARATOR +
-                        TraceEntry.COLUMN_NAME_SESSION      + TEXT_TYPE         + SEPARATOR +
-                        TraceEntry.COLUMN_NAME_IS_VALID     + BOOLEAN_TYPE      + SEPARATOR +
-                        TraceEntry.COLUMN_NAME_IS_CLOSED    + BOOLEAN_TYPE      + SEPARATOR +
-                        TraceEntry.COLUMN_NAME_ELAPSED_TIME + DOUBLE_TYPE       + SEPARATOR +
-                        TraceEntry.COLUMN_NAME_ELAPSED_DISTANCE + DOUBLE_TYPE + ")";
-
-        String SQL_CREATE_TRACES =
-                "CREATE TABLE "+ TraceEntry.TABLE_NAME_TRACES +" ("+
-                        TraceEntry._ID + " "                + IDENTIFIER_TYPE   + SEPARATOR +
-                        TraceEntry.COLUMN_NAME_LATITUDE     + DOUBLE_TYPE       + SEPARATOR +
-                        TraceEntry.COLUMN_NAME_LONGITUDE    + DOUBLE_TYPE       + SEPARATOR +
-                        TraceEntry.COLUMN_NAME_ATTRIBUTES   + TEXT_TYPE         + SEPARATOR +
-                        TraceEntry.COLUMN_NAME_TIMESTAMP    + DATE_TYPE         + SEPARATOR +
-                        TraceEntry.COLUMN_NAME_TRACK_ID     + INT_TYPE          + SEPARATOR +
-                        " FOREIGN KEY ( "+ TraceEntry.COLUMN_NAME_TRACK_ID+" ) REFERENCES "+ TraceEntry.TABLE_NAME_TRACKS+ " ( "+ TraceEntry._ID+" ) ON DELETE CASCADE)";
-
-        String SQL_DELETE_TRACKS_TABLE =
-                "DROP TABLE IF EXISTS " + TraceEntry.TABLE_NAME_TRACKS;
-
-        String SQL_DELETE_TRACES_TABLE =
-                "DROP TABLE IF EXISTS " + TraceEntry.TABLE_NAME_TRACES;
-
-
-        @Deprecated
-        String SQL_RAW_QUERY_COMPLETE_TRACKS =
-                "SELECT "+
-                        TraceEntry.COLUMN_NAME_LATITUDE         + SEPARATOR +
-                        TraceEntry.COLUMN_NAME_LONGITUDE        + SEPARATOR +
-                        TraceEntry.COLUMN_NAME_TIMESTAMP        + SEPARATOR +
-                        TraceEntry.COLUMN_NAME_ATTRIBUTES       + SEPARATOR +
-                        TraceEntry.COLUMN_NAME_SESSION          + SEPARATOR +
-                        TraceEntry.COLUMN_NAME_IS_CLOSED        + SEPARATOR +
-                        TraceEntry.COLUMN_NAME_IS_VALID         + SEPARATOR +
-                        TraceEntry.COLUMN_NAME_ELAPSED_DISTANCE + SEPARATOR +
-                        TraceEntry.COLUMN_NAME_ELAPSED_TIME     +
-                        " FROM "+ TraceEntry.TABLE_NAME_TRACKS+ " INNER JOIN "+ TraceEntry.TABLE_NAME_TRACES +
-                        " ON "+ TraceEntry.TABLE_NAME_TRACKS+"."+ TraceEntry._ID+"="+ TraceEntry.TABLE_NAME_TRACES+"."+ TraceEntry.COLUMN_NAME_TRACK_ID+
-                        " WHERE "+ TraceEntry.COLUMN_NAME_SESSION + " = ?";
-
-
-        String SQL_RAW_QUERY_COMPLETE_TRACKS_NEW =
-                "SELECT "+
-                        TrackLocationEntry.COLUMN_TRACK_ID  + SEPARATOR +
-                        TrackLocationEntry.COLUMN_LATITUDE  + SEPARATOR +
-                        TrackLocationEntry.COLUMN_LONGITUDE + SEPARATOR +
-                        TrackLocationEntry.COLUMN_TIMESTAMP + SEPARATOR +
-                        TrackLocationEntry.COLUMN_ATTRIBUTES+ SEPARATOR +
-
-                        TraceEntry.COLUMN_NAME_IS_CLOSED        + SEPARATOR +
-                        TraceEntry.COLUMN_NAME_IS_VALID         + SEPARATOR +
-                        TraceEntry.COLUMN_NAME_ELAPSED_DISTANCE + SEPARATOR +
-                        TraceEntry.COLUMN_NAME_ELAPSED_TIME     +
-                        " FROM "+ TraceEntry.TABLE_NAME_TRACKS+ " INNER JOIN "+ TraceEntry.TABLE_NAME_TRACES +
-                        " ON "+ TraceEntry.TABLE_NAME_TRACKS+"."+ TraceEntry._ID+"="+ TraceEntry.TABLE_NAME_TRACES+"."+ TraceEntry.COLUMN_NAME_TRACK_ID+
-                        " WHERE "+ TraceEntry.COLUMN_NAME_SESSION + " = ?";
     }
 }
