@@ -23,7 +23,7 @@ import java.util.Date;
 import java.util.List;
 
 //TODO: integrar elapsedTime e elapsedDistance nas queries
-
+//TODO: make sure the db is always closed
 /**
  * The PersistentTrackStorage manages the stored tracks. The storage is performed using the device's
  * native SQLite support.

@@ -17,6 +17,8 @@ import java.util.List;
 /**
  * @version 1.0
  * @author Rodrigo Lourenço
+ *
+ * TODO: the Parcel does not deal properly with the TrackSummaryFields
  */
 public class Track extends TrackSummary implements Parcelable{
 

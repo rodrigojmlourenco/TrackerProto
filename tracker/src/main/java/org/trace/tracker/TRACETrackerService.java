@@ -305,7 +305,8 @@ public class TRACETrackerService extends Service {
          */
         public static Track getStoredTrack(Context context, String sessionId){
             PersistentTrackStorage storage = new PersistentTrackStorage(context);
-            return storage.getTrack(sessionId);
+            return storage.getTrack_NEW(sessionId);
+            //return storage.getTrack(sessionId);
         }
 
 
@@ -324,7 +325,8 @@ public class TRACETrackerService extends Service {
          */
         public static void deleteStoredTrack(Context context, String sessionId){
             PersistentTrackStorage storage = new PersistentTrackStorage(context);
-            storage.deleteTrackById(sessionId);
+            //storage.deleteTrackById(sessionId);
+            storage.deleteTrackSummary(sessionId);
         }
 
 
