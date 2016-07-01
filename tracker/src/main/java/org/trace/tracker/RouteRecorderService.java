@@ -245,6 +245,10 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
         //TODO: remover (just for debugging)
         mTrackStorage.dumpTrackSummaryTable();
 
+        synchronized (finishLock){
+            mState.isFinishing = false;
+        }
+
         if(!wasDeleted)
             return mTrackStorage.getCompleteTrack(currentTrack);
         else
@@ -256,7 +260,6 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
 
         if(t == null || t.getTravelledDistance() <= 15 || t.getTracedTrack().size() <= 5) {
             mTrackStorage.deleteTrack(session);
-            //mTrackStorage.deleteTrackSummary(session);
 
             Log.i(LOG_TAG, "This track was not stored because it is too short.");
 
