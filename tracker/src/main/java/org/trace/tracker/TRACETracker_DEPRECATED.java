@@ -20,11 +20,11 @@ import org.trace.tracker.storage.data.TraceLocation;
 
 import java.util.ArrayList;
 
-public class TRACETracker extends BroadcastReceiver implements CollectorManager {
+public class TRACETracker_DEPRECATED extends BroadcastReceiver implements CollectorManager {
 
     private static final String LOG_TAG = "TRACETracker";
 
-    private static TRACETracker TRACKER = null;
+    private static TRACETracker_DEPRECATED TRACKER = null;
 
     private Context mContext;
     private GoogleClientManager mGoogleMan;
@@ -53,7 +53,7 @@ public class TRACETracker extends BroadcastReceiver implements CollectorManager 
     //Persistent Storage
     private PersistentTrackStorage mTrackPersistentStorage;
 
-    private TRACETracker(Context context){
+    private TRACETracker_DEPRECATED(Context context){
         mContext = context;
 
         mGoogleMan = new GoogleClientManager(mContext);
@@ -65,9 +65,9 @@ public class TRACETracker extends BroadcastReceiver implements CollectorManager 
         mTrackPersistentStorage = new PersistentTrackStorage(mContext);
     }
 
-    protected static TRACETracker getTracker(Context ctx){
+    protected static TRACETracker_DEPRECATED getTracker(Context ctx){
         if(TRACKER == null)
-            TRACKER = new TRACETracker(ctx);
+            TRACKER = new TRACETracker_DEPRECATED(ctx);
 
         return TRACKER;
     }

@@ -52,12 +52,12 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-public class IJsbergTracker extends BroadcastReceiver implements CollectorManager {
+public class IJsbergTrackingEngine extends BroadcastReceiver implements TrackingEngine{
 
-    private static final String LOG_TAG = "IJsbergTracker";
+    private static final String LOG_TAG = "IJsbergTrackingEngine";
     private static final boolean IS_TESTING = true; //TODO: carefull with this
 
-    private static IJsbergTracker TRACKER = null;
+    private static IJsbergTrackingEngine TRACKER = null;
     private final PersistentTrackStorage mTrackStorage;
 
     private Context mContext;
@@ -66,7 +66,7 @@ public class IJsbergTracker extends BroadcastReceiver implements CollectorManage
     //State
     private TrackSummary mCurrentTrack;
 
-    private IJsbergTracker(Context context){
+    private IJsbergTrackingEngine(Context context){
         mContext = context;
 
         mGoogleMan = new GoogleClientManager(mContext);
@@ -80,11 +80,11 @@ public class IJsbergTracker extends BroadcastReceiver implements CollectorManage
         mIdleTimer = mExecutorService.schedule(new IdleElapsed(), 20, TimeUnit.MINUTES); //TODO: should not be hardcoded
     }
 
-    protected static IJsbergTracker getTracker(Context ctx){
+    protected static IJsbergTrackingEngine getTracker(Context ctx){
 
-        synchronized (IJsbergTracker.class) {
+        synchronized (IJsbergTrackingEngine.class) {
             if (TRACKER == null)
-                TRACKER = new IJsbergTracker(ctx);
+                TRACKER = new IJsbergTrackingEngine(ctx);
         }
 
         return TRACKER;
@@ -253,7 +253,7 @@ public class IJsbergTracker extends BroadcastReceiver implements CollectorManage
 
         if (lastPosition != null)
             return lastPosition.distanceTo(position) > 100 /* TODO: should not be hardcoded */
-                || position.isCorner(lastPosition.getBearing()); /*TODO: may cause infinite interesting points */
+                    || position.isCorner(lastPosition.getBearing()); /*TODO: may cause infinite interesting points */
         else
             return false;
 
@@ -289,6 +289,91 @@ public class IJsbergTracker extends BroadcastReceiver implements CollectorManage
 
     }
 
+
+    /* Activity Tracking
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+    private final Object mActivityLock = new Object();
+    private DetectedActivity mCurrentActivity = null;
+    private ActivityRecognitionModule mActivityRecognitionModule = null;
+
+    public void stopActivityUpdates(){
+        mActivityRecognitionModule.stopTracking();
+    }
+
+    private void onHandleDetectedActivity(ArrayList<DetectedActivity> detectedActivities){
+        if(detectedActivities.isEmpty()) return;
+
+        DetectedActivity aux = detectedActivities.get(0);
+
+        for(DetectedActivity activity : detectedActivities)
+            if (aux.getConfidence() > activity.getConfidence())
+                aux = activity;
+
+        if(aux.getConfidence() < mActivityRecognitionModule.getMinimumConfidence()) {
+            String activityName = ActivityRecognitionModule.getActivityString(aux.getType());
+            Log.d(LOG_TAG, "Confidence on the activity '"+activityName+"' is too low, keeping the previous...");
+            return;
+        }
+
+        synchronized (mActivityLock) {
+            mCurrentActivity = aux;
+        }
+    }
+
+    /* Timers
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+    private ScheduledFuture mIdleTimer;
+    private ScheduledExecutorService mExecutorService = Executors.newScheduledThreadPool(1);
+
+
+    protected void startIdleTimer(){
+        mIdleTimer = mExecutorService.schedule(new IdleElapsed(), 20, TimeUnit.MINUTES);
+    }
+
+
+
+    private class IdleElapsed implements Runnable {
+        @Override
+        public void run() {
+
+            if(!mLocationModule.isTracking()){
+                Log.i(LOG_TAG, "IdleTimer complete, however not tracking.");
+                return;
+            }
+
+            stopIdleTimer();
+            LocalBroadcastManager.getInstance(mContext)
+                    .sendBroadcast(new Intent(Extras.IDLE_TIMEOUT_ACTION));
+
+        }
+    }
+
+    /* Tracking Engine
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+    private ConfigurationsManager mSettingsManager;
+
+    @Override
+    public void setCurrentTrack(TrackSummary summary) {
+        mCurrentTrack = summary;
+    }
+
+
+
+    @Override
+    public TrackSummary getCurrentTrack(){
+        return  mCurrentTrack;
+    }
+
+    @Override
     public Location getCurrentLocation() {
 
         //Scenario 1 - There is a current location and its fresh
@@ -334,75 +419,67 @@ public class IJsbergTracker extends BroadcastReceiver implements CollectorManage
     }
 
     @Override
-    public void storeLocation(Location location) {
-        throw new UnsupportedOperationException();
+    public void startTracking() {
+        startActivityUpdates();
+        startLocationUpdates();
     }
 
-    /* Activity Tracking
-     ***********************************************************************************************
-     ***********************************************************************************************
-     ***********************************************************************************************
-     */
-    private final Object mActivityLock = new Object();
-    private DetectedActivity mCurrentActivity = null;
-    private ActivityRecognitionModule mActivityRecognitionModule = null;
+    @Override
+    public void stopTracking() {
+        abortTracking();
 
-    public void stopActivityUpdates(){
-        mActivityRecognitionModule.stopTracking();
+        final Location location = mLastKnownLocation;
+
+
+        Handler handler = new Handler();
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+
+                List<Address> addresses = null;
+                Geocoder geocoder = new Geocoder(mContext, Locale.getDefault());
+
+                try {
+                    addresses = geocoder.getFromLocation(location.getLatitude(), location.getLongitude(), 1);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                if (addresses != null && addresses.size() > 0) {
+                    Address address = addresses.get(0);
+                    ArrayList<String> addressFragments = new ArrayList<String>();
+
+                    // Fetch the address lines using getAddressLine,
+                    // join them, and send them to the thread.
+                    for (int i = 0; i < address.getMaxAddressLineIndex(); i++)
+                        addressFragments.add(address.getAddressLine(i));
+
+                    String sLocation = TextUtils.join(", ", addressFragments);
+                    Log.i(LOG_TAG, sLocation);
+
+                    mCurrentTrack.setSemanticToLocation(sLocation);
+                    mTrackStorage.updateTrackSummary(mCurrentTrack);
+                }
+            }
+        });
     }
 
-    private void onHandleDetectedActivity(ArrayList<DetectedActivity> detectedActivities){
-        if(detectedActivities.isEmpty()) return;
-
-        DetectedActivity aux = detectedActivities.get(0);
-
-        for(DetectedActivity activity : detectedActivities)
-            if (aux.getConfidence() > activity.getConfidence())
-                aux = activity;
-
-        if(aux.getConfidence() < mActivityRecognitionModule.getMinimumConfidence()) {
-            String activityName = ActivityRecognitionModule.getActivityString(aux.getType());
-            Log.d(LOG_TAG, "Confidence on the activity '"+activityName+"' is too low, keeping the previous...");
-            return;
-        }
-
-        synchronized (mActivityLock) {
-            mCurrentActivity = aux;
-        }
+    @Override
+    public void abortTracking() {
+        stopLocationUpdates();
+        stopActivityUpdates();
+        stopIdleTimer();
     }
 
-
-    /* Session Management
-     * TODO: deprecate all dependencies to sessions
-     ***********************************************************************************************
-     ***********************************************************************************************
-     ***********************************************************************************************
-     */
-    @Deprecated
-    private String mSessionId = null;
-    @Deprecated
-    private boolean isValidSession = false;
-
-    @Deprecated
-    public void setSession(String session, boolean isValid){
-        teardownSession();
-        mSessionId = session;
-        isValidSession = isValid;
+    @Override
+    public boolean isTracking() {
+        if(mLocationModule != null){
+            return mLocationModule.isTracking();
+        }else
+            return false;
     }
 
-    @Deprecated
-    private void teardownSession(){
-        mSessionId = null;
-        isValidSession = false;
-    }
-
-    /* Configuration Profile Management
-     ***********************************************************************************************
-     ***********************************************************************************************
-     ***********************************************************************************************
-     */
-    private ConfigurationsManager mSettingsManager;
-
+    @Override
     public void updateSettings() {
 
         ConfigurationProfile profile = mSettingsManager.getTrackingProfile();
@@ -422,114 +499,22 @@ public class IJsbergTracker extends BroadcastReceiver implements CollectorManage
         mActivityRecognitionModule.setMinimumConfidence(profile.getActivityMinimumConfidence());
     }
 
-    /* Timers
-     ***********************************************************************************************
-     ***********************************************************************************************
-     ***********************************************************************************************
-     */
-    private ScheduledFuture mIdleTimer;
-    private ScheduledExecutorService mExecutorService = Executors.newScheduledThreadPool(1);
-
-
-    protected void startIdleTimer(){
-        mIdleTimer = mExecutorService.schedule(new IdleElapsed(), 20, TimeUnit.MINUTES);
-    }
-    protected void stopIdleTimer(){
-        mIdleTimer.cancel(true);
-    }
-
-    protected void resetIdleTimer(){
+    @Override
+    public void resetIdleTimer(){
         stopIdleTimer();
         startIdleTimer();
     }
 
-    //TODO: make this part of a interface
-    public boolean isTracking() {
-        if(mLocationModule != null){
-            return mLocationModule.isTracking();
-        }else
-            return false;
+    @Override
+    public void stopIdleTimer(){
+        mIdleTimer.cancel(true);
     }
 
-    private class IdleElapsed implements Runnable {
-        @Override
-        public void run() {
-
-            if(!mLocationModule.isTracking()){
-                Log.i(LOG_TAG, "IdleTimer complete, however not tracking.");
-                return;
-            }
-
-            stopIdleTimer();
-            LocalBroadcastManager.getInstance(mContext)
-                    .sendBroadcast(new Intent(Extras.IDLE_TIMEOUT_ACTION));
-
-        }
-    }
-
-    /* Other (Refactor)
+    /* Others
      ***********************************************************************************************
      ***********************************************************************************************
      ***********************************************************************************************
      */
-    public void setCurrentTrack(TrackSummary summary) {
-        mCurrentTrack = summary;
-    }
-
-    public TrackSummary getCurrentTrack(){
-        return  mCurrentTrack;
-    }
-
-    public void updateTravelledDistance(double distance){
-        mCurrentTrack.setElapsedDistance(distance);
-    }
-
-    public void stopTracking(boolean updateLastLocation){
-
-        //TODO: maybe update the track in the storage
-
-        stopLocationUpdates();
-        stopActivityUpdates();
-        stopIdleTimer();
-
-        final Location location = mLastKnownLocation;
-        mLastKnownLocation= null;
-
-        if(updateLastLocation){
-            Handler handler = new Handler();
-            handler.post(new Runnable() {
-                @Override
-                public void run() {
-
-                    List<Address> addresses = null;
-                    Geocoder geocoder = new Geocoder(mContext, Locale.getDefault());
-
-                    try {
-                        addresses = geocoder.getFromLocation(location.getLatitude(), location.getLongitude(), 1);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-
-                    if (addresses != null && addresses.size() > 0) {
-                        Address address = addresses.get(0);
-                        ArrayList<String> addressFragments = new ArrayList<String>();
-
-                        // Fetch the address lines using getAddressLine,
-                        // join them, and send them to the thread.
-                        for (int i = 0; i < address.getMaxAddressLineIndex(); i++)
-                            addressFragments.add(address.getAddressLine(i));
-
-                        String sLocation = TextUtils.join(", ", addressFragments);
-                        Log.i(LOG_TAG, sLocation);
-
-                        //TODO: [BUG] The track is not found!
-                        mCurrentTrack.setSemanticToLocation(sLocation);
-                        mTrackStorage.updateTrackSummary(mCurrentTrack);
-                    }
-                }
-            });
-        }
-    }
 
     public interface Extras {
         String IDLE_TIMEOUT_ACTION = "IDLE_TIMEOUT_ACTION";

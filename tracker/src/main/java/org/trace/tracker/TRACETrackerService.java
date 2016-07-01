@@ -34,14 +34,14 @@ public class TRACETrackerService extends Service {
 
     private final String LOG_TAG = "TRACETrackerService";
 
-    private TRACETracker mTracker;
+    private TRACETracker_DEPRECATED mTracker;
     private PersistentTrackStorage mTrackStorage;
     final Messenger mMessenger = new Messenger(new ClientHandler());
 
     @Override
     public void onCreate() {
         super.onCreate();
-        mTracker = TRACETracker.getTracker(this);
+        mTracker = TRACETracker_DEPRECATED.getTracker(this);
         mTrackStorage = new PersistentTrackStorage(this);
     }
 

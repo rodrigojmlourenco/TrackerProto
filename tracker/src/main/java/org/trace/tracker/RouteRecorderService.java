@@ -46,14 +46,14 @@ import java.util.List;
 
 import pub.devrel.easypermissions.EasyPermissions;
 
-
-public class RouteRecorderService extends Service implements RouteRecorderInterface{
+//TODO: [BUG] if the application is closed the state is never reset and it will continue thinking it is tracking
+public class RouteRecorderService extends Service implements RouteRecorder {
 
     private static final String LOG_TAG = "RouteRecorder";
     private static final boolean IS_TESTING = true; //TODO: DANGEROUS please remove before release
 
 
-    private IJsbergTracker mTracker;
+    private TrackingEngine mTracker;
     private PersistentTrackStorage mTrackStorage;
     private ConfigurationsManager mConfigManager;
     private final IBinder mBinder = new CustomBinder();
@@ -68,9 +68,11 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
     @Override
     public void onCreate() {
         super.onCreate();
-        mTracker = IJsbergTracker.getTracker(this);
+        mTracker = IJsbergTrackingEngine.getTracker(this);
         mTrackStorage = new PersistentTrackStorage(this);
         mConfigManager = ConfigurationsManager.getInstance(this);
+
+
     }
 
 
@@ -95,6 +97,13 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
     public boolean onUnbind(Intent intent) {
         mState.save();
         return super.onUnbind(intent);
+    }
+
+
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
     }
 
     public class CustomBinder extends Binder {
@@ -152,6 +161,8 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
         mState.setTracking(true);
         mState.setAutomaticTracking(isAutomatic);
         mState.setSilentStart(isSilent);
+        mState.save();
+
         mTracker.setCurrentTrack(mTrackStorage.createNewTrackSummary(startTime, modality, isAutomatic ? 0 : 2));
 
         Log.i(LOG_TAG, "Starting a new route @"+mSDF.format(new Date(startTime)));
@@ -166,23 +177,19 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
 
         String session = mTrackStorage.getNextAvailableId(); //TODO: deprecate this, use mCurrentTrackSummary instead
         mCurrentSession= session;
-        boolean isValid= false; //TODO: this should disapear completely
 
-
-        mTracker.setSession(session, isValid);
         mTracker.updateSettings();
-        mTracker.startLocationUpdates();
-        mTracker.startActivityUpdates();
+        mTracker.startTracking();
 
         //Step 4 - Register the receiver, which are responsible for handling new locations and activities.
         IntentFilter trackingFilter = new IntentFilter();
         trackingFilter.addAction(ActivityConstants.COLLECT_ACTION);
         trackingFilter.addAction(TrackingConstants.tracker.COLLECT_LOCATIONS_ACTION);
 
-        LocalBroadcastManager.getInstance(this).registerReceiver(mTracker, trackingFilter);
+        LocalBroadcastManager.getInstance(this).registerReceiver((BroadcastReceiver) mTracker, trackingFilter);
 
         //Step 5 - Register the receiver, which is responsible for handling idle timeouts.
-        IntentFilter timeoutFilter = new IntentFilter(IJsbergTracker.Extras.IDLE_TIMEOUT_ACTION);
+        IntentFilter timeoutFilter = new IntentFilter(IJsbergTrackingEngine.Extras.IDLE_TIMEOUT_ACTION);
         LocalBroadcastManager.getInstance(this).registerReceiver(mTimeoutReceiver, timeoutFilter);
 
         return mCurrentSession;
@@ -213,6 +220,8 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
             return null;
         }else
             mState.setTracking(false);
+
+        mState.save();
 
         TrackSummary currentTrack = mTracker.getCurrentTrack();
 
@@ -246,8 +255,13 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
 
         //Step 3 - Stop location and activity updates and unregister the receiver
         boolean wasDeleted = deleteTrackIfIrrelevant(currentTrack.getTrackId());
-        mTracker.stopTracking(!wasDeleted);
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(mTracker);
+
+        if(wasDeleted)
+            mTracker.abortTracking();
+        else
+            mTracker.stopTracking();
+
+        LocalBroadcastManager.getInstance(this).unregisterReceiver((BroadcastReceiver) mTracker);
 
         //TODO: remover (just for debugging)
         mTrackStorage.dumpTrackSummaryTable();
@@ -361,12 +375,7 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
         public void save() {
             SharedPreferences sharedPreferences = getApplicationContext().getSharedPreferences("STATE", Context.MODE_PRIVATE);
             SharedPreferences.Editor editor = sharedPreferences.edit();
-            /*
-            protected boolean isTracking = false;
-        protected boolean isAutomaticTracking = false;
-        protected boolean isSilentStart = false;
-        protected boolean isFinishing = false;
-             */
+
             editor.putBoolean("isTracking", isTracking);
             editor.putBoolean("isAutomaticTracking", isAutomaticTracking);
             editor.putBoolean("isSilentStart", isSilentStart);
@@ -384,6 +393,15 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
             isAutomaticTracking = sharedPreferences.getBoolean("isAutomaticTracking", false);
             isSilentStart = sharedPreferences.getBoolean("isSilentStart", false);
             isFinishing = sharedPreferences.getBoolean("isFinishing", isFinishing);
+        }
+
+        public void reset() {
+            isTracking = false;
+            isAutomaticTracking = false;
+            isSilentStart = false;
+            isFinishing = false;
+
+            this.save();
         }
     }
 
