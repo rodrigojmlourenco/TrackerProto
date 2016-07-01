@@ -30,17 +30,19 @@ import java.util.List;
  */
 public class PersistentTrackStorage {
 
+    private static final String LOG_TAG = "TrackStorage";
     private TrackStorageDBHelper mDBHelper;
 
     public PersistentTrackStorage(Context context){
         mDBHelper = new TrackStorageDBHelper(context);
     }
 
-    /* Version 2.0
+    /* Constructors && Destructors
      ***********************************************************************************************
      ***********************************************************************************************
      ***********************************************************************************************
      */
+
     public TrackSummary createNewTrackSummary(long startTime, int modality, int sensingType){
 
         String trackID = this.getNextAvailableId();
@@ -75,6 +77,62 @@ public class PersistentTrackStorage {
         }
     }
 
+
+    /**
+     * Stores a new location, which is associated with a track.
+     *
+     * @param location The new location.
+     * @param trackId The session identifier that identifies the track.
+     */
+    public void storeLocation(TraceLocation location, String trackId){
+
+        SQLiteDatabase db = mDBHelper.getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put(TrackLocationEntry.COLUMN_LATITUDE, location.getLatitude());
+        values.put(TrackLocationEntry.COLUMN_LONGITUDE, location.getLongitude());
+        values.put(TrackLocationEntry.COLUMN_ATTRIBUTES, location.getSecondaryAttributesAsJson().toString());
+        values.put(TrackLocationEntry.COLUMN_TIMESTAMP, location.getTime());
+        values.put(TrackLocationEntry.COLUMN_TRACK_ID, trackId);
+
+        db.insert(TrackLocationEntry.TABLE_NAME, null, values);
+    }
+
+    public boolean removeTrackSummaryAndTrace(TrackSummary summary){
+        //TODO: assure the points are being removed
+        deleteTrackSummary(summary.getTrackId());
+        return this.deleteTrackById(summary.getTrackId());
+    }
+
+    public boolean deleteTrack(String trackId){
+
+        SQLiteDatabase db = mDBHelper.getWritableDatabase();
+
+        String selectionClause  = TrackSummaryEntry.COLUMN_ID + "=?";
+        String[] selectionArgs    = new String[]{ trackId };
+
+        int deleted = db.delete(TrackSummaryEntry.TABLE_NAME, selectionClause, selectionArgs);
+
+        return deleted > 0;
+    }
+
+    public void deleteTrackSummary(String trackId){
+        SQLiteDatabase db = mDBHelper.getWritableDatabase();
+
+        String selectionClause = TrackSummaryEntry.COLUMN_ID + "=?";
+        String[] selectionArgs = new String[] { trackId };
+
+        int affected = db.delete(TrackSummaryEntry.TABLE_NAME, selectionClause, selectionArgs);
+
+        if(affected < 0)
+            throw new RuntimeException("Did not remove any row!!! deleteTrackSummary@PersistentTrackStorage");
+    }
+
+    /* Updaters
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
     public void updateTrackSummaryDistanceAndTime(TrackSummary summary){
 
         SQLiteDatabase db = mDBHelper.getWritableDatabase();
@@ -95,20 +153,6 @@ public class PersistentTrackStorage {
             throw new RuntimeException("Did not update any row!!! updateTrackSummaryDistanceAndTime@PersistentTrackStorage");
 
     }
-
-    public void deleteTrackSummary(String trackId){
-        SQLiteDatabase db = mDBHelper.getWritableDatabase();
-
-        String selectionClause = TrackSummaryEntry.COLUMN_ID + "=?";
-        String[] selectionArgs = new String[] { trackId };
-
-        int affected = db.delete(TrackSummaryEntry.TABLE_NAME, selectionClause, selectionArgs);
-
-        if(affected < 0)
-            throw new RuntimeException("Did not remove any row!!! deleteTrackSummary@PersistentTrackStorage");
-    }
-
-
 
     public void updateTrackSummary(TrackSummary summary){
 
@@ -135,7 +179,7 @@ public class PersistentTrackStorage {
             values.put(TrackSummaryEntry.COLUMN_FROM, summary.getSemanticFromLocation());
 
         if(summary.getSemanticToLocation() != null && !summary.getSemanticToLocation().isEmpty())
-            values.put(TrackSummaryEntry.COLUMN_FROM, summary.getSemanticToLocation());
+            values.put(TrackSummaryEntry.COLUMN_TO, summary.getSemanticToLocation());
 
         selectionArgs[0] = summary.getTrackId();
 
@@ -143,18 +187,19 @@ public class PersistentTrackStorage {
 
         if(affected <= 0) {
             dumpTrackSummaryTable();
-            throw new RuntimeException("Did not update any row!!! updateTrackSummary@PersistentTrackStorage");
+            throw new RuntimeException("Did not update any row for track "+summary.getTrackId()+"!!! updateTrackSummary@PersistentTrackStorage");
         }
 
     }
 
-    public Track getCompleteTrack(TrackSummary summary){
-        return  this.getTrack_NEW(summary.getTrackId());
-    }
+    /* Getters
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
 
-    public boolean removeTrackSummaryAndTrace(TrackSummary summary){
-        deleteTrackSummary(summary.getTrackId());
-        return this.deleteTrackById(summary.getTrackId());
+    public Track getCompleteTrack(TrackSummary summary){
+        return  this.getTrack(summary.getTrackId());
     }
 
     public TrackSummary getTrackSummary(String trackId){
@@ -285,7 +330,7 @@ public class PersistentTrackStorage {
         return summaries;
     }
 
-    public Track getTrack_NEW(String trackId){
+    public Track getTrack(String trackId){
 
         Track track = new Track(getTrackSummary(trackId));
         track.setTracedTrack(getTrackTraces(trackId));
@@ -330,18 +375,45 @@ public class PersistentTrackStorage {
         return trace;
     }
 
-    public boolean deleteTrack(String trackId){
+    /**
+     * Returns the number of tracks currently stored in the database.
+     * @return The tracks count.
+     */
+    public int getTracksCount(){
 
-        SQLiteDatabase db = mDBHelper.getWritableDatabase();
+        int count;
+        SQLiteDatabase db = mDBHelper.getReadableDatabase();
+        count = (int) DatabaseUtils.queryNumEntries(db, TrackSummaryEntry.TABLE_NAME,"", null);
 
-        String selectionClause  = TrackSummaryEntry.COLUMN_ID + "=?";
-        String[] selectionArgs    = new String[]{ trackId };
-
-        int deleted = db.delete(TrackSummaryEntry.TABLE_NAME, selectionClause, selectionArgs);
-
-        return deleted > 0;
+        return count;
     }
 
+
+    public String getNextAvailableId(){
+        int nextId;
+
+        SQLiteDatabase db = mDBHelper.getReadableDatabase();
+
+        Cursor c = db.query(
+                TrackSummaryEntry.TABLE_NAME,
+                new String[]{"MAX("+ TrackSummaryEntry._ID+")"},
+                null, null, null, null, null);
+
+        if(c.moveToFirst()){
+            nextId = c.getInt(0)+1;
+        }else{
+            nextId = -1;
+        }
+
+        return String.valueOf(nextId);
+    }
+
+
+    /* Logging
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
     public void dumpTrackSummaryTable(){
 
         SQLiteDatabase db = mDBHelper.getReadableDatabase();
@@ -391,10 +463,15 @@ public class PersistentTrackStorage {
         }
     }
 
+    public void dumpTraceSummarized(){
+        SQLiteDatabase db = mDBHelper.getReadableDatabase();
 
-    /* Constructors
-    /* Constructors
-    /* Constructors
+        Cursor c = db.query(TrackLocationEntry.TABLE_NAME, null, "", null, "", "", "");
+
+        Log.i("TrackSummary", "There are currently "+c.getCount()+" stored locations");
+    }
+
+    /* Deprecated - Soon to be removed
      ***********************************************************************************************
      ***********************************************************************************************
      ***********************************************************************************************
@@ -425,26 +502,6 @@ public class PersistentTrackStorage {
         throw new RuntimeException("Deprecated : createTrack@PersistentTrackStorage");
     }
 
-    /**
-     * Stores a new location, which is associated with a track.
-     *
-     * @param location The new location.
-     * @param trackId The session identifier that identifies the track.
-     */
-    public void storeLocation(TraceLocation location, String trackId){
-
-        SQLiteDatabase db = mDBHelper.getWritableDatabase();
-
-        ContentValues values = new ContentValues();
-        values.put(TrackLocationEntry.COLUMN_LATITUDE, location.getLatitude());
-        values.put(TrackLocationEntry.COLUMN_LONGITUDE, location.getLongitude());
-        values.put(TrackLocationEntry.COLUMN_ATTRIBUTES, location.getSecondaryAttributesAsJson().toString());
-        values.put(TrackLocationEntry.COLUMN_TIMESTAMP, location.getTime());
-        values.put(TrackLocationEntry.COLUMN_TRACK_ID, trackId);
-
-        db.insert(TrackLocationEntry.TABLE_NAME, null, values);
-    }
-
     @Deprecated
     public void storeLocation(TraceLocation location, String trackId, boolean isRemote){
 
@@ -464,16 +521,6 @@ public class PersistentTrackStorage {
 
     }
 
-    /* Getters
-    /* Getters
-    /* Getters
-     ***********************************************************************************************
-     ***********************************************************************************************
-     ***********************************************************************************************
-     */
-
-
-
     /**
      * Fetches a track as a Track object, given the provided session identifier.
      * @param session The session identifier
@@ -481,7 +528,7 @@ public class PersistentTrackStorage {
      * @see Track
      */
     @Deprecated
-    public Track getTrack(String session){
+    public Track getTrack_DEPRECATED(String session){
 
         /*
         SQLiteDatabase db = mDBHelper.getReadableDatabase();
@@ -527,7 +574,7 @@ public class PersistentTrackStorage {
         return track;
         */
 
-        throw new RuntimeException("Deprecated : getTrack@PersistentTrackStorage");
+        throw new RuntimeException("Deprecated : getTrack_DEPRECATED@PersistentTrackStorage");
     }
 
     /**
@@ -573,51 +620,8 @@ public class PersistentTrackStorage {
         return simplifiedTracks;
         */
 
-        return null;
+        throw new RuntimeException("Deprecated : getTrackSessions@PersistentTrackStorage");
     }
-
-    /**
-     * Returns the number of tracks currently stored in the database.
-     * @return The tracks count.
-     */
-    public int getTracksCount(){
-
-        int count;
-        SQLiteDatabase db = mDBHelper.getReadableDatabase();
-        count = (int) DatabaseUtils.queryNumEntries(db, TrackSummaryEntry.TABLE_NAME,"", null);
-
-        return count;
-    }
-
-
-    public String getNextAvailableId(){
-        int nextId;
-
-        SQLiteDatabase db = mDBHelper.getReadableDatabase();
-
-        Cursor c = db.query(
-                TrackSummaryEntry.TABLE_NAME,
-                new String[]{"MAX("+ TrackSummaryEntry._ID+")"},
-                null, null, null, null, null);
-
-        if(c.moveToFirst()){
-            nextId = c.getInt(0)+1;
-        }else{
-            nextId = -1;
-        }
-
-        return String.valueOf(nextId);
-    }
-
-
-    /* Updaters
-    /* Updaters
-    /* Updaters
-     ***********************************************************************************************
-     ***********************************************************************************************
-     ***********************************************************************************************
-     */
-
 
     @Deprecated
     public boolean updateTravelledDistanceAndTime(String session, double distance, double time){
@@ -646,16 +650,6 @@ public class PersistentTrackStorage {
         throw new RuntimeException("Deprecated : updateTravelledDistanceAndTime@PersistentTrackStorage");
     }
 
-
-    /* Delete
-    /* Delete
-    /* Delete
-     ***********************************************************************************************
-     ***********************************************************************************************
-     ***********************************************************************************************
-     */
-    //TODO: está errado
-
     @Deprecated
     public boolean deleteTrackById(String session){
 
@@ -679,12 +673,6 @@ public class PersistentTrackStorage {
         throw new RuntimeException("Deprecated : deleteTrackById@PersistentTrackStorage");
     }
 
-    /* Checks
-     ***********************************************************************************************
-     ***********************************************************************************************
-     ***********************************************************************************************
-     */
-
 
 
     /* DB Helpers
@@ -694,7 +682,7 @@ public class PersistentTrackStorage {
      */
     private class TrackStorageDBHelper extends SQLiteOpenHelper {
 
-        public static final int DATABASE_VERSION = 11;
+        public static final int DATABASE_VERSION = 1;
         public static final String DATABASE_NAME = "TraceTracker.db";
 
         public TrackStorageDBHelper(Context context){
@@ -709,6 +697,7 @@ public class PersistentTrackStorage {
 
         @Override
         public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+            Log.w(LOG_TAG, "Upgrading db to version "+newVersion);
             db.execSQL(TrackLocationEntry.SQL_DELETE_TABLE);
             db.execSQL(TrackSummaryEntry.SQL_DELETE_TABLE);
             onCreate(db);
@@ -719,26 +708,6 @@ public class PersistentTrackStorage {
             onUpgrade(db, oldVersion, newVersion);
         }
     }
-
-    /*
-    @Deprecated
-    public static abstract class TraceEntry implements BaseColumns {
-        public static final String TABLE_NAME_TRACKS = "tracks";
-        public static final String TABLE_NAME_TRACES = "traces";
-
-        public static final String COLUMN_NAME_SESSION = "localSession";
-        public static final String COLUMN_NAME_IS_VALID = "isValid";
-        public static final String COLUMN_NAME_IS_CLOSED = "isClosed";
-        public static final String COLUMN_NAME_ELAPSED_TIME = "elapsedTime";
-        public static final String COLUMN_NAME_ELAPSED_DISTANCE = "elapsedDistance";
-
-        public static final String COLUMN_NAME_LATITUDE = "latitude";
-        public static final String COLUMN_NAME_LONGITUDE = "longitude";
-        public static final String COLUMN_NAME_TIMESTAMP = "timestamp";
-        public static final String COLUMN_NAME_ATTRIBUTES = "attributes";
-        public static final String COLUMN_NAME_TRACK_ID = "trackId";
-    }
-    */
 
     private interface BaseTypes {
         String TEXT_TYPE        = " TEXT";
@@ -768,8 +737,8 @@ public class PersistentTrackStorage {
         String COLUMN_DISTANCE      = " distance ";
         String COLUMN_SENSING_TYPE  = " sensingType ";
         String COLUMN_MODALITY      = " modality ";
-        String COLUMN_FROM = " fromLocation ";
-        String COLUMN_TO = " toLocation ";
+        String COLUMN_FROM          = " fromLocation ";
+        String COLUMN_TO            = " toLocation ";
 
         String SQL_CREATE_TABLE =
                 "CREATE TABLE "+ TABLE_NAME +" ( " +
@@ -785,12 +754,7 @@ public class PersistentTrackStorage {
                         COLUMN_SENSING_TYPE + INT_TYPE          + SEPARATOR +
                         COLUMN_MODALITY     + INT_TYPE          + SEPARATOR +
                         COLUMN_FROM + ADDR_TYPE         + SEPARATOR +
-                        COLUMN_TO + ADDR_TYPE         + ")" ; /*SEPARATOR +
-                        //TODO: this bellow should eventually be deprecated
-                        " FOREIGN KEY ( "+ COLUMN_ID +" ) " +
-                        " REFERENCES "+ TraceEntry.TABLE_NAME_TRACKS+ " ( "+ TraceEntry._ID+" ) " +
-                        " ON DELETE CASCADE)";
-                        */
+                        COLUMN_TO + ADDR_TYPE         + ")" ;
 
         String SQL_DELETE_TABLE =
                 "DROP TABLE IF EXISTS " + TABLE_NAME;

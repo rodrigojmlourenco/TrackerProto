@@ -55,7 +55,7 @@ import java.util.concurrent.TimeUnit;
 public class IJsbergTracker extends BroadcastReceiver implements CollectorManager {
 
     private static final String LOG_TAG = "IJsbergTracker";
-    private static final boolean IS_TESTING = false; //TODO: carefull with this
+    private static final boolean IS_TESTING = true; //TODO: carefull with this
 
     private static IJsbergTracker TRACKER = null;
     private final PersistentTrackStorage mTrackStorage;
@@ -514,6 +514,7 @@ public class IJsbergTracker extends BroadcastReceiver implements CollectorManage
                         String sLocation = TextUtils.join(", ", addressFragments);
                         Log.i(LOG_TAG, sLocation);
 
+                        //TODO: [BUG] The track is not found!
                         mCurrentTrack.setSemanticToLocation(sLocation);
                         mTrackStorage.updateTrackSummary(mCurrentTrack);
                     }

@@ -154,7 +154,7 @@ public class TRACETrackerService extends Service {
     }
 
     private void deleteTrackIfIrrelevant(String session){
-        Track t = mTrackStorage.getTrack(mCurrentSession);
+        Track t = mTrackStorage.getTrack_DEPRECATED(mCurrentSession);
 
         if(t == null || t.getTravelledDistance() <= 15 || t.getTracedTrack().size() <= 5) {
             mTrackStorage.deleteTrackById(session);
@@ -305,8 +305,8 @@ public class TRACETrackerService extends Service {
          */
         public static Track getStoredTrack(Context context, String sessionId){
             PersistentTrackStorage storage = new PersistentTrackStorage(context);
-            return storage.getTrack_NEW(sessionId);
-            //return storage.getTrack(sessionId);
+            return storage.getTrack(sessionId);
+            //return storage.getTrack_DEPRECATED(sessionId);
         }
 
 
@@ -326,7 +326,12 @@ public class TRACETrackerService extends Service {
         public static void deleteStoredTrack(Context context, String sessionId){
             PersistentTrackStorage storage = new PersistentTrackStorage(context);
             //storage.deleteTrackById(sessionId);
+
             storage.deleteTrackSummary(sessionId);
+
+            //Logging
+            storage.dumpTrackSummaryTable();
+            storage.dumpTraceSummarized();
         }
 
 

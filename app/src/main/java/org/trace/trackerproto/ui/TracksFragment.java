@@ -129,7 +129,7 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
 
             int i;
             for(i=0; i < values.length; i++){
-                //Track t = mTrackStorage.getTrack(values[i]);
+                //Track t = mTrackStorage.getTrack_DEPRECATED(values[i]);
                 Track t = TRACETrackerService.Client.getStoredTrack(getActivity(), values[i]);
                 tracks.put(values[i], t);
             }
@@ -245,7 +245,7 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
                 public void onClick(View v) {
 
                     if(isNetworkConnected()) {
-                        //Track track = mTrackStorage.getTrack(values.get(position));
+                        //Track track = mTrackStorage.getTrack_DEPRECATED(values.get(position));
                         Track track = TRACETrackerService.Client.getStoredTrack(getActivity(), values.get(position));
 
                         if(track == null){

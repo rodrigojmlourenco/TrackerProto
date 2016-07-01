@@ -42,7 +42,7 @@ public class MapActivity extends Activity {
         Intent i = getIntent();
         if(i != null && i.hasExtra(ProtoConstants.extras.TRACK_KEY_EXTRA)){
             String trackId = i.getStringExtra(ProtoConstants.extras.TRACK_KEY_EXTRA);
-            mTrack = mTrackStorage.getTrack_NEW(trackId);
+            mTrack = mTrackStorage.getTrack(trackId);
         }else{
             mTrack = null;
         }

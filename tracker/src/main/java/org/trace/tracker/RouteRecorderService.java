@@ -49,6 +49,8 @@ import pub.devrel.easypermissions.EasyPermissions;
 public class RouteRecorderService extends Service implements RouteRecorderInterface{
 
     private static final String LOG_TAG = "RouteRecorder";
+    private static final boolean IS_TESTING = true; //TODO: DANGEROUS please remove before release
+
 
     private IJsbergTracker mTracker;
     private PersistentTrackStorage mTrackStorage;
@@ -106,6 +108,7 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
 
     private SimpleDateFormat mSDF = new SimpleDateFormat("HH:mm:ss");
 
+    //TODO: [BUG] it is possible to start tracking twice
     @Override
     public String startTracking()
             throws MissingLocationPermissionsException{
@@ -119,6 +122,7 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
 
         return startTracking(-1, isAutomatic, isSilent);
     }
+
 
     @Override
     public String startTracking(int modality, boolean isAutomatic, boolean isSilent)
@@ -214,14 +218,9 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
 
         //Step 2 - Update the track summary sensing type in case of manual sensing.
         if(isManual){
-            //currentTrack.setSensingType(1); //TODO: somthing is missing here
-            mTrackStorage.updateTrackSummaryDistanceAndTime(currentTrack);
-            mTracker.setCurrentTrack(new TrackSummary());
+            mTracker.getCurrentTrack().setSensingType(1);
+            mTrackStorage.updateTrackSummaryDistanceAndTime(mTracker.getCurrentTrack());
         }
-
-
-
-
 
         //Step 4 - ???
         // Basically, the check if there is last position (why was it not added?), and if there is
@@ -256,7 +255,13 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
     }
 
     private boolean deleteTrackIfIrrelevant(String session){
-        Track t = mTrackStorage.getTrack_NEW(session);
+
+        if(IS_TESTING){
+            Log.w("TESTING", "Skipping the deletion for testing purposes");
+            return false;
+        }
+
+        Track t = mTrackStorage.getTrack(session);
 
         if(t == null || t.getTravelledDistance() <= 15 || t.getTracedTrack().size() <= 5) {
             mTrackStorage.deleteTrack(session);
@@ -292,7 +297,7 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
 
     @Override
     public Track getTracedTrack(String trackId) {
-        return mTrackStorage.getTrack(trackId);
+        return mTrackStorage.getTrack_DEPRECATED(trackId);
     }
 
     @Override

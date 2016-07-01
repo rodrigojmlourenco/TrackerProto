@@ -210,7 +210,7 @@ public class Tracker {
      * @see Track
      */
     public Track getTracedTrack(Context context, String sessionId){
-        return mTrackStorage.getTrack(sessionId);
+        return mTrackStorage.getTrack_DEPRECATED(sessionId);
     }
 
     /**
