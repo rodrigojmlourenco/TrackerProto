@@ -327,11 +327,12 @@ public class TRACETrackerService extends Service {
             PersistentTrackStorage storage = new PersistentTrackStorage(context);
             //storage.deleteTrackById(sessionId);
 
-            storage.deleteTrackSummary(sessionId);
+            storage.deleteTrack(sessionId);
 
             //Logging
             storage.dumpTrackSummaryTable();
             storage.dumpTraceSummarized();
+            storage.dumpTraces();
         }
 
 

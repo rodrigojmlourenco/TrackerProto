@@ -22,8 +22,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-//TODO: integrar elapsedTime e elapsedDistance nas queries
-//TODO: make sure the db is always closed
 /**
  * The PersistentTrackStorage manages the stored tracks. The storage is performed using the device's
  * native SQLite support.
@@ -96,33 +94,37 @@ public class PersistentTrackStorage {
         values.put(TrackLocationEntry.COLUMN_TRACK_ID, trackId);
 
         db.insert(TrackLocationEntry.TABLE_NAME, null, values);
-    }
 
-    public boolean removeTrackSummaryAndTrace(TrackSummary summary){
-        //TODO: assure the points are being removed
-        deleteTrackSummary(summary.getTrackId());
-        return this.deleteTrackById(summary.getTrackId());
+        db.close();
     }
 
     public boolean deleteTrack(String trackId){
 
-        SQLiteDatabase db = mDBHelper.getWritableDatabase();
+        deleteTrackTraces(trackId);
+        deleteTrackSummary(trackId);
 
-        String selectionClause  = TrackSummaryEntry.COLUMN_ID + "=?";
-        String[] selectionArgs    = new String[]{ trackId };
-
-        int deleted = db.delete(TrackSummaryEntry.TABLE_NAME, selectionClause, selectionArgs);
-
-        return deleted > 0;
+        return true;
     }
 
-    public void deleteTrackSummary(String trackId){
+    private void deleteTrackTraces(String trackId){
+        SQLiteDatabase db = mDBHelper.getWritableDatabase();
+
+        String selectionClause = TrackLocationEntry.COLUMN_TRACK_ID + "=?";
+        String[] selectionArgs = new String[] { trackId };
+
+        db.delete(TrackLocationEntry.TABLE_NAME, selectionClause, selectionArgs);
+        db.close();
+
+    }
+
+    private void deleteTrackSummary(String trackId){
         SQLiteDatabase db = mDBHelper.getWritableDatabase();
 
         String selectionClause = TrackSummaryEntry.COLUMN_ID + "=?";
         String[] selectionArgs = new String[] { trackId };
 
         int affected = db.delete(TrackSummaryEntry.TABLE_NAME, selectionClause, selectionArgs);
+        db.close();
 
         if(affected < 0)
             throw new RuntimeException("Did not remove any row!!! deleteTrackSummary@PersistentTrackStorage");
@@ -146,7 +148,6 @@ public class PersistentTrackStorage {
 
 
         int affected = db.update(TrackSummaryEntry.TABLE_NAME, values,selectionClause, selectionArgs);
-
         db.close();
 
         if(affected < 0)
@@ -184,6 +185,7 @@ public class PersistentTrackStorage {
         selectionArgs[0] = summary.getTrackId();
 
         int affected = db.update(TrackSummaryEntry.TABLE_NAME, values, selectionClause, selectionArgs);
+        db.close();
 
         if(affected <= 0) {
             dumpTrackSummaryTable();
@@ -259,10 +261,12 @@ public class PersistentTrackStorage {
             summary.setFromLocation(from);
             summary.setToLocation(to);
         }else{
+            db.close();
             dumpTrackSummaryTable();
             throw new RuntimeException("No track with id = {"+trackId+"} getTrackSummary@PersistentTrackStorage");
         }
 
+        db.close();
 
         return summary;
 
@@ -327,6 +331,8 @@ public class PersistentTrackStorage {
             summaries.add(summary);
         }
 
+        db.close();
+
         return summaries;
     }
 
@@ -372,6 +378,8 @@ public class PersistentTrackStorage {
             trace.add(location);
         }
 
+        db.close();
+
         return trace;
     }
 
@@ -384,6 +392,7 @@ public class PersistentTrackStorage {
         int count;
         SQLiteDatabase db = mDBHelper.getReadableDatabase();
         count = (int) DatabaseUtils.queryNumEntries(db, TrackSummaryEntry.TABLE_NAME,"", null);
+        db.close();
 
         return count;
     }
@@ -404,6 +413,8 @@ public class PersistentTrackStorage {
         }else{
             nextId = -1;
         }
+
+        db.close();
 
         return String.valueOf(nextId);
     }
@@ -440,6 +451,7 @@ public class PersistentTrackStorage {
         Log.d("TrackSummary", "");
         Log.d("TrackSummary", "Dumping track summaries");
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss dd/MM");
+
         while(cursor.moveToNext()){
 
 
@@ -461,14 +473,45 @@ public class PersistentTrackStorage {
 
             Log.i("TrackSummary", track.toString());
         }
+
+        db.close();
     }
 
     public void dumpTraceSummarized(){
         SQLiteDatabase db = mDBHelper.getReadableDatabase();
 
         Cursor c = db.query(TrackLocationEntry.TABLE_NAME, null, "", null, "", "", "");
-
         Log.i("TrackSummary", "There are currently "+c.getCount()+" stored locations");
+
+        db.close();
+
+    }
+
+    public void dumpTraces(){
+        SQLiteDatabase db = mDBHelper.getReadableDatabase();
+
+        Cursor c = db.query(TrackLocationEntry.TABLE_NAME, new String[]{"*"}, "", null, "", "", "");
+
+        while(c.moveToNext()){
+            /*
+            String COLUMN_TRACK_ID = "trackId";
+            String COLUMN_LATITUDE = "latitude";
+            String COLUMN_LONGITUDE = "longitude";
+            String COLUMN_TIMESTAMP = "timestamp";
+            String COLUMN_ATTRIBUTES = "attributes";
+            */
+
+            JsonObject jtrace = new JsonObject();
+            jtrace.addProperty("_id", c.getString(0));
+            jtrace.addProperty("trackId", c.getString(1));
+            jtrace.addProperty("timestamp", c.getString(4));
+
+
+            Log.i("TrackSummary", jtrace.toString());
+        }
+
+        db.close();
+
     }
 
     /* Deprecated - Soon to be removed
@@ -682,7 +725,7 @@ public class PersistentTrackStorage {
      */
     private class TrackStorageDBHelper extends SQLiteOpenHelper {
 
-        public static final int DATABASE_VERSION = 1;
+        public static final int DATABASE_VERSION = 2;
         public static final String DATABASE_NAME = "TraceTracker.db";
 
         public TrackStorageDBHelper(Context context){

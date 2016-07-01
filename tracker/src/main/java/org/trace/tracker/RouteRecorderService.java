@@ -212,7 +212,7 @@ public class RouteRecorderService extends Service implements RouteRecorderInterf
         //          if so, delete tracks with less than 250m
         if(mState.isAutomaticTracking() && currentTrack.getElapsedDistance() < 250) { //TODO: should not be hardcoded
             Log.w(LOG_TAG, "The track "+currentTrack.getTrackId()+" was ignored because of its size.");
-            mTrackStorage.removeTrackSummaryAndTrace(currentTrack);
+            mTrackStorage.deleteTrack(currentTrack.getTrackId());
             return null;
         }
 
