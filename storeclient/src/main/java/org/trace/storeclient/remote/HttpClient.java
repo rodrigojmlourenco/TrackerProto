@@ -485,6 +485,30 @@ public class HttpClient {
         return null;
     }
 
+    public String uploadTrackSummary(String authToken, String summary) throws RemoteTraceException{
+
+        String data = summary;
+        String urlEndpoint = "/tracker/put/track/";
+
+        JsonObject requestProperties = new JsonObject();
+        requestProperties.addProperty(http.AUTHORIZATION, "Bearer "+authToken);
+        requestProperties.addProperty(http.CONTENT_TYPE, "application/json; charset=UTF-8");
+
+        try {
+            String response = performPostRequest(urlEndpoint, requestProperties, data);
+            validateHttpResponse("UploadTrack", response);
+        } catch (UnableToRequestPostException e) {
+            e.printStackTrace();
+            throw new RemoteTraceException("UploadTrack", e.getMessage());
+        } catch (AuthTokenIsExpiredException e) {
+            e.printStackTrace();
+        } catch (RemoteTraceException e) {
+            e.printStackTrace();
+        }
+
+        return "";
+    }
+
     private interface http {
         String CONTENT_TYPE = "Content-Type";
         String CONTENT_LENGTH = "Content-Length";

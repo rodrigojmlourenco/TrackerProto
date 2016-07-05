@@ -71,6 +71,10 @@ public class TrackSummary implements Parcelable{
         this.stopTimestamp = endedAt;
     }
 
+    public long getElapsedTime(){
+        return this.stopTimestamp - this.startTimestamp;
+    }
+
     public long getStart() {
         return startTimestamp;
     }

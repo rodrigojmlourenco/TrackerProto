@@ -23,9 +23,7 @@ import java.util.List;
 public class Track extends TrackSummary implements Parcelable{
 
     private String trackId;
-    private long startTime, stopTime;
     private List<TraceLocation> tracedTrack;
-    private double elapsedDistance;
     private double averageSpeed, medianSpeed, topSpeed;
 
     @Deprecated
@@ -36,7 +34,6 @@ public class Track extends TrackSummary implements Parcelable{
     public Track(){
         tracedTrack = new LinkedList<>();
         isLocalOnly = true;
-        elapsedDistance = 0;
 
         this.tracedTrack = new ArrayList<>();
     }
@@ -50,7 +47,7 @@ public class Track extends TrackSummary implements Parcelable{
         setToLocation(summary.getToLocation());
         setSemanticFromLocation(summary.getSemanticFromLocation());
         setSemanticToLocation(summary.getSemanticToLocation());
-        setTravelledDistance(summary.getElapsedDistance());
+        setElapsedDistance(summary.getElapsedDistance());
         setModality(summary.getModality());
         setSensingType(summary.getSensingType());
 
@@ -61,10 +58,7 @@ public class Track extends TrackSummary implements Parcelable{
     protected Track(Parcel in) {
         super(in);
         trackId = in.readString();
-        startTime = in.readLong();
-        stopTime = in.readLong();
         tracedTrack = in.createTypedArrayList(TraceLocation.CREATOR);
-        elapsedDistance = in.readDouble();
         averageSpeed = in.readDouble();
         medianSpeed = in.readDouble();
         topSpeed = in.readDouble();
@@ -78,10 +72,7 @@ public class Track extends TrackSummary implements Parcelable{
     public void writeToParcel(Parcel dest, int flags) {
         super.writeToParcel(dest, flags);
         dest.writeString(trackId);
-        dest.writeLong(startTime);
-        dest.writeLong(stopTime);
         dest.writeTypedList(tracedTrack);
-        dest.writeDouble(elapsedDistance);
         dest.writeDouble(averageSpeed);
         dest.writeDouble(medianSpeed);
         dest.writeDouble(topSpeed);
@@ -110,14 +101,6 @@ public class Track extends TrackSummary implements Parcelable{
         this.tracedTrack = trace;
     }
 
-    public void addTracedLocation(TraceLocation location){
-
-        if(tracedTrack.isEmpty())
-            startTime = location.getTime();
-
-        stopTime = location.getTime();
-        tracedTrack.add(location);
-    }
 
     public String getTrackId() {
         return trackId;
@@ -127,22 +110,11 @@ public class Track extends TrackSummary implements Parcelable{
         return tracedTrack;
     }
 
-    public double getTravelledDistance() {
-        return elapsedDistance;
-    }
-
-    public long getElapsedTime(){
-        return stopTime-startTime;
-    }
 
     public void setTrackId(String trackId) {
         this.trackId = trackId;
     }
 
-
-    public void setTravelledDistance(double distance){
-        this.elapsedDistance = distance;
-    }
 
     public double getAverageSpeed() {
         return averageSpeed;
@@ -156,7 +128,7 @@ public class Track extends TrackSummary implements Parcelable{
         return topSpeed;
     }
 
-    private void updateSpeeds(){
+    public void updateSpeeds(){ //TODO: there should be a better solution
 
         double[] measuredSpeeds = new double[tracedTrack.size()];
 

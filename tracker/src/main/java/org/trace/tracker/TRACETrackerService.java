@@ -156,7 +156,7 @@ public class TRACETrackerService extends Service {
     private void deleteTrackIfIrrelevant(String session){
         Track t = mTrackStorage.getTrack_DEPRECATED(mCurrentSession);
 
-        if(t == null || t.getTravelledDistance() <= 15 || t.getTracedTrack().size() <= 5) {
+        if(t == null || t.getElapsedDistance() <= 15 || t.getTracedTrack().size() <= 5) {
             mTrackStorage.deleteTrackById(session);
 
             //TODO: remover --- apenas para testing

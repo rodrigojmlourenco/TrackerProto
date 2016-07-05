@@ -4,6 +4,7 @@ import android.app.AlertDialog;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
@@ -30,6 +31,7 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import org.trace.storeclient.TraceAuthenticationManager;
 import org.trace.storeclient.auth.AuthenticationRenewalListener;
 import org.trace.storeclient.exceptions.UserIsNotLoggedException;
+import org.trace.tracker.RouteRecorder;
 import org.trace.tracker.RouteRecorderService;
 import org.trace.tracker.TrackingConstants;
 import org.trace.trackerproto.R;
@@ -80,29 +82,38 @@ public class MainActivity extends AppCompatActivity
 
 
     private boolean isBound = false;
+    private RouteRecorderService mRouteRecorder;
 
     private ServiceConnection mConnection = new ServiceConnection() {
 
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
+            RouteRecorderService.CustomBinder binder = (RouteRecorderService.CustomBinder) service;
+            mRouteRecorder = binder.getService();
             isBound = true;
         }
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
+            mRouteRecorder = null;
             isBound = false;
         }
     };
 
     @Override
     protected void onStart() {
-        startService(new Intent(this, RouteRecorderService.class));
+
+        Intent trackerService = new Intent(this, RouteRecorderService.class);
+
+        startService(trackerService);
+        bindService(trackerService, mConnection,Context.BIND_AUTO_CREATE);
         super.onStart();
     }
 
     @Override
     protected void onDestroy() {
 
+        unbindService(mConnection);
 
         if(isFinishing()) {
             unregisterReceiver(authRenewalListener);
@@ -582,4 +593,17 @@ public class MainActivity extends AppCompatActivity
     public String getSessionIdentifier() { return mAuthManager.getSession(); }
 
     public boolean isValidSession() { return mAuthManager.isValid(); }
+
+
+    /* TESTING
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+    public RouteRecorder getRouteRecorder(){
+        if(isBound)
+            return mRouteRecorder;
+        else
+            return null;
+    }
 }

@@ -61,6 +61,9 @@ public class TRACEStore extends IntentService{
             case submitTrack:
                 performSubmitTrack(intent);
                 break;
+            case uploadTrackSummary:
+                performUploadTrackSummary(intent);
+                break;
             case initiateSession:
 
                 try {
@@ -86,6 +89,20 @@ public class TRACEStore extends IntentService{
                 break;
             default:
                 Log.e(LOG_TAG, "Unknown operation "+op);
+        }
+    }
+
+    private void performUploadTrackSummary(Intent intent) {
+
+        String authToken = extractAuthenticationToken(intent);
+        String track = intent.getStringExtra(StoreClientConstants.TRACK_EXTRA);
+
+        Log.d("TEST", track);
+
+        try {
+            mHttpClient.uploadTrackSummary(authToken, track);
+        } catch (RemoteTraceException e) {
+            e.printStackTrace();
         }
     }
 
@@ -272,6 +289,7 @@ public class TRACEStore extends IntentService{
         registerUser,
         initiateSession,
         submitTrack,
+        uploadTrackSummary,
         fetchShopsWithRewards,
         unknown
     }
@@ -405,6 +423,21 @@ public class TRACEStore extends IntentService{
 
         public static void log(String log){
             Log.d(LOG_TAG, log);
+        }
+
+        /*
+         * Version 2.0 Ijsberg
+         */
+
+
+        public static void uploadTrackSummary(Context context, String authToken, JsonObject trackSummary){
+
+            Intent mI = new Intent(context, TRACEStore.class);
+            mI.putExtra(StoreClientConstants.OPERATION_KEY, Operations.uploadTrackSummary.toString());
+            mI.putExtra(StoreClientConstants.TRACK_EXTRA, trackSummary.toString());
+            mI.putExtra(StoreClientConstants.AUTH_TOKEN_EXTRA, authToken);
+            context.startService(mI);
+
         }
     }
 }

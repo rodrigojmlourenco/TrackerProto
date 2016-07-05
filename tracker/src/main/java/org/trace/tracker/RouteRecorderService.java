@@ -53,7 +53,7 @@ import pub.devrel.easypermissions.EasyPermissions;
 public class RouteRecorderService extends Service implements RouteRecorder {
 
     private static final String LOG_TAG = "RouteRecorder";
-    private static final boolean IS_TESTING = true; //TODO: DANGEROUS please remove before release
+    private static final boolean IS_TESTING = false; //TODO: DANGEROUS please remove before release
 
     private TrackingEngine mTracker;
     private PersistentTrackStorage mTrackStorage;
@@ -286,7 +286,7 @@ public class RouteRecorderService extends Service implements RouteRecorder {
 
         Track t = mTrackStorage.getTrack(session);
 
-        if(t == null || t.getTravelledDistance() <= 15 || t.getTracedTrack().size() <= 5) {
+        if(t == null || t.getElapsedDistance() <= 15 || t.getTracedTrack().size() <= 5) {
             mTrackStorage.deleteTrack(session);
 
             Log.i(LOG_TAG, "This track was not stored because it is too short.");
@@ -320,7 +320,8 @@ public class RouteRecorderService extends Service implements RouteRecorder {
 
     @Override
     public Track getTracedTrack(String trackId) {
-        return mTrackStorage.getTrack_DEPRECATED(trackId);
+        return mTrackStorage.getTrack(trackId);
+        //return mTrackStorage.getTrack_DEPRECATED(trackId);
     }
 
     @Override

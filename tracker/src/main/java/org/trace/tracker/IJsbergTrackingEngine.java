@@ -55,7 +55,7 @@ import java.util.concurrent.TimeUnit;
 public class IJsbergTrackingEngine extends BroadcastReceiver implements TrackingEngine{
 
     private static final String LOG_TAG = "IJsbergTrackingEngine";
-    private static final boolean IS_TESTING = true; //TODO: carefull with this
+    private static final boolean IS_TESTING = false; //TODO: carefull with this
 
     private static IJsbergTrackingEngine TRACKER = null;
     private final PersistentTrackStorage mTrackStorage;

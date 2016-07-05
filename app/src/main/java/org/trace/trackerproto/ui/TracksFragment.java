@@ -21,11 +21,14 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.gson.JsonObject;
+
 import org.trace.storeclient.TRACEStore;
+import org.trace.tracker.RouteRecorder;
 import org.trace.tracker.TRACETrackerService;
 import org.trace.tracker.TrackingConstants;
-import org.trace.tracker.storage.data.TrackSummary;
 import org.trace.tracker.storage.data.Track;
+import org.trace.tracker.storage.data.TrackSummary;
 import org.trace.trackerproto.ProtoConstants;
 import org.trace.trackerproto.R;
 
@@ -34,6 +37,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import pub.devrel.easypermissions.EasyPermissions;
 
@@ -187,7 +191,7 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
             }
 
             try{
-                distanceView.setText(df.format(t.getTravelledDistance()) + getString(R.string.meters));
+                distanceView.setText(df.format(t.getElapsedDistance()) + getString(R.string.meters));
             }catch (NullPointerException e){
                 distanceView.setText("??" + getString(R.string.meters));
             }
@@ -245,6 +249,30 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
                 public void onClick(View v) {
 
                     if(isNetworkConnected()) {
+
+                        RouteRecorder rr = ((MainActivity)getActivity()).getRouteRecorder();
+                        String index = values.get(position);
+                        Track t = rr.getTracedTrack(index);
+                        t.updateSpeeds();
+
+                        Log.d("TEST", t.toString());
+
+                        TrackSummary summary = (TrackSummary)t;
+                        JsonObject jTrackSummary = new JsonObject();
+                        jTrackSummary.addProperty("startedAt", t.getStart());
+                        jTrackSummary.addProperty("endedAt", t.getStop());
+                        jTrackSummary.addProperty("elapsedTime", TimeUnit.SECONDS.convert(t.getElapsedTime(), TimeUnit.MILLISECONDS));
+                        jTrackSummary.addProperty("elapsedDistance", t.getElapsedDistance());
+                        jTrackSummary.addProperty("points", t.getTracedTrack().size());
+                        jTrackSummary.addProperty("modality", t.getModality());
+                        jTrackSummary.addProperty("avgSpeed", t.getAverageSpeed());
+                        jTrackSummary.addProperty("topSpeed", t.getTopSpeed());
+
+                        Log.d("TEST", jTrackSummary.toString());
+
+
+                        TRACEStore.Client.uploadTrackSummary(context, ((MainActivity) getActivity()).getAuthenticationToken(), jTrackSummary); //TODO: refactorizar
+                        /* OLD VERSION - WORKS
                         //Track track = mTrackStorage.getTrack_DEPRECATED(values.get(position));
                         Track track = TRACETrackerService.Client.getStoredTrack(getActivity(), values.get(position));
 
@@ -254,6 +282,7 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
                         }
 
                         TRACEStore.Client.uploadTrack(context, ((MainActivity) getActivity()).getAuthenticationToken(), track.toJson()); //TODO: refactorizar
+                        */
                     }else
                         buildAlertMessageNoConnectivity();
 
