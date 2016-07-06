@@ -19,6 +19,7 @@
 
 package org.trace.storeclient.remote;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import org.trace.storeclient.data.RouteSummary;
@@ -63,7 +64,29 @@ public class RouteHttpClient extends BaseHttpClient {
         }
     }
 
-    public boolean uploadTraceBatch(String authToken, String session, String trace){
-        return false;
+    public boolean uploadTraceBatch(String authToken, String session, JsonArray traceBatch) throws RemoteTraceException, AuthTokenIsExpiredException {
+        String data = traceBatch.toString();
+        String urlEndpoint = "/put/track/trace?session="+session;
+
+        JsonObject requestProperties = new JsonObject();
+        requestProperties.addProperty(http.AUTHORIZATION, "Bearer "+authToken);
+        requestProperties.addProperty(http.CONTENT_TYPE, "application/json; charset=UTF-8");
+
+        try {
+            String response = performPostRequest(urlEndpoint, requestProperties, data);
+            validateHttpResponse("UploadTrack", response);
+
+            JsonObject jResponse = (JsonObject) jsonParser.parse(response);
+
+            //return new RouteSummary((JsonObject) jsonParser.parse(jResponse.get("token").getAsString()));
+            return true;
+
+        } catch (UnableToRequestPostException e) {
+            e.printStackTrace();
+            throw new RemoteTraceException("UploadTrack", e.getMessage());
+        } catch (AuthTokenIsExpiredException e) {
+            e.printStackTrace();
+            throw e;
+        }
     }
 }

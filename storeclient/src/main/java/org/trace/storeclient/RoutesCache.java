@@ -24,7 +24,7 @@ import android.content.Context;
 import org.trace.storeclient.data.Route;
 import org.trace.storeclient.data.RouteSummary;
 import org.trace.storeclient.remote.BaseHttpClient;
-import org.trace.storeclient.storage.RouteStorage;
+import org.trace.storeclient.storage.RemoteRouteStorage;
 
 import java.util.List;
 
@@ -32,11 +32,11 @@ import java.util.List;
 public class RoutesCache {
 
     private BaseHttpClient mHttpClient;
-    private RouteStorage mLocalStorage;
+    private RemoteRouteStorage mLocalStorage;
 
     private RoutesCache(Context context){
         mHttpClient = new BaseHttpClient();
-        mLocalStorage = RouteStorage.getLocalStorage(context);
+        mLocalStorage = RemoteRouteStorage.getLocalStorage(context);
     }
 
 

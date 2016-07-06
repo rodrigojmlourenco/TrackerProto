@@ -20,9 +20,9 @@
 package org.trace.storeclient.storage;
 
 import android.content.ContentValues;
+import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteOpenHelper;
 import android.location.Location;
 import android.util.Log;
 
@@ -36,11 +36,32 @@ import java.util.Date;
 import java.util.List;
 
 
-public abstract class RouteStorage {
+public class RemoteRouteStorage extends RouteStorage{
 
-    private static final String LOG_TAG = "RouteStorage";
+    private final String LOG_TAG = "RemoteRouteStorage";
+    private RouteStorageDBHelper mDBHelper;
 
-    protected SQLiteOpenHelper mDBHelper;
+    private RemoteRouteStorage(Context context){
+        mDBHelper = new RouteStorageDBHelper(context, "RemoteRouteStorage.db");
+    }
+
+    private static RemoteRouteStorage LOCAL_ROUTE_STORAGE = null;
+
+    public static RemoteRouteStorage getLocalStorage(Context context){
+        synchronized (RemoteRouteStorage.class){
+            if(LOCAL_ROUTE_STORAGE == null){
+                LOCAL_ROUTE_STORAGE = new RemoteRouteStorage(context);
+            }
+        }
+
+        return LOCAL_ROUTE_STORAGE;
+    }
+
+    /* Logging
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
 
     private void dumpRouteSummaryTable(){
 
@@ -129,5 +150,4 @@ public abstract class RouteStorage {
             db.close();
         }
     }
-
 }

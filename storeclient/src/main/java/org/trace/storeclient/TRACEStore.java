@@ -27,7 +27,7 @@ import org.trace.storeclient.exceptions.UnableToSubmitTrackTokenExpiredException
 import org.trace.storeclient.remote.HttpClient;
 import org.trace.storeclient.remote.RewardHttpClient;
 import org.trace.storeclient.remote.RouteHttpClient;
-import org.trace.storeclient.storage.RouteStorage;
+import org.trace.storeclient.storage.RemoteRouteStorage;
 import org.trace.storeclient.utils.FormFieldValidator;
 
 import java.math.BigInteger;
@@ -40,13 +40,13 @@ public class TRACEStore extends IntentService{
 
     private final HttpClient mHttpClient;
     private RoutesCache mCache;
-    private RouteStorage mRouteStorage;
+    private RemoteRouteStorage mRemoteRouteStorage;
 
     public TRACEStore() {
         super("TRACEStore");
         this.mHttpClient = new HttpClient(this);
         mCache = RoutesCache.getCacheInstance(this);
-        mRouteStorage = RouteStorage.getLocalStorage(this);
+        mRemoteRouteStorage = RemoteRouteStorage.getLocalStorage(this);
 
     }
 
@@ -102,6 +102,7 @@ public class TRACEStore extends IntentService{
         }
     }
 
+    //TODO: deal with possible fails, and relevant fails by removing the session from the server
     private void performUploadRoute(Intent intent) {
 
         RouteHttpClient httpClient = new RouteHttpClient();
@@ -114,22 +115,13 @@ public class TRACEStore extends IntentService{
         String session = null;
         RouteSummary rs = null;
         JsonParser parser = new JsonParser();
-
+        boolean success = true;
 
         //Step 1 - Upload the Route Summary
-
-        boolean success = true;
         try {
-            rs = httpClient.submitRouteSummary(authToken, track);
-            //JsonObject jRS = (JsonObject) parser.parse(response);
-            session = rs.getSession();
 
-            /*if(jRS.has("session")) {
-                rs = new RouteSummary(jRS);
-                session = rs.getSession();
-            }else{
-                throw new RuntimeException("BOOM!");
-            }*/
+            rs = httpClient.submitRouteSummary(authToken, track);
+            session = rs.getSession();
 
         } catch (RemoteTraceException | AuthTokenIsExpiredException e) {
             e.printStackTrace();
@@ -142,23 +134,20 @@ public class TRACEStore extends IntentService{
 
         //Step 2  - Upload the Route's trace (150 at each time)
         //Step 2a - Split the trace into batches of up to MAX_SIZE points
-        int MAX_SIZE = 30;
+        int MAX_SIZE = 15;
         int size = 1, excess;
-        JsonObject[] queue;
+        JsonArray[] queue;
         JsonArray jTrace = (JsonArray) parser.parse(trace);
 
         if(jTrace.size() <= MAX_SIZE){
-            queue = new JsonObject[size];
-            JsonObject aux = new JsonObject();
-            aux.addProperty("session", session);
-            aux.add("trace", jTrace);
-            queue[0] = aux;
+            queue = new JsonArray[size];
+            queue[0] = jTrace;
         }else{
 
             excess = jTrace.size() % MAX_SIZE;
             size = (jTrace.size() / MAX_SIZE) + (excess == 0 ? 0 : 1 );
 
-            queue = new JsonObject[size];
+            queue = new JsonArray[size];
 
             for(int i=0, left=0, right=MAX_SIZE; i < size; i++){
 
@@ -170,20 +159,25 @@ public class TRACEStore extends IntentService{
 
                 left   = right++;
                 right += MAX_SIZE;
-
-                JsonObject aux = new JsonObject();
-                aux.addProperty("session", session);
-                aux.add("trace", batch);
-                queue[i] = aux;
+                queue[i] = batch;
             }
         }
 
         //Step 2b - Upload each of the batches and analyze the response
         // NOTE: Only if all batches are uploaded successfully with the track summary be stored.
         success = true;
-        for(JsonObject batch : queue){
-
+        for(JsonArray batch : queue){
+            try {
+                httpClient.uploadTraceBatch(authToken, session, batch);
+            } catch (RemoteTraceException e) {
+                e.printStackTrace();
+            } catch (AuthTokenIsExpiredException e) {
+                e.printStackTrace();
+            }
         }
+
+        //Step 3 - Request the map-matched values
+
     }
 
     private JsonArray performFetchShopsWithRewards(Intent intent) throws RemoteTraceException, UnableToRequestGetException {
