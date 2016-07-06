@@ -27,6 +27,7 @@ import org.trace.storeclient.exceptions.UnableToSubmitTrackTokenExpiredException
 import org.trace.storeclient.remote.HttpClient;
 import org.trace.storeclient.remote.RewardHttpClient;
 import org.trace.storeclient.remote.RouteHttpClient;
+import org.trace.storeclient.storage.LocalRouteStorage;
 import org.trace.storeclient.storage.RemoteRouteStorage;
 import org.trace.storeclient.utils.FormFieldValidator;
 
@@ -39,15 +40,16 @@ public class TRACEStore extends IntentService{
     private final String LOG_TAG = this.getClass().getSimpleName();
 
     private final HttpClient mHttpClient;
-    private RoutesCache mCache;
+    private RouteCache mCache;
     private RemoteRouteStorage mRemoteRouteStorage;
+    private LocalRouteStorage mLocalRouteStorage;
 
     public TRACEStore() {
         super("TRACEStore");
         this.mHttpClient = new HttpClient(this);
-        mCache = RoutesCache.getCacheInstance(this);
+        mCache = RouteCache.getCacheInstance(this);
         mRemoteRouteStorage = RemoteRouteStorage.getLocalStorage(this);
-
+        mLocalRouteStorage = LocalRouteStorage.getStorageInstance(this);
     }
 
 
@@ -105,6 +107,7 @@ public class TRACEStore extends IntentService{
     //TODO: deal with possible fails, and relevant fails by removing the session from the server
     private void performUploadRoute(Intent intent) {
 
+
         RouteHttpClient httpClient = new RouteHttpClient();
 
         String authToken = extractAuthenticationToken(intent);
@@ -116,6 +119,8 @@ public class TRACEStore extends IntentService{
         RouteSummary rs = null;
         JsonParser parser = new JsonParser();
         boolean success = true;
+
+        //Step 1 - The Route is stored in the local cache
 
         //Step 1 - Upload the Route Summary
         try {
@@ -364,6 +369,7 @@ public class TRACEStore extends IntentService{
         registerUser,
         initiateSession,
         submitTrack,
+        submitRoute,
         uploadTrackSummary,
         fetchShopsWithRewards,
         unknown
@@ -512,6 +518,18 @@ public class TRACEStore extends IntentService{
             mI.putExtra(StoreClientConstants.TRACK_EXTRA, trackSummary.toString());
             mI.putExtra(StoreClientConstants.TRACE_EXTRA, trace.toString());
             mI.putExtra(StoreClientConstants.AUTH_TOKEN_EXTRA, authToken);
+            context.startService(mI);
+
+        }
+
+        public static void submitRoute(Context context, String authToken, Route route){
+
+            Intent mI = new Intent(context, TRACEStore.class);
+
+            mI.putExtra(StoreClientConstants.OPERATION_KEY, Operations.submitRoute.toString());
+            mI.putExtra(StoreClientConstants.AUTH_TOKEN_EXTRA, authToken);
+            mI.putExtra(StoreClientConstants.TRACK_EXTRA, route);
+
             context.startService(mI);
 
         }

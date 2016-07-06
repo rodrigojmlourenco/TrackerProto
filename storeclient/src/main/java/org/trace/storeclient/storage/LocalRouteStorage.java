@@ -22,7 +22,7 @@ package org.trace.storeclient.storage;
 
 import android.content.Context;
 
-public class LocalRouteStorage {
+public class LocalRouteStorage extends RouteStorage{
 
     private RouteStorageDBHelper mDBHelper;
 
@@ -31,7 +31,7 @@ public class LocalRouteStorage {
     }
 
     private static LocalRouteStorage LOCAL_ROUTE_STORAGE = null;
-    public LocalRouteStorage getStorageInstance(Context context){
+    public static LocalRouteStorage getStorageInstance(Context context){
         synchronized (LocalRouteStorage.class){
             if(LOCAL_ROUTE_STORAGE == null)
                 LOCAL_ROUTE_STORAGE = new LocalRouteStorage(context);

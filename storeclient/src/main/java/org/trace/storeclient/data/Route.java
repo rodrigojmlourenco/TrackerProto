@@ -19,7 +19,6 @@
 
 package org.trace.storeclient.data;
 
-import android.location.Location;
 import android.os.Parcel;
 
 import java.util.List;
@@ -27,13 +26,13 @@ import java.util.List;
 
 public class Route extends RouteSummary{
 
-    private List<Location> trace;
+    private List<RouteWaypoint> trace;
 
     public Route(){}
 
     public Route(Parcel in){
         super(in);
-        trace = in.createTypedArrayList(Location.CREATOR);
+        trace = in.createTypedArrayList(RouteWaypoint.CREATOR);
     }
 
     public static final Creator<Route> CREATOR = new Creator<Route>() {
@@ -48,8 +47,13 @@ public class Route extends RouteSummary{
         }
     };
 
-    public List<Location> getTrace() {
+    public List<RouteWaypoint> getTrace() {
         return trace;
+    }
+
+
+    public void setTrace(List<RouteWaypoint> trace) {
+        this.trace = trace;
     }
 
     @Override

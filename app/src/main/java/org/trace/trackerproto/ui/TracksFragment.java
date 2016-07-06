@@ -25,6 +25,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import org.trace.storeclient.TRACEStore;
+import org.trace.storeclient.data.Route;
+import org.trace.storeclient.data.RouteWaypoint;
 import org.trace.tracker.RouteRecorder;
 import org.trace.tracker.TRACETrackerService;
 import org.trace.tracker.TrackingConstants;
@@ -259,6 +261,23 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
 
                         Log.d("TEST", t.toString());
 
+                        Route route = new Route();
+                        route.setSession("");
+                        route.setStartedAt(t.getStart());
+                        route.setEndedAt(t.getStop());
+                        route.setElapsedDistance(t.getElapsedDistance());
+                        route.setPoints(t.getTracedTrack().size());
+                        route.setModality(t.getModality());
+                        route.setAvgSpeed((float) t.getAverageSpeed());
+                        route.setTopSpeed((float) t.getTopSpeed());
+
+                        List<RouteWaypoint> points = new ArrayList<RouteWaypoint>();
+                        for(TraceLocation location : t.getTracedTrack()){
+                            points.add(new RouteWaypoint(t.getTrackId(), location.getSerializableLocationAsJson()));
+                        }
+                        route.setTrace(points);
+
+
                         TrackSummary summary = (TrackSummary)t;
                         JsonObject jTrackSummary = new JsonObject();
                         jTrackSummary.addProperty("startedAt", t.getStart());
@@ -277,17 +296,6 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
                             array.add(location.getSerializableLocationAsJson());
 
                         TRACEStore.Client.uploadTrackSummary(context, ((MainActivity) getActivity()).getAuthenticationToken(), jTrackSummary, array); //TODO: refactorizar
-                        /* OLD VERSION - WORKS
-                        //Track track = mTrackStorage.getTrack_DEPRECATED(values.get(position));
-                        Track track = TRACETrackerService.Client.getStoredTrack(getActivity(), values.get(position));
-
-                        if(track == null){
-                            Log.e("UPLOAD", "The session is not being updated in the activity!"); //TODO
-                            return;
-                        }
-
-                        TRACEStore.Client.uploadTrack(context, ((MainActivity) getActivity()).getAuthenticationToken(), track.toJson()); //TODO: refactorizar
-                        */
                     }else
                         buildAlertMessageNoConnectivity();
 

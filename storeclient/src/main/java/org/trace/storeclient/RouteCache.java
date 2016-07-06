@@ -22,47 +22,47 @@ package org.trace.storeclient;
 import android.content.Context;
 
 import org.trace.storeclient.data.Route;
-import org.trace.storeclient.data.RouteSummary;
-import org.trace.storeclient.remote.BaseHttpClient;
+import org.trace.storeclient.remote.RouteHttpClient;
+import org.trace.storeclient.storage.LocalRouteStorage;
 import org.trace.storeclient.storage.RemoteRouteStorage;
+import org.trace.storeclient.utils.ConnectivityUtils;
 
-import java.util.List;
 
+public class RouteCache {
 
-public class RoutesCache {
+    private Context mContext;
+    private RouteHttpClient mHttpClient;
+    private RemoteRouteStorage mRemoteStorage;
+    private LocalRouteStorage mLocalStorage;
+    private TraceAuthenticationManager mAuthManager;
 
-    private BaseHttpClient mHttpClient;
-    private RemoteRouteStorage mLocalStorage;
-
-    private RoutesCache(Context context){
-        mHttpClient = new BaseHttpClient();
-        mLocalStorage = RemoteRouteStorage.getLocalStorage(context);
+    private RouteCache(Context context){
+        mContext = context;
+        mHttpClient = new RouteHttpClient();
+        mRemoteStorage = RemoteRouteStorage.getLocalStorage(context);
     }
 
 
-    private static RoutesCache CACHE = null;
+    private static RouteCache CACHE = null;
 
-    public static RoutesCache getCacheInstance(Context context){
+    public static RouteCache getCacheInstance(Context context){
 
-        synchronized (RoutesCache.class){
+        synchronized (RouteCache.class){
             if(CACHE == null)
-                CACHE = new RoutesCache(context);
+                CACHE = new RouteCache(context);
         }
 
         return CACHE;
     }
 
 
-    public List<RouteSummary> getAllRouteSummaries(){
-        return null;
-    }
-
-    public RouteSummary getRemoteRouteSummary(String routeSession){
-        return null;
-    }
-
     public void storeRoute(Route route){
-        mLocalStorage.storeCompleteRoute(route);
-    }
 
+        if(!ConnectivityUtils.isConnected(mContext))
+            //Store the route locally until it is capable of uploading it
+            mLocalStorage.storeCompleteRoute(route);
+        else{
+            //TODO: how to acquire the authToken???
+        }
+    }
 }

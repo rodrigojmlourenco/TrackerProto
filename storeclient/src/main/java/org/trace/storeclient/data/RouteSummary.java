@@ -31,7 +31,7 @@ public class RouteSummary implements Parcelable{
     private String session;
     private long startedAt;
     private long endedAt;
-    private int elapsedDistance;
+    private double elapsedDistance;
     private float avgSpeed;
     private float topSpeed;
     private int points;
@@ -44,7 +44,7 @@ public class RouteSummary implements Parcelable{
         session = summary.get(Attributes.session).getAsString();
         startedAt = summary.get(Attributes.startedAt).getAsLong();
         endedAt = summary.get(Attributes.endedAt).getAsLong();
-        elapsedDistance = summary.get(Attributes.elapsedDistance).getAsInt();
+        elapsedDistance = summary.get(Attributes.elapsedDistance).getAsDouble();
         points = summary.get(Attributes.points).getAsInt();
         modality = summary.get(Attributes.modality).getAsInt();
         avgSpeed = summary.get(Attributes.avgSpeed).getAsFloat();
@@ -58,7 +58,7 @@ public class RouteSummary implements Parcelable{
         session = in.readString();
         startedAt = in.readLong();
         endedAt = in.readLong();
-        elapsedDistance = in.readInt();
+        elapsedDistance = in.readDouble();
         avgSpeed = in.readFloat();
         topSpeed = in.readFloat();
         points = in.readInt();
@@ -109,11 +109,11 @@ public class RouteSummary implements Parcelable{
 
 
 
-    public int getElapsedDistance() {
+    public double getElapsedDistance() {
         return elapsedDistance;
     }
 
-    public void setElapsedDistance(int elapsedDistance) {
+    public void setElapsedDistance(double elapsedDistance) {
         this.elapsedDistance = elapsedDistance;
     }
 
@@ -175,7 +175,7 @@ public class RouteSummary implements Parcelable{
         dest.writeString(session);
         dest.writeLong(startedAt);
         dest.writeLong(endedAt);
-        dest.writeInt(elapsedDistance);
+        dest.writeDouble(elapsedDistance);
         dest.writeFloat(avgSpeed);
         dest.writeFloat(topSpeed);
         dest.writeInt(points);
