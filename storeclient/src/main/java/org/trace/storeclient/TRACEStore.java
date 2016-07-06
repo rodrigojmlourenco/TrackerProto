@@ -12,6 +12,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import org.trace.storeclient.data.Route;
+import org.trace.storeclient.data.RouteSummary;
 import org.trace.storeclient.exceptions.AuthTokenIsExpiredException;
 import org.trace.storeclient.exceptions.AuthenticationTokenNotSetException;
 import org.trace.storeclient.exceptions.InvalidEmailException;
@@ -23,6 +25,9 @@ import org.trace.storeclient.exceptions.UnableToRegisterUserException;
 import org.trace.storeclient.exceptions.UnableToRequestGetException;
 import org.trace.storeclient.exceptions.UnableToSubmitTrackTokenExpiredException;
 import org.trace.storeclient.remote.HttpClient;
+import org.trace.storeclient.remote.RewardHttpClient;
+import org.trace.storeclient.remote.RouteHttpClient;
+import org.trace.storeclient.storage.RouteStorage;
 import org.trace.storeclient.utils.FormFieldValidator;
 
 import java.math.BigInteger;
@@ -34,10 +39,15 @@ public class TRACEStore extends IntentService{
     private final String LOG_TAG = this.getClass().getSimpleName();
 
     private final HttpClient mHttpClient;
+    private RoutesCache mCache;
+    private RouteStorage mRouteStorage;
 
     public TRACEStore() {
         super("TRACEStore");
         this.mHttpClient = new HttpClient(this);
+        mCache = RoutesCache.getCacheInstance(this);
+        mRouteStorage = RouteStorage.getLocalStorage(this);
+
     }
 
 
@@ -62,7 +72,7 @@ public class TRACEStore extends IntentService{
                 performSubmitTrack(intent);
                 break;
             case uploadTrackSummary:
-                performUploadTrackSummary(intent);
+                performUploadRoute(intent);
                 break;
             case initiateSession:
 
@@ -92,17 +102,87 @@ public class TRACEStore extends IntentService{
         }
     }
 
-    private void performUploadTrackSummary(Intent intent) {
+    private void performUploadRoute(Intent intent) {
+
+        RouteHttpClient httpClient = new RouteHttpClient();
 
         String authToken = extractAuthenticationToken(intent);
         String track = intent.getStringExtra(StoreClientConstants.TRACK_EXTRA);
+        String trace = intent.getStringExtra(StoreClientConstants.TRACE_EXTRA);
 
-        Log.d("TEST", track);
+        Route r = null;
+        String session = null;
+        RouteSummary rs = null;
+        JsonParser parser = new JsonParser();
 
+
+        //Step 1 - Upload the Route Summary
+
+        boolean success = true;
         try {
-            mHttpClient.uploadTrackSummary(authToken, track);
-        } catch (RemoteTraceException e) {
+            rs = httpClient.submitRouteSummary(authToken, track);
+            //JsonObject jRS = (JsonObject) parser.parse(response);
+            session = rs.getSession();
+
+            /*if(jRS.has("session")) {
+                rs = new RouteSummary(jRS);
+                session = rs.getSession();
+            }else{
+                throw new RuntimeException("BOOM!");
+            }*/
+
+        } catch (RemoteTraceException | AuthTokenIsExpiredException e) {
             e.printStackTrace();
+            success = false;
+
+        } finally {
+            if(!success)
+                return;
+        }
+
+        //Step 2  - Upload the Route's trace (150 at each time)
+        //Step 2a - Split the trace into batches of up to MAX_SIZE points
+        int MAX_SIZE = 30;
+        int size = 1, excess;
+        JsonObject[] queue;
+        JsonArray jTrace = (JsonArray) parser.parse(trace);
+
+        if(jTrace.size() <= MAX_SIZE){
+            queue = new JsonObject[size];
+            JsonObject aux = new JsonObject();
+            aux.addProperty("session", session);
+            aux.add("trace", jTrace);
+            queue[0] = aux;
+        }else{
+
+            excess = jTrace.size() % MAX_SIZE;
+            size = (jTrace.size() / MAX_SIZE) + (excess == 0 ? 0 : 1 );
+
+            queue = new JsonObject[size];
+
+            for(int i=0, left=0, right=MAX_SIZE; i < size; i++){
+
+                JsonArray batch = new JsonArray();
+
+                for(int j = left; j < right && j < jTrace.size() ; j++){
+                    batch.add(jTrace.get(j));
+                }
+
+                left   = right++;
+                right += MAX_SIZE;
+
+                JsonObject aux = new JsonObject();
+                aux.addProperty("session", session);
+                aux.add("trace", batch);
+                queue[i] = aux;
+            }
+        }
+
+        //Step 2b - Upload each of the batches and analyze the response
+        // NOTE: Only if all batches are uploaded successfully with the track summary be stored.
+        success = true;
+        for(JsonObject batch : queue){
+
         }
     }
 
@@ -113,7 +193,8 @@ public class TRACEStore extends IntentService{
         longitude= intent.getDoubleExtra(StoreClientConstants.LONGITUDE, 0);
         radius   = intent.getDoubleExtra(StoreClientConstants.RADIUS, 0);
 
-        return mHttpClient.fetchShopsWithRewards(latitude, longitude, radius);
+        RewardHttpClient httpClient = new RewardHttpClient();
+        return httpClient.fetchShopsWithRewards(latitude, longitude, radius);
     }
 
 
@@ -430,11 +511,12 @@ public class TRACEStore extends IntentService{
          */
 
 
-        public static void uploadTrackSummary(Context context, String authToken, JsonObject trackSummary){
+        public static void uploadTrackSummary(Context context, String authToken, JsonObject trackSummary, JsonArray trace){
 
             Intent mI = new Intent(context, TRACEStore.class);
             mI.putExtra(StoreClientConstants.OPERATION_KEY, Operations.uploadTrackSummary.toString());
             mI.putExtra(StoreClientConstants.TRACK_EXTRA, trackSummary.toString());
+            mI.putExtra(StoreClientConstants.TRACE_EXTRA, trace.toString());
             mI.putExtra(StoreClientConstants.AUTH_TOKEN_EXTRA, authToken);
             context.startService(mI);
 

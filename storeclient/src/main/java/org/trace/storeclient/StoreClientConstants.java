@@ -14,6 +14,7 @@ public interface StoreClientConstants {
     String FAILED_OPERATION = "org.trace.intent.FAILED_OPERATION";
     String AUTH_TOKEN_EXTRA = "auth_token";
     String TRACK_EXTRA  = "org.trace.store.extras.TRACK";
+    String TRACE_EXTRA  = "org.trace.store.extras.TRACE";
     String USER_REQUEST_EXTRA  = "org.trace.store.extras.REGISTER_USER";
     String OPERATION_EXTRA  = "org.trace.store.extras.OPERATION";
     String ERROR_CODE_EXTRA  = "org.trace.store.extras.ERROR_CODE";

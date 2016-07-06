@@ -3,7 +3,6 @@ package org.trace.storeclient.remote;
 import android.content.Context;
 import android.util.Log;
 
-import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -35,6 +34,7 @@ public class HttpClient {
 
     private JsonParser jsonParser;
     private final String BASE_URI = "http://146.193.41.50:8080/trace";
+    //private final String BASE_URI = "http://146.193.41.50:8081/trace";
 
     private Context mContext;
 
@@ -65,6 +65,16 @@ public class HttpClient {
 
         if(jsonResponse.get("success").getAsBoolean()){
             return jsonResponse.get("session").getAsString();
+        }else{
+            throw new RemoteTraceException("GetSession", jsonResponse.get("error").getAsString());
+        }
+    }
+
+    private String validateAndExtractPayload(String response, String payloadName) throws RemoteTraceException {
+        JsonObject jsonResponse = (JsonObject) jsonParser.parse(response);
+
+        if(jsonResponse.get("success").getAsBoolean()){
+            return jsonResponse.get(payloadName).getAsString();
         }else{
             throw new RemoteTraceException("GetSession", jsonResponse.get("error").getAsString());
         }
@@ -453,38 +463,8 @@ public class HttpClient {
     }
 
 
-    public JsonArray fetchShopsWithRewards(double latitude, double longitude, double radius)
-            throws RemoteTraceException, UnableToRequestGetException {
-
-        JsonParser parser = new JsonParser();
-        //String urlEndpoint = "/reward/rewards";
-
-        String data = String.format("lat=%f&lon=%f&radius=%f", latitude, longitude, radius);
-        String urlEndpoint = "/reward/rewards?"+data;
-
-        try {
-            String response = performGetRequest(urlEndpoint, null, null);
-
-            Log.d(LOG_TAG, response);
-
-            JsonObject jsonResponse = (JsonObject) parser.parse(response);
-
-            if(jsonResponse.get("success").getAsBoolean()) {
-                return (JsonArray) parser.parse(jsonResponse.get("payload").getAsString());
-            } else {
-                int errorCode = jsonResponse.get("code").getAsInt();
-                String errorMessage = jsonResponse.get("error").getAsString();
-                throw new RemoteTraceException(String.valueOf(errorCode), errorMessage);
-            }
-
-
-        } catch (AuthTokenIsExpiredException e) {
-            e.printStackTrace();
-        }
-
-        return null;
-    }
-
+    /*
+    @Deprecated
     public String uploadTrackSummary(String authToken, String summary) throws RemoteTraceException{
 
         String data = summary;
@@ -497,6 +477,7 @@ public class HttpClient {
         try {
             String response = performPostRequest(urlEndpoint, requestProperties, data);
             validateHttpResponse("UploadTrack", response);
+            return validateAndExtractPayload(response, "token");
         } catch (UnableToRequestPostException e) {
             e.printStackTrace();
             throw new RemoteTraceException("UploadTrack", e.getMessage());
@@ -507,7 +488,7 @@ public class HttpClient {
         }
 
         return "";
-    }
+    }*/
 
     private interface http {
         String CONTENT_TYPE = "Content-Type";

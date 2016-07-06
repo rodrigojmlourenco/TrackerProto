@@ -21,12 +21,14 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import org.trace.storeclient.TRACEStore;
 import org.trace.tracker.RouteRecorder;
 import org.trace.tracker.TRACETrackerService;
 import org.trace.tracker.TrackingConstants;
+import org.trace.tracker.storage.data.TraceLocation;
 import org.trace.tracker.storage.data.Track;
 import org.trace.tracker.storage.data.TrackSummary;
 import org.trace.trackerproto.ProtoConstants;
@@ -270,8 +272,11 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
 
                         Log.d("TEST", jTrackSummary.toString());
 
+                        JsonArray array = new JsonArray();
+                        for(TraceLocation location : t.getTracedTrack())
+                            array.add(location.getSerializableLocationAsJson());
 
-                        TRACEStore.Client.uploadTrackSummary(context, ((MainActivity) getActivity()).getAuthenticationToken(), jTrackSummary); //TODO: refactorizar
+                        TRACEStore.Client.uploadTrackSummary(context, ((MainActivity) getActivity()).getAuthenticationToken(), jTrackSummary, array); //TODO: refactorizar
                         /* OLD VERSION - WORKS
                         //Track track = mTrackStorage.getTrack_DEPRECATED(values.get(position));
                         Track track = TRACETrackerService.Client.getStoredTrack(getActivity(), values.get(position));
