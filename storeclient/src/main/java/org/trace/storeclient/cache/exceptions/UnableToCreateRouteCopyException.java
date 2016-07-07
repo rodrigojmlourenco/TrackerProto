@@ -17,24 +17,10 @@
  * along with TRACE.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.trace.storeclient.storage;
+package org.trace.storeclient.cache.exceptions;
 
-
-import android.content.Context;
-
-public class LocalRouteStorage extends RouteStorage{
-
-    private LocalRouteStorage(Context context){
-        mDBHelper = new RouteStorageDBHelper(context, "LocalRouteStorage.db", 9);
-    }
-
-    private static LocalRouteStorage LOCAL_ROUTE_STORAGE = null;
-    public static LocalRouteStorage getStorageInstance(Context context){
-        synchronized (LocalRouteStorage.class){
-            if(LOCAL_ROUTE_STORAGE == null)
-                LOCAL_ROUTE_STORAGE = new LocalRouteStorage(context);
-        }
-
-        return LOCAL_ROUTE_STORAGE;
-    }
+/**
+ * Created by Rodrigo Lourenço on 07/07/2016.
+ */
+public class UnableToCreateRouteCopyException extends Throwable {
 }

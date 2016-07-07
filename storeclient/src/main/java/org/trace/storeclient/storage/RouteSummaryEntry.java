@@ -42,7 +42,7 @@ interface RouteSummaryEntry extends BaseColumns, BaseTypes {
     String SQL_CREATE_TABLE =
             "CREATE TABLE " + TABLE_NAME + " ( " +
                     _ID + IDENTIFIER_TYPE + SEPARATOR +
-                    COLUMN_ID + TEXT_TYPE + SEPARATOR +
+                    COLUMN_ID + TEXT_TYPE + " UNIQUE " +SEPARATOR +
                     COLUMN_STARTED_AT + TIMESTAMP_TYPE + SEPARATOR +
                     COLUMN_ENDED_AT + TIMESTAMP_TYPE + SEPARATOR +
                     COLUMN_DISTANCE + DOUBLE_TYPE + SEPARATOR +

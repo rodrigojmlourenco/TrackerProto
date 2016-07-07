@@ -21,6 +21,8 @@ package org.trace.storeclient.data;
 
 import android.os.Parcel;
 
+import com.google.gson.JsonArray;
+
 import java.util.List;
 
 
@@ -29,6 +31,18 @@ public class Route extends RouteSummary{
     private List<RouteWaypoint> trace;
 
     public Route(){}
+
+    public Route(RouteSummary summary){
+        this.setSession(summary.getSession());
+        this.setStartedAt(summary.getStartedAt());
+        this.setEndedAt(summary.getEndedAt());
+        this.setElapsedDistance(summary.getElapsedDistance());
+        this.setPoints(summary.getPoints());
+        this.setAvgSpeed(summary.getAvgSpeed());
+        this.setTopSpeed(summary.getTopSpeed());
+        this.setModality(summary.getModality());
+    }
+
 
     public Route(Parcel in){
         super(in);
@@ -54,6 +68,16 @@ public class Route extends RouteSummary{
 
     public void setTrace(List<RouteWaypoint> trace) {
         this.trace = trace;
+    }
+
+    public JsonArray getTraceAsJsonArray() {
+
+        JsonArray jTrace = new JsonArray();
+
+        for(RouteWaypoint rw : trace)
+            jTrace.add(rw.toJson());
+
+        return jTrace;
     }
 
     @Override

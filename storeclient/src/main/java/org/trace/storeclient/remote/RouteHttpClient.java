@@ -19,13 +19,20 @@
 
 package org.trace.storeclient.remote;
 
+import android.util.Log;
+
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import org.trace.storeclient.data.RouteSummary;
+import org.trace.storeclient.data.RouteWaypoint;
 import org.trace.storeclient.exceptions.AuthTokenIsExpiredException;
 import org.trace.storeclient.exceptions.RemoteTraceException;
+import org.trace.storeclient.exceptions.UnableToRequestGetException;
 import org.trace.storeclient.exceptions.UnableToRequestPostException;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by Rodrigo Lourenço on 06/07/2016.
@@ -84,6 +91,63 @@ public class RouteHttpClient extends BaseHttpClient {
         } catch (UnableToRequestPostException e) {
             e.printStackTrace();
             throw new RemoteTraceException("UploadTrack", e.getMessage());
+        } catch (AuthTokenIsExpiredException e) {
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    public RouteSummary downloadRouteSummary(String authToken, String session) throws RemoteTraceException, AuthTokenIsExpiredException {
+
+        String urlEndpoint = "/get/track?session="+session;
+
+        JsonObject requestProperties = new JsonObject();
+        requestProperties.addProperty(http.AUTHORIZATION, "Bearer "+authToken);
+        requestProperties.addProperty(http.CONTENT_TYPE, "application/json; charset=UTF-8");
+
+        try {
+            String response = performGetRequest(urlEndpoint, requestProperties, "");
+            validateHttpResponse("downloadRouteSummary", response);
+
+            JsonObject jResponse = (JsonObject) jsonParser.parse(response);
+
+            return new RouteSummary((JsonObject) jsonParser.parse(jResponse.get("token").getAsString()));
+
+        } catch (UnableToRequestGetException e) {
+            e.printStackTrace();
+            throw new RemoteTraceException("downloadRouteSummary", e.getMessage());
+        } catch (AuthTokenIsExpiredException e) {
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    public List<RouteWaypoint> downloadRouteTrace(String authToken, String session) throws RemoteTraceException, AuthTokenIsExpiredException {
+
+        List<RouteWaypoint> trace = new ArrayList<>();
+        String urlEndpoint = "/get/track/trace?session="+session;
+
+        JsonObject requestProperties = new JsonObject();
+        requestProperties.addProperty(http.AUTHORIZATION, "Bearer "+authToken);
+        requestProperties.addProperty(http.CONTENT_TYPE, "application/json; charset=UTF-8");
+
+        try {
+            String response = performGetRequest(urlEndpoint, requestProperties, "");
+            validateHttpResponse("downloadRouteTrace", response);
+
+            JsonObject jResponse = (JsonObject) jsonParser.parse(response);
+            JsonArray jTrace = (JsonArray) jsonParser.parse(jResponse.get("token").getAsString());
+
+            for (int i=0; i < jTrace.size(); i++)
+                trace.add(new RouteWaypoint(session, (JsonObject) jTrace.get(i)));
+
+
+            Log.d(LOG_TAG, "Stuff");
+            return trace;
+
+        } catch (UnableToRequestGetException e) {
+            e.printStackTrace();
+            throw new RemoteTraceException("downloadRouteSummary", e.getMessage());
         } catch (AuthTokenIsExpiredException e) {
             e.printStackTrace();
             throw e;

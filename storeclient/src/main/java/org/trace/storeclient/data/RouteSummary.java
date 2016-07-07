@@ -197,4 +197,25 @@ public class RouteSummary implements Parcelable{
         String from = "from";
         String to = "to";
     }
+
+    public JsonObject toJson(){
+        JsonObject jSummary = new JsonObject();
+
+        jSummary.addProperty(Attributes.session, session);
+        jSummary.addProperty(Attributes.startedAt, startedAt);
+        jSummary.addProperty(Attributes.endedAt, endedAt);
+        jSummary.addProperty(Attributes.elapsedTime, getElapsedTime());
+        jSummary.addProperty(Attributes.elapsedDistance, elapsedDistance);
+        jSummary.addProperty(Attributes.avgSpeed, avgSpeed);
+        jSummary.addProperty(Attributes.topSpeed, topSpeed);
+        jSummary.addProperty(Attributes.points, points);
+        jSummary.addProperty(Attributes.modality, modality);
+
+        return jSummary;
+    }
+
+    @Override
+    public String toString() {
+        return toJson().toString();
+    }
 }

@@ -24,22 +24,21 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
-/**
- * Created by Rodrigo Lourenço on 06/07/2016.
- */
+
 public class RouteStorageDBHelper extends SQLiteOpenHelper{
 
-    public static final int DATABASE_VERSION = 1;
+    public static final int DATABASE_VERSION = 5;
     private static final String LOG_TAG = "RouteStorageDBHelper";
 
-    public RouteStorageDBHelper(Context context, String database){
-        super(context, database, null, DATABASE_VERSION);
+    public RouteStorageDBHelper(Context context, String database, int version){
+        super(context, database, null, version);
     }
 
     @Override
     public void onCreate(SQLiteDatabase db) {
         db.execSQL(RouteSummaryEntry.SQL_CREATE_TABLE);
         db.execSQL(RouteLocationEntry.SQL_CREATE_TABLE);
+        db.execSQL(RouteStateEntry.SQL_CREATE_TABLE);
 
     }
 
@@ -48,6 +47,7 @@ public class RouteStorageDBHelper extends SQLiteOpenHelper{
         Log.w(LOG_TAG, "Upgrading db to version "+newVersion);
         db.execSQL(RouteLocationEntry.SQL_DELETE_TABLE);
         db.execSQL(RouteSummaryEntry.SQL_DELETE_TABLE);
+        db.execSQL(RouteStateEntry.SQL_DELETE_TABLE);
         onCreate(db);
     }
 

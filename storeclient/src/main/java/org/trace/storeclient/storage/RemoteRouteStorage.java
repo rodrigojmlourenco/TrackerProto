@@ -19,7 +19,6 @@
 
 package org.trace.storeclient.storage;
 
-import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -27,13 +26,8 @@ import android.util.Log;
 
 import com.google.gson.JsonObject;
 
-import org.trace.storeclient.data.Route;
-import org.trace.storeclient.data.RouteWaypoint;
-
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 
 
 public class RemoteRouteStorage extends RouteStorage{
@@ -42,7 +36,7 @@ public class RemoteRouteStorage extends RouteStorage{
     private RouteStorageDBHelper mDBHelper;
 
     private RemoteRouteStorage(Context context){
-        mDBHelper = new RouteStorageDBHelper(context, "RemoteRouteStorage.db");
+        mDBHelper = new RouteStorageDBHelper(context, "RemoteRouteStorage.db", 1);
     }
 
     private static RemoteRouteStorage LOCAL_ROUTE_STORAGE = null;
@@ -63,7 +57,7 @@ public class RemoteRouteStorage extends RouteStorage{
      ***********************************************************************************************
      */
 
-    private void dumpRouteSummaryTable(){
+    public void dumpRouteSummaryTable(){
 
         SQLiteDatabase db = mDBHelper.getReadableDatabase();
 
@@ -108,46 +102,5 @@ public class RemoteRouteStorage extends RouteStorage{
 
     }
 
-    public void storeCompleteRoute(Route route) {
 
-        String session = route.getSession();
-        SQLiteDatabase db = mDBHelper.getWritableDatabase();
-
-        ContentValues summaryValues = new ContentValues();
-        List<ContentValues> locationValues= new ArrayList<>();
-
-        summaryValues.put(RouteSummaryEntry._ID, route.getSession());
-        summaryValues.put(RouteSummaryEntry.COLUMN_STARTED_AT, route.getStartedAt());
-        summaryValues.put(RouteSummaryEntry.COLUMN_ENDED_AT, route.getEndedAt());
-        summaryValues.put(RouteSummaryEntry.COLUMN_DISTANCE, route.getElapsedDistance());
-        summaryValues.put(RouteSummaryEntry.COLUMN_AVG_SPEED, route.getAvgSpeed());
-        summaryValues.put(RouteSummaryEntry.COLUMN_TOP_SPEED, route.getTopSpeed());
-        summaryValues.put(RouteSummaryEntry.COLUMN_POINTS, route.getPoints());
-        summaryValues.put(RouteSummaryEntry.COLUMN_MODALITY, route.getModality());
-
-        for(RouteWaypoint location : route.getTrace()){
-            ContentValues aux = new ContentValues();
-            aux.put(RouteLocationEntry.COLUMN_SESSION, session);
-            aux.put(RouteLocationEntry.COLUMN_TIMESTAMP, location.getTimestamp());
-            aux.put(RouteLocationEntry.COLUMN_LATITUDE, location.getLatitude());
-            aux.put(RouteLocationEntry.COLUMN_LONGITUDE, location.getLongitude());
-            locationValues.add(aux);
-        }
-
-        try {
-            db.beginTransaction();
-            db.insert(RouteSummaryEntry.TABLE_NAME, null, summaryValues);
-
-            for (ContentValues value : locationValues) {
-                db.insert(RouteLocationEntry.TABLE_NAME, null, value);
-            }
-            db.setTransactionSuccessful();
-        }catch (Exception e){
-            e.printStackTrace();
-            Log.e(LOG_TAG, e.getMessage());
-        } finally {
-            db.endTransaction();
-            db.close();
-        }
-    }
 }

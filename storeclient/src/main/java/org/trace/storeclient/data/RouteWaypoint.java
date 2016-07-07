@@ -39,7 +39,12 @@ public class RouteWaypoint implements Parcelable{
         this.timestamp = jsonWaypoint.get("timestamp").getAsLong();
         this.latitude = jsonWaypoint.get("latitude").getAsDouble();
         this.longitude = jsonWaypoint.get("longitude").getAsDouble();
-        this.attributes = jsonWaypoint.get("attributes").getAsString();
+
+        try {
+            this.attributes = jsonWaypoint.get("attributes").getAsString();
+        }catch (UnsupportedOperationException e){
+            this.attributes = "";
+        }
     }
 
     public RouteWaypoint(Parcel in) {
@@ -114,5 +119,21 @@ public class RouteWaypoint implements Parcelable{
         dest.writeDouble(latitude);
         dest.writeDouble(longitude);
         dest.writeString(attributes);
+    }
+
+    public JsonObject toJson(){
+        JsonObject jWaypoint = new JsonObject();
+        jWaypoint.addProperty(Attributes.timestamp, timestamp);
+        jWaypoint.addProperty(Attributes.latitude, latitude);
+        jWaypoint.addProperty(Attributes.longitude, longitude);
+        jWaypoint.addProperty(Attributes.attributes, attributes);
+        return jWaypoint;
+    }
+
+    public interface Attributes {
+        String timestamp = "timestamp",
+                latitude = "latitude",
+                longitude = "longitude",
+                attributes = "attributes";
     }
 }

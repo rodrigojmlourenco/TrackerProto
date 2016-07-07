@@ -12,6 +12,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import org.trace.storeclient.cache.RouteCache;
+import org.trace.storeclient.cache.exceptions.UnableToCreateRouteCopyException;
 import org.trace.storeclient.data.Route;
 import org.trace.storeclient.data.RouteSummary;
 import org.trace.storeclient.exceptions.AuthTokenIsExpiredException;
@@ -73,6 +75,9 @@ public class TRACEStore extends IntentService{
             case submitTrack:
                 performSubmitTrack(intent);
                 break;
+            case submitRoute:
+                performSubmitRoute(intent);
+                break;
             case uploadTrackSummary:
                 performUploadRoute(intent);
                 break;
@@ -102,6 +107,19 @@ public class TRACEStore extends IntentService{
             default:
                 Log.e(LOG_TAG, "Unknown operation "+op);
         }
+    }
+
+    private void performSubmitRoute(Intent intent){
+        String authToken = extractAuthenticationToken(intent);
+        Route route = intent.getParcelableExtra(StoreClientConstants.TRACK_EXTRA);
+
+
+        try {
+            mCache.saveRoute(authToken, route);
+        } catch (UnableToCreateRouteCopyException e) {
+            e.printStackTrace();
+        }
+
     }
 
     //TODO: deal with possible fails, and relevant fails by removing the session from the server

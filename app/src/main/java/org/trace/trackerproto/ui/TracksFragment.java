@@ -262,7 +262,7 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
                         Log.d("TEST", t.toString());
 
                         Route route = new Route();
-                        route.setSession("");
+                        route.setSession(t.getTrackId());
                         route.setStartedAt(t.getStart());
                         route.setEndedAt(t.getStop());
                         route.setElapsedDistance(t.getElapsedDistance());
@@ -295,7 +295,9 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
                         for(TraceLocation location : t.getTracedTrack())
                             array.add(location.getSerializableLocationAsJson());
 
-                        TRACEStore.Client.uploadTrackSummary(context, ((MainActivity) getActivity()).getAuthenticationToken(), jTrackSummary, array); //TODO: refactorizar
+                        //TRACEStore.Client.uploadTrackSummary(context, ((MainActivity) getActivity()).getAuthenticationToken(), jTrackSummary, array); //TODO: refactorizar
+                        TRACEStore.Client.submitRoute(context, ((MainActivity) getActivity()).getAuthenticationToken(), route);
+
                     }else
                         buildAlertMessageNoConnectivity();
 
