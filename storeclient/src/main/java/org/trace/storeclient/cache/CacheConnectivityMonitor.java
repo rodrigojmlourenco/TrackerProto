@@ -19,8 +19,53 @@
 
 package org.trace.storeclient.cache;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.os.Bundle;
+import android.util.Log;
+
+import com.google.android.gms.auth.api.Auth;
+import com.google.android.gms.common.api.GoogleApiClient;
+
+import org.trace.storeclient.TraceAuthenticationManager;
+import org.trace.storeclient.exceptions.UserIsNotLoggedException;
+import org.trace.storeclient.utils.ConnectivityUtils;
+
+import java.util.Set;
+
 /**
  * Created by Rodrigo Lourenço on 07/07/2016.
  */
-public class CacheConnectivityMonitor {
+public class CacheConnectivityMonitor extends BroadcastReceiver{
+    @Override
+    public void onReceive(Context context, Intent intent) {
+        Bundle extras = intent.getExtras();
+        Set<String> keys = extras.keySet();
+
+        RouteCache cache = RouteCache.getCacheInstance(context);
+
+        if(ConnectivityUtils.isConnected(context)){
+
+            GoogleApiClient mGoogleApiClient = new GoogleApiClient.Builder(context)
+                    .addApi(Auth.GOOGLE_SIGN_IN_API)
+                    .addApi(Auth.CREDENTIALS_API)
+                    .build();
+
+            TraceAuthenticationManager mAuthManager
+                    = TraceAuthenticationManager.getAuthenticationManager(context, mGoogleApiClient);
+
+            try {
+                String authToken = mAuthManager.getAuthenticationToken();
+                cache.postPendingRoutes(authToken);
+            } catch (UserIsNotLoggedException e) {
+                e.printStackTrace();
+            }
+
+
+
+        }else{
+            Log.w("t", "is no longer connected");
+        }
+    }
 }

@@ -24,6 +24,9 @@ import android.util.Log;
 
 import com.google.gson.JsonArray;
 
+import org.trace.storeclient.cache.exceptions.RouteIsIncompleteException;
+import org.trace.storeclient.cache.exceptions.RouteNotFoundException;
+import org.trace.storeclient.cache.exceptions.RouteNotParsedException;
 import org.trace.storeclient.cache.exceptions.UnableToCreateRouteCopyException;
 import org.trace.storeclient.data.Route;
 import org.trace.storeclient.data.RouteSummary;
@@ -35,6 +38,9 @@ import org.trace.storeclient.storage.LocalRouteStorage;
 import org.trace.storeclient.utils.ConnectivityUtils;
 
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 
 public class RouteCache {
@@ -86,21 +92,122 @@ public class RouteCache {
 
         // Scenario 1 - The app has a network connection (Wifi?)
         if(ConnectivityUtils.isConnected(mContext)) {
-                //Handler postRoute = new Handler();
-                //postRoute.post(new PostRouteRunnable(authToken, route));
-                Thread t = new Thread(new PostRouteRunnable(authToken, route));
-                t.run();
-                return true;
+            //Handler postRoute = new Handler();
+            //postRoute.post(new PostRouteRunnable(authToken, route));
+            Thread t = new Thread(new PostRouteRunnable(authToken, route));
+            t.run();
+            return true;
         }
 
         return true;
     }
 
-    public void loadRoute(String routeId){
+    protected void postPendingRoutes(String authToken){
 
+        if(!mLocalStorage.hasPendingRoutes()){
+            Log.i(LOG_TAG, "No pending routes to upload");
+            return;
+        }
+
+        final List<String> pendingRoutes = mLocalStorage.getLocalRoutesSessions();
+
+        if(pendingRoutes.size() > 0){
+            ScheduledExecutorService worker = Executors.newSingleThreadScheduledExecutor();
+            worker.schedule(new PostPendingRoutesRunnable(authToken, pendingRoutes), 0, TimeUnit.NANOSECONDS);
+            //Handler postPendingRoutesHandler = new Handler();
+            //postPendingRoutesHandler.post(new PostPendingRoutesRunnable(authToken, pendingRoutes));
+            //Thread t = new Thread(new PostPendingRoutesRunnable(authToken, pendingRoutes));
+            //t.run();
+        }
     }
 
-    /* Asyn Runnables
+    public List<RouteSummary> loadRoutes(){
+        //TODO: is there a chance that the user does not have a route? maybe he deleted the app
+        //      and then downloaded it again?
+        return mLocalStorage.getAllRoutes();
+    }
+
+
+    /**
+     * Fetches a route identified by its session.
+     * <br>
+     * Additionally, it is important to mention that is the route is remote but incomplete, this
+     * method will trigger the fetching of the route's trace.
+     * @param authToken Required for communication with the server.
+     * @param session String that uniquely identifies the route.
+     *
+     * @return The route summary-
+     *
+     * @throws RouteNotFoundException when no Route is found, this should never occur however.
+     */
+    public RouteSummary loadRoute(final String authToken, final String session) throws RouteNotFoundException {
+
+        RouteSummary summary = mLocalStorage.getRouteSummary(session);
+
+        //If the route is on the server, and its not complete on the device
+        //then (if there is connectivity) the trace will be downloaded.
+        if(ConnectivityUtils.isConnected(mContext) &&
+                !mLocalStorage.isLocalRoute(session) && !mLocalStorage.isCompleteRoute(session)){
+
+            Thread t = new Thread(new Runnable() {
+                @Override
+                public void run() {
+
+                    List<RouteWaypoint> trace;
+
+                    try {
+                        trace = mHttpClient.downloadRouteTrace(authToken, session);
+                        mLocalStorage.updateRouteStateAndTrace(session, false, true, trace);
+                        mLocalStorage.dumpStorageLog();
+                    } catch (RemoteTraceException | AuthTokenIsExpiredException e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+
+            t.run();
+        }
+
+
+        return summary;
+    }
+
+    public List<RouteWaypoint> loadRouteTrace(final String authToken, final String session)
+            throws RouteNotFoundException, RouteIsIncompleteException, RouteNotParsedException {
+
+        if(mLocalStorage.isLocalRoute(session))
+            throw new RouteNotParsedException(session);
+
+        if (mLocalStorage.isCompleteRoute(session)){
+            return mLocalStorage.getRouteTrace(session);
+        }else {
+
+            if(ConnectivityUtils.isConnected(mContext) && !mLocalStorage.isLocalRoute(session)){
+                Thread t = new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        List<RouteWaypoint> trace;
+
+                        try {
+                            trace = mHttpClient.downloadRouteTrace(authToken, session);
+                            mLocalStorage.updateRouteStateAndTrace(session, false, true, trace);
+                            mLocalStorage.dumpStorageLog();
+                        } catch (RemoteTraceException | AuthTokenIsExpiredException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+
+                t.run();
+            }
+
+            throw new RouteIsIncompleteException(session);
+        }
+    }
+
+
+
+    /* Async Runnables
      ***********************************************************************************************
      ***********************************************************************************************
      ***********************************************************************************************
@@ -210,19 +317,54 @@ public class RouteCache {
                 mLocalStorage.updateRouteStateAndTrace(aux.getSession(), false, true, trace);
                 mLocalStorage.dumpStorageLog();
 
-            } catch (RemoteTraceException e) {
-                e.printStackTrace();
-            } catch (AuthTokenIsExpiredException e) {
+            } catch (RemoteTraceException | AuthTokenIsExpiredException e) {
                 e.printStackTrace();
             }
 
             //Step 4 - Delete the local copy of the route
+            // NOTA: Enquanto não remover a track do repositorio do tracker esta vai continuar a ser uploaded!
             boolean wasDeleted;
             do{
                 wasDeleted = mLocalStorage.deleteRoute(trackId);
                 mLocalStorage.dumpStorageLog();
             }while (!wasDeleted);
 
+        }
+    }
+
+    public class PostPendingRoutesRunnable implements Runnable {
+
+        private final String authToken;
+        private List<String> pendingSessions;
+
+        public PostPendingRoutesRunnable(String authToken, List<String> sessions){
+            this.authToken = authToken;
+            pendingSessions = sessions;
+        }
+
+        @Override
+        public void run() {
+
+            Log.i(LOG_TAG, "Uploading "+pendingSessions.size()+" pending tracks");
+
+            for(String session : pendingSessions){
+                if(ConnectivityUtils.isConnected(mContext)) {
+                    try {
+
+                        Route route = new Route(mLocalStorage.getRouteSummary(session));
+                        route.setTrace(mLocalStorage.getRouteTrace(session));
+                        PostRouteRunnable post = new PostRouteRunnable(authToken, route);
+                        post.run();
+
+                        Log.i(LOG_TAG, "Pending track successfully posted.");
+
+                    } catch (RouteNotFoundException e) {
+                        e.printStackTrace();
+                    }
+                }else{
+                    break;
+                }
+            }
         }
     }
 }

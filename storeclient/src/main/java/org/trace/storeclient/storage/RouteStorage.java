@@ -21,12 +21,14 @@ package org.trace.storeclient.storage;
 
 import android.content.ContentValues;
 import android.database.Cursor;
+import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
 import com.google.gson.JsonObject;
 
+import org.trace.storeclient.cache.exceptions.RouteNotFoundException;
 import org.trace.storeclient.data.Route;
 import org.trace.storeclient.data.RouteSummary;
 import org.trace.storeclient.data.RouteWaypoint;
@@ -288,4 +290,174 @@ public abstract class RouteStorage {
 
         return wasDeleted;
     }
+
+    public List<String> getLocalRoutesSessions() {
+
+        List<String> sessions = new ArrayList<>();
+
+        SQLiteDatabase db = mDBHelper.getReadableDatabase();
+        String selectionClause = RouteStateEntry.COLUMN_IS_LOCAL + " = 1";
+        String[] columns = new String[]{ RouteStateEntry.COLUMN_ROUTE };
+
+        Cursor c = db.query(RouteStateEntry.TABLE_NAME, columns, selectionClause, null, "", "", "");
+
+        while (c.moveToNext()){
+            sessions.add(c.getString(0));
+        }
+
+        return sessions;
+    }
+
+    public RouteSummary getRouteSummary(String session) throws RouteNotFoundException {
+
+        RouteSummary summary = new RouteSummary();
+        SQLiteDatabase db = mDBHelper.getReadableDatabase();
+
+        String[] columns = new String[]{
+            RouteSummaryEntry.COLUMN_ID,
+            RouteSummaryEntry.COLUMN_STARTED_AT,
+            RouteSummaryEntry.COLUMN_ENDED_AT,
+            RouteSummaryEntry.COLUMN_DISTANCE,
+            RouteSummaryEntry.COLUMN_POINTS,
+            RouteSummaryEntry.COLUMN_MODALITY,
+            RouteSummaryEntry.COLUMN_AVG_SPEED,
+            RouteSummaryEntry.COLUMN_TOP_SPEED
+        };
+        String selectionClause = RouteSummaryEntry.COLUMN_ID + " = ?";
+        String[] selectionArgs = new String[] { session };
+
+        Cursor cursor = db.query(RouteSummaryEntry.TABLE_NAME, columns, selectionClause, selectionArgs, "", "", "");
+
+        if(!cursor.moveToNext())
+            throw new RouteNotFoundException(session);
+
+        summary.setSession(cursor.getString(0));
+        summary.setStartedAt(cursor.getLong(1));
+        summary.setEndedAt(cursor.getLong(2));
+        summary.setElapsedDistance(cursor.getDouble(3));
+        summary.setPoints(cursor.getInt(4));
+        summary.setModality(cursor.getInt(5));
+        summary.setAvgSpeed(cursor.getFloat(6));
+        summary.setTopSpeed(cursor.getFloat(7));
+
+        db.close();
+
+        return summary;
+    }
+
+    public List<RouteWaypoint> getRouteTrace(String session) throws RouteNotFoundException{
+        List<RouteWaypoint> trace = new ArrayList<>();
+
+        SQLiteDatabase db = mDBHelper.getReadableDatabase();
+
+        String[] columns = new String[]{
+            RouteLocationEntry.COLUMN_TIMESTAMP,
+            RouteLocationEntry.COLUMN_LATITUDE,
+            RouteLocationEntry.COLUMN_LONGITUDE
+        };
+        String selectionClause = RouteLocationEntry.COLUMN_SESSION + " = ?";
+        String[] selectionArgs = new String[] { session };
+
+        Cursor cursor = db.query(RouteLocationEntry.TABLE_NAME, columns, selectionClause, selectionArgs, "", "", "");
+
+        if(cursor.getCount() <= 0)
+            throw new RouteNotFoundException(session);
+
+        while (cursor.moveToNext()){
+            RouteWaypoint waypoint = new RouteWaypoint();
+
+            waypoint.setSession(session);
+            waypoint.setTimestamp(cursor.getLong(0));
+            waypoint.setLatitude(cursor.getDouble(1));
+            waypoint.setLongitude(cursor.getDouble(2));
+            waypoint.setAttributes("");
+
+            trace.add(waypoint);
+        }
+
+        db.close();
+
+        return trace;
+    }
+
+    public boolean isLocalRoute(String session){
+
+        boolean isLocal;
+        SQLiteDatabase db = mDBHelper.getReadableDatabase();
+
+        String[] columns = new String[] { RouteStateEntry.COLUMN_IS_LOCAL };
+        String selectionClause = RouteStateEntry.COLUMN_ROUTE + " = ? ";
+        String[] selectionArgs = new String[] { session };
+
+        Cursor cursor = db.query(RouteStateEntry.TABLE_NAME, columns, selectionClause, selectionArgs, "", "" ,"");
+        isLocal = cursor.getInt(0) > 0;
+        db.close();
+
+        return isLocal;
+    }
+
+    public boolean isCompleteRoute(String session){
+
+        boolean isComplete;
+        SQLiteDatabase db = mDBHelper.getReadableDatabase();
+
+        String[] columns = new String[] { RouteStateEntry.COLUMN_IS_COMPLETE };
+        String selectionClause = RouteStateEntry.COLUMN_ROUTE + " = ? ";
+        String[] selectionArgs = new String[] { session };
+
+        Cursor cursor = db.query(RouteStateEntry.TABLE_NAME, columns, selectionClause, selectionArgs, "", "" ,"");
+        isComplete = cursor.getInt(0) > 0;
+        db.close();
+
+        return isComplete;
+    }
+
+    public boolean hasPendingRoutes(){
+        SQLiteDatabase db = mDBHelper.getReadableDatabase();
+        long locals = DatabaseUtils.queryNumEntries(db, RouteStateEntry.TABLE_NAME, RouteStateEntry.COLUMN_IS_LOCAL+"=1");
+        return locals > 0;
+    }
+
+
+    public List<RouteSummary> getAllRoutes(){
+
+        List<RouteSummary> summaries = new ArrayList<>();
+
+        SQLiteDatabase db = mDBHelper.getReadableDatabase();
+
+        String[] columns = new String[]{
+                RouteSummaryEntry.COLUMN_ID,
+                RouteSummaryEntry.COLUMN_STARTED_AT,
+                RouteSummaryEntry.COLUMN_ENDED_AT,
+                RouteSummaryEntry.COLUMN_DISTANCE,
+                RouteSummaryEntry.COLUMN_POINTS,
+                RouteSummaryEntry.COLUMN_MODALITY,
+                RouteSummaryEntry.COLUMN_AVG_SPEED,
+                RouteSummaryEntry.COLUMN_TOP_SPEED
+        };
+
+
+
+        Cursor cursor = db.query(RouteSummaryEntry.TABLE_NAME, columns, "", null, "", "", "");
+
+        while (cursor.moveToNext()) {
+            RouteSummary summary = new RouteSummary();
+
+            summary.setSession(cursor.getString(0));
+            summary.setStartedAt(cursor.getLong(1));
+            summary.setEndedAt(cursor.getLong(2));
+            summary.setElapsedDistance(cursor.getDouble(3));
+            summary.setPoints(cursor.getInt(4));
+            summary.setModality(cursor.getInt(5));
+            summary.setAvgSpeed(cursor.getFloat(6));
+            summary.setTopSpeed(cursor.getFloat(7));
+
+            summaries.add(summary);
+        }
+
+        db.close();
+        return summaries;
+    }
 }
+
+

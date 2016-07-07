@@ -252,7 +252,7 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
                 @Override
                 public void onClick(View v) {
 
-                    if(isNetworkConnected()) {
+                   // if(isNetworkConnected()) {
 
                         RouteRecorder rr = ((MainActivity)getActivity()).getRouteRecorder();
                         String index = values.get(position);
@@ -298,8 +298,8 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
                         //TRACEStore.Client.uploadTrackSummary(context, ((MainActivity) getActivity()).getAuthenticationToken(), jTrackSummary, array); //TODO: refactorizar
                         TRACEStore.Client.submitRoute(context, ((MainActivity) getActivity()).getAuthenticationToken(), route);
 
-                    }else
-                        buildAlertMessageNoConnectivity();
+                    //}else
+                    //    buildAlertMessageNoConnectivity();
 
                 }
             });

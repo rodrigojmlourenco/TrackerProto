@@ -17,26 +17,19 @@
  * along with TRACE.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.trace.storeclient.storage;
+package org.trace.storeclient.cache.exceptions;
 
 
-import android.content.Context;
+public class RouteIsIncompleteException extends Throwable {
 
-public class LocalRouteStorage extends RouteStorage{
+    String message;
 
-    private LocalRouteStorage(Context context){
-        mDBHelper = new RouteStorageDBHelper(context, "LocalRouteStorage.db", 10);
+    public RouteIsIncompleteException(String session) {
+        message = "Route '"+session+"' is incomplete, i.e. it has no points";
     }
 
-    private static LocalRouteStorage LOCAL_ROUTE_STORAGE = null;
-    public static LocalRouteStorage getStorageInstance(Context context){
-        synchronized (LocalRouteStorage.class){
-            if(LOCAL_ROUTE_STORAGE == null)
-                LOCAL_ROUTE_STORAGE = new LocalRouteStorage(context);
-        }
-
-        return LOCAL_ROUTE_STORAGE;
+    @Override
+    public String getMessage() {
+        return message;
     }
-
-
 }
