@@ -3,7 +3,7 @@ package org.trace.tracker.settings;
 import com.google.android.gms.location.LocationRequest;
 import com.google.gson.JsonObject;
 
-import org.trace.tracker.filter.HeuristicBasedFilter;
+import org.trace.tracker.tracking.filter.HeuristicBasedFilter;
 
 /**
  * @author Rodrigo Lourenço

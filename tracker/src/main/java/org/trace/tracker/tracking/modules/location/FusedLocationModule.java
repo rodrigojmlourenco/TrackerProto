@@ -1,4 +1,4 @@
-package org.trace.tracker.modules.location;
+package org.trace.tracker.tracking.modules.location;
 
 import android.content.Context;
 import android.content.Intent;
@@ -10,8 +10,8 @@ import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 
-import org.trace.tracker.TrackingConstants;
-import org.trace.tracker.modules.ModuleInterface;
+import org.trace.tracker.Constants;
+import org.trace.tracker.tracking.modules.ModuleInterface;
 
 
 public class FusedLocationModule implements LocationListener, ModuleInterface {
@@ -29,8 +29,8 @@ public class FusedLocationModule implements LocationListener, ModuleInterface {
 
     @Override
     public void onLocationChanged(Location location) {
-        Intent localIntent = new Intent(TrackingConstants.tracker.COLLECT_LOCATIONS_ACTION);
-        localIntent.putExtra(TrackingConstants.tracker.LOCATION_EXTRA, location);
+        Intent localIntent = new Intent(Constants.tracker.COLLECT_LOCATIONS_ACTION);
+        localIntent.putExtra(Constants.tracker.LOCATION_EXTRA, location);
         LocalBroadcastManager.getInstance(mContext).sendBroadcast(localIntent);
     }
 

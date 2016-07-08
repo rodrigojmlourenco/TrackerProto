@@ -1,4 +1,4 @@
-package org.trace.tracker.modules.activity;
+package org.trace.tracker.tracking.modules.activity;
 
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
@@ -14,7 +14,7 @@ import com.google.android.gms.location.ActivityRecognition;
 import com.google.android.gms.location.DetectedActivity;
 
 import org.trace.tracker.exceptions.GoogleApiClientDisconnectedException;
-import org.trace.tracker.modules.ModuleInterface;
+import org.trace.tracker.tracking.modules.ModuleInterface;
 
 import java.util.LinkedList;
 import java.util.Queue;

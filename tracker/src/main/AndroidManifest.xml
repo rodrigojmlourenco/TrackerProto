@@ -18,12 +18,12 @@
         android:supportsRtl="true">
 
         <service
-            android:name="org.trace.tracker.modules.activity.ActivityRecognitionHandler"
+            android:name=".tracking.modules.activity.ActivityRecognitionHandler"
             android:exported="false" />
         <service android:name=".TRACETrackerService" android:exported="true"/>
 
         <service
-            android:name=".TrackerService"
+            android:name=".tracking.TrackerService"
             android:exported="true"/>
     </application>
 

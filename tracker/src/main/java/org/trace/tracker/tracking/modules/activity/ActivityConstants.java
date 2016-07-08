@@ -1,4 +1,4 @@
-package org.trace.tracker.modules.activity;
+package org.trace.tracker.tracking.modules.activity;
 
 /**
  * Created by Rodrigo Lourenço on 28/03/2016.

@@ -7,7 +7,7 @@ import android.os.Parcel;
 import com.google.android.gms.location.DetectedActivity;
 import com.google.gson.JsonObject;
 
-import org.trace.tracker.modules.activity.ActivityRecognitionModule;
+import org.trace.tracker.tracking.modules.activity.ActivityRecognitionModule;
 
 
 public class TraceLocation extends Location{

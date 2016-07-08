@@ -1,4 +1,4 @@
-package org.trace.tracker.modules.activity;
+package org.trace.tracker.tracking.modules.activity;
 
 import android.app.IntentService;
 import android.content.Intent;
@@ -6,7 +6,7 @@ import android.support.v4.content.LocalBroadcastManager;
 
 import com.google.android.gms.location.ActivityRecognitionResult;
 import com.google.android.gms.location.DetectedActivity;
-import org.trace.tracker.tracker.TrackingConstants;
+import org.trace.tracker.tracking.TrackingConstants;
 
 import java.util.ArrayList;
 

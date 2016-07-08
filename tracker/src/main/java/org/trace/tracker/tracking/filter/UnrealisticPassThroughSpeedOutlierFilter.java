@@ -1,4 +1,4 @@
-package org.trace.tracker.filter;
+package org.trace.tracker.tracking.filter;
 
 import android.util.Log;
 

@@ -1,7 +1,7 @@
 package org.trace.tracker;
 
 
-public final class TrackingConstants {
+public final class Constants {
 
     //IntentService and BroadcastReceiver
     public static final String BROADCAST_ACTION = "org.trace.intent.BROADCAST";

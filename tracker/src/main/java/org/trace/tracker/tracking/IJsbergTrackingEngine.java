@@ -17,7 +17,7 @@
  * along with TRACE.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.trace.tracker;
+package org.trace.tracker.tracking;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -33,10 +33,11 @@ import android.util.Log;
 import com.google.android.gms.location.DetectedActivity;
 import com.google.android.gms.location.LocationServices;
 
+import org.trace.tracker.*;
 import org.trace.tracker.google.GoogleClientManager;
-import org.trace.tracker.modules.activity.ActivityConstants;
-import org.trace.tracker.modules.activity.ActivityRecognitionModule;
-import org.trace.tracker.modules.location.FusedLocationModule;
+import org.trace.tracker.tracking.modules.activity.ActivityConstants;
+import org.trace.tracker.tracking.modules.activity.ActivityRecognitionModule;
+import org.trace.tracker.tracking.modules.location.FusedLocationModule;
 import org.trace.tracker.settings.ConfigurationProfile;
 import org.trace.tracker.settings.ConfigurationsManager;
 import org.trace.tracker.storage.PersistentTrackStorage;
@@ -52,7 +53,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-public class IJsbergTrackingEngine extends BroadcastReceiver implements TrackingEngine{
+public class IJsbergTrackingEngine extends BroadcastReceiver implements TrackingEngine {
 
     private static final String LOG_TAG = "IJsbergTrackingEngine";
     private static final boolean IS_TESTING = false; //TODO: carefull with this
@@ -106,11 +107,11 @@ public class IJsbergTrackingEngine extends BroadcastReceiver implements Tracking
     @Override
     public void onReceive(Context context, Intent intent) {
 
-        if(intent.hasExtra(TrackingConstants.tracker.LOCATION_EXTRA)) {
+        if(intent.hasExtra(Constants.tracker.LOCATION_EXTRA)) {
 
             Log.d(LOG_TAG, "new location");//TODO: remove
 
-            Location location = intent.getParcelableExtra(TrackingConstants.tracker.LOCATION_EXTRA);
+            Location location = intent.getParcelableExtra(Constants.tracker.LOCATION_EXTRA);
             onHandleLocation(new TraceLocation(location));
 
 

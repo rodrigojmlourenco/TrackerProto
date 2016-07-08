@@ -237,10 +237,10 @@ public class Tracker_DEPRECATED {
 
             TraceLocation location = null;
 
-            if (intent.hasExtra(TrackingConstants.tracker.BROADCAST_LOCATION_EXTRA)) {
-                location = intent.getParcelableExtra(TrackingConstants.tracker.BROADCAST_LOCATION_EXTRA);
-            } else if (intent.hasExtra(TrackingConstants.tracker.LOCATION_EXTRA)){
-                location = intent.getParcelableExtra(TrackingConstants.tracker.LOCATION_EXTRA);
+            if (intent.hasExtra(Constants.tracker.BROADCAST_LOCATION_EXTRA)) {
+                location = intent.getParcelableExtra(Constants.tracker.BROADCAST_LOCATION_EXTRA);
+            } else if (intent.hasExtra(Constants.tracker.LOCATION_EXTRA)){
+                location = intent.getParcelableExtra(Constants.tracker.LOCATION_EXTRA);
             }
 
             if(location != null)
@@ -251,8 +251,8 @@ public class Tracker_DEPRECATED {
 
         public IntentFilter getLocationBroadcastIntentFilter(){
             IntentFilter filter = new IntentFilter();
-            filter.addAction(TrackingConstants.tracker.BROADCAST_LOCATION_ACTION);
-            filter.addAction(TrackingConstants.tracker.COLLECT_LOCATIONS_ACTION);
+            filter.addAction(Constants.tracker.BROADCAST_LOCATION_ACTION);
+            filter.addAction(Constants.tracker.COLLECT_LOCATIONS_ACTION);
             return filter;
         }
     }

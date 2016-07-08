@@ -1,4 +1,4 @@
-package org.trace.tracker.modules.location;
+package org.trace.tracker.tracking.modules.location;
 
 import android.content.Context;
 import android.location.Location;
@@ -8,9 +8,9 @@ import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 
-import org.trace.tracker.filter.HeuristicBasedFilter;
-import org.trace.tracker.filter.OutlierFilteringLocationQueue;
-import org.trace.tracker.modules.ModuleInterface;
+import org.trace.tracker.tracking.filter.HeuristicBasedFilter;
+import org.trace.tracker.tracking.filter.OutlierFilteringLocationQueue;
+import org.trace.tracker.tracking.modules.ModuleInterface;
 import org.trace.tracker.storage.data.TraceLocation;
 
 

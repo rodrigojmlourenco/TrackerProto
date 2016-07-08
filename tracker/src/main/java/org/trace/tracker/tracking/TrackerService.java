@@ -17,7 +17,7 @@
  * along with TRACE.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.trace.tracker;
+package org.trace.tracker.tracking;
 
 import android.app.Service;
 import android.content.BroadcastReceiver;
@@ -32,8 +32,9 @@ import android.support.annotation.Nullable;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
+import org.trace.tracker.*;
 import org.trace.tracker.exceptions.MissingLocationPermissionsException;
-import org.trace.tracker.modules.activity.ActivityConstants;
+import org.trace.tracker.tracking.modules.activity.ActivityConstants;
 import org.trace.tracker.permissions.PermissionsConstants;
 import org.trace.tracker.settings.ConfigurationProfile;
 import org.trace.tracker.settings.ConfigurationsManager;
@@ -186,7 +187,7 @@ public class TrackerService extends Service implements Tracker {
         //Step 4 - Register the receiver, which are responsible for handling new locations and activities.
         IntentFilter trackingFilter = new IntentFilter();
         trackingFilter.addAction(ActivityConstants.COLLECT_ACTION);
-        trackingFilter.addAction(TrackingConstants.tracker.COLLECT_LOCATIONS_ACTION);
+        trackingFilter.addAction(Constants.tracker.COLLECT_LOCATIONS_ACTION);
 
         LocalBroadcastManager.getInstance(this).registerReceiver((BroadcastReceiver) mTracker, trackingFilter);
 

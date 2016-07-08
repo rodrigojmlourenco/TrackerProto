@@ -10,9 +10,9 @@ import com.google.android.gms.location.DetectedActivity;
 import com.google.android.gms.location.LocationServices;
 
 import org.trace.tracker.google.GoogleClientManager;
-import org.trace.tracker.modules.activity.ActivityConstants;
-import org.trace.tracker.modules.activity.ActivityRecognitionModule;
-import org.trace.tracker.modules.location.FusedLocationModuleOutlierAware;
+import org.trace.tracker.tracking.modules.activity.ActivityConstants;
+import org.trace.tracker.tracking.modules.activity.ActivityRecognitionModule;
+import org.trace.tracker.tracking.modules.location.FusedLocationModuleOutlierAware;
 import org.trace.tracker.settings.ConfigurationProfile;
 import org.trace.tracker.settings.ConfigurationsManager;
 import org.trace.tracker.storage.PersistentTrackStorage;
@@ -183,9 +183,9 @@ public class TRACETracker_DEPRECATED extends BroadcastReceiver implements Collec
     @Override
     public void onReceive(Context context, Intent intent) {
 
-        if(intent.hasExtra(org.trace.tracker.TrackingConstants.tracker.LOCATION_EXTRA)) {
+        if(intent.hasExtra(Constants.tracker.LOCATION_EXTRA)) {
 
-            TraceLocation location = intent.getParcelableExtra(org.trace.tracker.TrackingConstants.tracker.LOCATION_EXTRA);
+            TraceLocation location = intent.getParcelableExtra(Constants.tracker.LOCATION_EXTRA);
             onHandleLocation(location);
 
 
