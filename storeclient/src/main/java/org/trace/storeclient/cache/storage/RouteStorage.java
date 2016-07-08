@@ -48,7 +48,7 @@ public class RouteStorage {
     protected SQLiteOpenHelper mDBHelper;
 
     private RouteStorage(Context context){
-        mDBHelper = new RouteStorageDBHelper(context, "LocalRouteStorage.db", 11);
+        mDBHelper = new RouteStorageDBHelper(context);
     }
 
     private static RouteStorage LOCAL_ROUTE_STORAGE = null;

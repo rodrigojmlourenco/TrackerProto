@@ -50,7 +50,7 @@ public class CacheConnectivityMonitor extends BroadcastReceiver{
         Bundle extras = intent.getExtras();
         Set<String> keys = extras.keySet();
 
-        RouteCache cache = RouteCache.getCacheInstance(context);
+        RouteCache cache = RouteCache.getCacheInstance(context.getApplicationContext());
 
         if(ConnectivityUtils.isConnected(context)){
 
