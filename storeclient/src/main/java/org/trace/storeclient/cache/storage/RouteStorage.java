@@ -459,7 +459,10 @@ public class RouteStorage {
         String[] selectionArgs = new String[] { session };
 
         Cursor cursor = db.query(RouteStateEntry.TABLE_NAME, columns, selectionClause, selectionArgs, "", "" ,"");
+
+        cursor.moveToNext();
         isLocal = cursor.getInt(0) > 0;
+
         db.close();
 
         return isLocal;
@@ -482,6 +485,7 @@ public class RouteStorage {
         String[] selectionArgs = new String[] { session };
 
         Cursor cursor = db.query(RouteStateEntry.TABLE_NAME, columns, selectionClause, selectionArgs, "", "" ,"");
+        cursor.moveToNext();
         isComplete = cursor.getInt(0) > 0;
         db.close();
 

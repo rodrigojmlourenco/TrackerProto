@@ -16,7 +16,7 @@ import android.widget.Toast;
 
 import com.google.android.gms.location.LocationRequest;
 
-import org.trace.tracker.TRACETrackerService;
+import org.trace.tracker.TrackerActivity;
 import org.trace.tracker.settings.ConfigurationProfile;
 import org.trace.trackerproto.R;
 
@@ -58,7 +58,8 @@ public class SettingsFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         //mSettingsManager = ConfigurationsManager.getInstance(getActivity());
-        mTrackingProfile = TRACETrackerService.Client.getCurrentTrackingProfile(getActivity());
+        mTrackingProfile = ((TrackerActivity)getActivity()).getTracker().getCurrentTrackingProfile();
+        //TRACETrackerService.Client.getCurrentTrackingProfile(getActivity());
 
         //Location
         setupLocationSettings();
@@ -200,7 +201,8 @@ public class SettingsFragment extends Fragment {
 
 
                 //mSettingsManager.saveTrackingProfile(mTrackingProfile);
-                TRACETrackerService.Client.updateTrackingProfile(getActivity(), mTrackingProfile);
+                ((TrackerActivity)getActivity()).getTracker().updateTrackingProfile(mTrackingProfile);
+                //TRACETrackerService.Client.updateTrackingProfile(getActivity(), );
 
                 String message = "Settings saved. They will take effect on the next tracking session.";
                 Toast.makeText(getActivity(), message, Toast.LENGTH_LONG).show();

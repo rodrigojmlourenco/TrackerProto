@@ -21,18 +21,17 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-
-import org.trace.storeclient.TRACEStore;
+import org.trace.storeclient.cache.RouteCache;
+import org.trace.storeclient.cache.exceptions.RouteNotFoundException;
+import org.trace.storeclient.cache.exceptions.UnableToCreateRouteCopyException;
 import org.trace.storeclient.data.Route;
+import org.trace.storeclient.data.RouteSummary;
 import org.trace.storeclient.data.RouteWaypoint;
-import org.trace.tracker.RouteRecorder;
-import org.trace.tracker.TRACETrackerService;
-import org.trace.tracker.TrackingConstants;
+import org.trace.tracker.Tracker;
+import org.trace.tracker.TrackerActivity;
+import org.trace.tracker.permissions.PermissionsConstants;
 import org.trace.tracker.storage.data.TraceLocation;
 import org.trace.tracker.storage.data.Track;
-import org.trace.tracker.storage.data.TrackSummary;
 import org.trace.trackerproto.ProtoConstants;
 import org.trace.trackerproto.R;
 
@@ -41,7 +40,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import pub.devrel.easypermissions.EasyPermissions;
 
@@ -49,10 +47,11 @@ import pub.devrel.easypermissions.EasyPermissions;
 public class TracksFragment extends Fragment implements EasyPermissions.PermissionCallbacks{
 
     TrackItemAdapter mAdapter;
+    private RouteCache mRouteCache;
 
     //Permissions
     private String[] perms = {  Manifest.permission.READ_EXTERNAL_STORAGE,
-                                Manifest.permission.WRITE_EXTERNAL_STORAGE };
+            Manifest.permission.WRITE_EXTERNAL_STORAGE };
 
     @Nullable
     @Override
@@ -71,11 +70,22 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
         String[] tracks = new String[simplifiedTracks.size()];
         */
         //new Version
+        /*
         List<TrackSummary> simplifiedTracks = TRACETrackerService.Client.getAllStoredTracks(getActivity());
         String[] tracks = new String[simplifiedTracks.size()];
 
         for(int i=0; i < simplifiedTracks.size(); i++) //Remove the file prefix
             tracks[i] = simplifiedTracks.get(i).getTrackId();
+
+
+        */
+        //Version 2.0 - RouteCache
+        mRouteCache = RouteCache.getCacheInstance(getActivity().getApplicationContext());
+        List<RouteSummary> routeSummaries = mRouteCache.loadRoutes(null);
+        String[] tracks = new String[routeSummaries.size()];
+
+        for(int i=0; i < routeSummaries.size(); i++) //Remove the file prefix
+            tracks[i] = routeSummaries.get(i).getSession();
 
         mAdapter = new TrackItemAdapter(getActivity(), tracks);
         ListView list = (ListView) getView().findViewById(R.id.trackListView);
@@ -108,14 +118,13 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
         String feedback;
 
         if(!EasyPermissions.hasPermissions(getActivity(), perms)) {
-            EasyPermissions.requestPermissions(this, getString(R.string.export_rationale), TrackingConstants.permissions.EXTERNAL_STORAGE, perms);
+            EasyPermissions.requestPermissions(this, getString(R.string.export_rationale), PermissionsConstants.EXTERNAL_STORAGE, perms);
             feedback = getString(R.string.try_again);
         }else {
-
-            Track track;
-
-            track = TRACETrackerService.Client.getStoredTrack(getActivity(), sessionId);
-            feedback = TRACETrackerService.Client.exportStoredTrackToExternalMemory(getActivity(), track);
+            //Track track;
+            //track = TRACETrackerService.Client.getStoredTrack(getActivity(), sessionId);
+            //feedback = TRACETrackerService.Client.exportStoredTrackToExternalMemory(getActivity(), track);
+            feedback = "DEPRECATED : exportStoredTrackToExternalMemory@TRACETrackerService.Client";
         }
 
         Toast.makeText(getActivity(), feedback, Toast.LENGTH_SHORT).show();
@@ -125,7 +134,7 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
 
         private Context context;
         private ArrayList<String> values;
-        private HashMap<String, Track> tracks;
+        private HashMap<String, RouteSummary> tracks;
 
         public TrackItemAdapter(Context context, String[] values) {
             super(context, R.layout.track_item, values);
@@ -138,8 +147,14 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
             int i;
             for(i=0; i < values.length; i++){
                 //Track t = mTrackStorage.getTrack_DEPRECATED(values[i]);
-                Track t = TRACETrackerService.Client.getStoredTrack(getActivity(), values[i]);
-                tracks.put(values[i], t);
+                //Track t = TRACETrackerService.Client.getStoredTrack(getActivity(), values[i]);
+                try {
+                    RouteSummary summary = mRouteCache.loadRoute(null, values[i]);
+                    tracks.put(values[i], summary);
+                } catch (RouteNotFoundException e) {
+                    e.printStackTrace();
+                }
+
             }
 
             setNotifyOnChange(true);
@@ -181,15 +196,15 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
             exportBtn = (ImageButton) rowView.findViewById(R.id.trackExportBtn);
 
             DecimalFormat df = new DecimalFormat("#.0");
-            final Track t = tracks.get(values.get(position));
+            final RouteSummary t = tracks.get(values.get(position));
             try {
-                sessionView.setText(t.getTrackId());
+                sessionView.setText(t.getSession());
             }catch (NullPointerException e){
                 sessionView.setText("Unknown session");
             }
 
             try{
-                timeView.setText(df.format(t.getElapsedTime())+getString(R.string.millis));
+                timeView.setText(df.format(t.getElapsedTime())+getString(R.string.seconds));
             }catch (NullPointerException e){
                 timeView.setText("??"+getString(R.string.millis));
             }
@@ -206,8 +221,7 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
                 public void onClick(View v) {
 
                     if (EasyPermissions.hasPermissions(getActivity(), perms)) {
-                        Toast.makeText(context, tracks.get(values.get(position)).getTrackId(), Toast.LENGTH_LONG).show();
-
+                        Toast.makeText(context, tracks.get(values.get(position)).getSession(), Toast.LENGTH_LONG).show();
 
                         Intent maps = new Intent(context, MapActivity.class);
                         maps.putExtra(ProtoConstants.extras.TRACK_KEY_EXTRA, values.get(position));
@@ -217,7 +231,7 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
                         EasyPermissions.requestPermissions(
                                 getActivity(),
                                 getString(R.string.export_rationale),
-                                TrackingConstants.permissions.EXTERNAL_STORAGE, perms);
+                                PermissionsConstants.EXTERNAL_STORAGE, perms);
                     }
 
                 }
@@ -233,14 +247,18 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
                             .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialog, int which) {
+                                    /*
                                     String handle = values.get(position);
                                     String sessionId = tracks.get(values.get(position)).getTrackId();
 
                                     TRACETrackerService.Client.deleteStoredTrack(getActivity(), sessionId);
 
+
                                     ((TrackCountListener) getActivity()).updateTrackCount();
 
                                     remove(handle);
+                                    */
+                                    Toast.makeText(getActivity(), "DEPRECATED", Toast.LENGTH_SHORT).show();
                                 }
                             })
                             .setNegativeButton(R.string.no, null)
@@ -252,55 +270,42 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
                 @Override
                 public void onClick(View v) {
 
-                   // if(isNetworkConnected()) {
+                    // if(isNetworkConnected()) {
 
-                        RouteRecorder rr = ((MainActivity)getActivity()).getRouteRecorder();
-                        String index = values.get(position);
-                        Track t = rr.getTracedTrack(index);
-                        t.updateSpeeds();
+                    Tracker rr = ((MainActivity)getActivity()).getRouteRecorder();
+                    String index = values.get(position);
+                    Track t = rr.getTracedTrack(index);
+                    t.updateSpeeds();
 
-                        Log.d("TEST", t.toString());
+                    Log.d("TEST", t.toString());
 
-                        Route route = new Route();
-                        route.setSession(t.getTrackId());
-                        route.setStartedAt(t.getStart());
-                        route.setEndedAt(t.getStop());
-                        route.setElapsedDistance(t.getElapsedDistance());
-                        route.setPoints(t.getTracedTrack().size());
-                        route.setModality(t.getModality());
-                        route.setAvgSpeed((float) t.getAverageSpeed());
-                        route.setTopSpeed((float) t.getTopSpeed());
+                    Route route = new Route();
+                    route.setSession(t.getTrackId());
+                    route.setStartedAt(t.getStart());
+                    route.setEndedAt(t.getStop());
+                    route.setElapsedDistance(t.getElapsedDistance());
+                    route.setPoints(t.getTracedTrack().size());
+                    route.setModality(t.getModality());
+                    route.setAvgSpeed((float) t.getAverageSpeed());
+                    route.setTopSpeed((float) t.getTopSpeed());
 
-                        List<RouteWaypoint> points = new ArrayList<RouteWaypoint>();
-                        for(TraceLocation location : t.getTracedTrack()){
-                            points.add(new RouteWaypoint(t.getTrackId(), location.getSerializableLocationAsJson()));
-                        }
-                        route.setTrace(points);
+                    List<RouteWaypoint> points = new ArrayList<RouteWaypoint>();
+                    for(TraceLocation location : t.getTracedTrack()){
+                        points.add(new RouteWaypoint(t.getTrackId(), location.getSerializableLocationAsJson()));
+                    }
+                    route.setTrace(points);
 
 
-                        TrackSummary summary = (TrackSummary)t;
-                        JsonObject jTrackSummary = new JsonObject();
-                        jTrackSummary.addProperty("startedAt", t.getStart());
-                        jTrackSummary.addProperty("endedAt", t.getStop());
-                        jTrackSummary.addProperty("elapsedTime", TimeUnit.SECONDS.convert(t.getElapsedTime(), TimeUnit.MILLISECONDS));
-                        jTrackSummary.addProperty("elapsedDistance", t.getElapsedDistance());
-                        jTrackSummary.addProperty("points", t.getTracedTrack().size());
-                        jTrackSummary.addProperty("modality", t.getModality());
-                        jTrackSummary.addProperty("avgSpeed", t.getAverageSpeed());
-                        jTrackSummary.addProperty("topSpeed", t.getTopSpeed());
+                    RouteCache cache = RouteCache.getCacheInstance(getActivity().getApplicationContext());
 
-                        Log.d("TEST", jTrackSummary.toString());
+                    try {
+                        cache.saveRoute(((MainActivity) getActivity()).getAuthenticationToken(), route);
+                        ((TrackerActivity)getActivity()).getTracker().deleteTracedTrack(t.getTrackId());
+                        remove(index);
 
-                        JsonArray array = new JsonArray();
-                        for(TraceLocation location : t.getTracedTrack())
-                            array.add(location.getSerializableLocationAsJson());
-
-                        //TRACEStore.Client.uploadTrackSummary(context, ((MainActivity) getActivity()).getAuthenticationToken(), jTrackSummary, array); //TODO: refactorizar
-                        TRACEStore.Client.submitRoute(context, ((MainActivity) getActivity()).getAuthenticationToken(), route);
-
-                    //}else
-                    //    buildAlertMessageNoConnectivity();
-
+                    } catch (UnableToCreateRouteCopyException e) {
+                        e.printStackTrace();
+                    }
                 }
             });
 

@@ -172,7 +172,7 @@ public class RouteCache {
      */
     public List<RouteSummary> loadRoutes(String authToken){
 
-        if(ConnectivityUtils.isConnected(mContext)) //TODO: this should be avoided
+        if(ConnectivityUtils.isConnected(mContext) && authToken!=null) //TODO: this should be avoided
             this.loadMissingRoutes(authToken);
 
         return mLocalStorage.getAllRoutes();
@@ -197,7 +197,7 @@ public class RouteCache {
 
         //If the route is on the server, and its not complete on the device
         //then (if there is connectivity) the trace will be downloaded.
-        if(ConnectivityUtils.isConnected(mContext) &&
+        if(ConnectivityUtils.isConnected(mContext) && authToken != null &&
                 !mLocalStorage.isLocalRoute(session) && !mLocalStorage.isCompleteRoute(session)){
 
             Thread t = new Thread(new Runnable() {
@@ -248,7 +248,8 @@ public class RouteCache {
             return mLocalStorage.getRouteTrace(session);
         }else {
 
-            if(ConnectivityUtils.isConnected(mContext) && !mLocalStorage.isLocalRoute(session)){
+            if(ConnectivityUtils.isConnected(mContext) && authToken != null
+                    && !mLocalStorage.isLocalRoute(session)){
                 mAsyncWorkers.execute(new Runnable() {
                     @Override
                     public void run() {

@@ -31,9 +31,10 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import org.trace.storeclient.TraceAuthenticationManager;
 import org.trace.storeclient.auth.AuthenticationRenewalListener;
 import org.trace.storeclient.exceptions.UserIsNotLoggedException;
-import org.trace.tracker.RouteRecorder;
-import org.trace.tracker.RouteRecorderService;
-import org.trace.tracker.TrackingConstants;
+import org.trace.tracker.Tracker;
+import org.trace.tracker.TrackerActivity;
+import org.trace.tracker.permissions.PermissionsConstants;
+import org.trace.tracker.tracking.TrackerService;
 import org.trace.trackerproto.R;
 import org.trace.trackerproto.ui.slidingmenu.adapter.NavDrawerListAdapter;
 import org.trace.trackerproto.ui.slidingmenu.model.NavDrawerItem;
@@ -47,7 +48,7 @@ import pub.devrel.easypermissions.EasyPermissions;
 
 //TODO: update the count of navdraweritem on delete or create track
 public class MainActivity extends AppCompatActivity
-        implements EasyPermissions.PermissionCallbacks, TrackCountListener, GoogleApiClient.OnConnectionFailedListener, SessionHandler {
+        implements EasyPermissions.PermissionCallbacks, TrackCountListener, GoogleApiClient.OnConnectionFailedListener, SessionHandler, TrackerActivity {
 
     private static final String LOG_TAG = "MainActivity";
     private Fragment mCurrentFragment = null;
@@ -82,13 +83,13 @@ public class MainActivity extends AppCompatActivity
 
 
     private boolean isBound = false;
-    private RouteRecorderService mRouteRecorder;
+    private TrackerService mRouteRecorder;
 
     private ServiceConnection mConnection = new ServiceConnection() {
 
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-            RouteRecorderService.CustomBinder binder = (RouteRecorderService.CustomBinder) service;
+            TrackerService.CustomBinder binder = (TrackerService.CustomBinder) service;
             mRouteRecorder = binder.getService();
             isBound = true;
         }
@@ -103,7 +104,7 @@ public class MainActivity extends AppCompatActivity
     @Override
     protected void onStart() {
 
-        Intent trackerService = new Intent(this, RouteRecorderService.class);
+        Intent trackerService = new Intent(this, TrackerService.class);
 
         startService(trackerService);
         bindService(trackerService, mConnection,Context.BIND_AUTO_CREATE);
@@ -118,7 +119,7 @@ public class MainActivity extends AppCompatActivity
         if(isFinishing()) {
             unregisterReceiver(authRenewalListener);
             //mAuthManager.logout();
-            stopService(new Intent(this, RouteRecorderService.class));
+            stopService(new Intent(this, TrackerService.class));
         }
 
         if(mCurrentFragment instanceof MapViewFragment){
@@ -310,21 +311,21 @@ public class MainActivity extends AppCompatActivity
         Log.e("PERMISSIONS!", "Permissions denied but on the mainActivity");
     }
 
-    @AfterPermissionGranted(TrackingConstants.permissions.DRAW_MAPS)
+    @AfterPermissionGranted(PermissionsConstants.DRAW_MAPS)
     private void redrawOSMDroidMap(){
         if(mCurrentFragment != null && mCurrentFragment instanceof MapViewFragment){
             ((MapViewFragment)mCurrentFragment).redrawMap();
         }
     }
 
-    @AfterPermissionGranted(TrackingConstants.permissions.FOCUS_ON_MAP)
+    @AfterPermissionGranted(PermissionsConstants.FOCUS_ON_MAP)
     private void focusOnMap(){
         if(mCurrentFragment != null && mCurrentFragment instanceof TrackingFragment){
             ((TrackingFragment)mCurrentFragment).focusOnCurrentLocation();
         }
     }
 
-    @AfterPermissionGranted(TrackingConstants.permissions.TRACKING)
+    @AfterPermissionGranted(PermissionsConstants.TRACKING)
     private void startTracking(){
         if(mCurrentFragment != null && mCurrentFragment instanceof TrackingFragment){
             ((TrackingFragment)mCurrentFragment).startTracking();
@@ -334,6 +335,14 @@ public class MainActivity extends AppCompatActivity
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
 
+    }
+
+    @Override
+    public Tracker getTracker() {
+        if(isBound)
+            return mRouteRecorder;
+        else
+            return null;
     }
 
     /*
@@ -600,7 +609,7 @@ public class MainActivity extends AppCompatActivity
      ***********************************************************************************************
      ***********************************************************************************************
      */
-    public RouteRecorder getRouteRecorder(){
+    public Tracker getRouteRecorder(){
         if(isBound)
             return mRouteRecorder;
         else

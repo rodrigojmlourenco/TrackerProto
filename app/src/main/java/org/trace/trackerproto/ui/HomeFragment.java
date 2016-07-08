@@ -29,8 +29,9 @@ import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.MapView;
 import org.trace.storeclient.TRACEStore;
 import org.trace.storeclient.TRACEStoreReceiver;
-import org.trace.tracker.RouteRecorderService;
-import org.trace.tracker.TrackingConstants;
+import org.trace.tracker.Constants;
+import org.trace.tracker.permissions.PermissionsConstants;
+import org.trace.tracker.tracking.TrackerService;
 import org.trace.trackerproto.R;
 
 import java.util.concurrent.Executors;
@@ -44,8 +45,8 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
 
 
     private final String[] mSupportedBroadcastActions =
-            new String[] {  TrackingConstants.BROADCAST_ACTION,
-                    TrackingConstants.FIRST_TIME_BROADCAST};
+            new String[] {  Constants.BROADCAST_ACTION,
+                    Constants.FIRST_TIME_BROADCAST};
 
     //UI Elements
     private ImageButton lastLocationBtn, toggleTrackingBtn;
@@ -71,7 +72,7 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
 
             @Override
             public void onReceive(Context context, Intent intent) {
-                mCurrentLocation = intent.getParcelableExtra(TrackingConstants.tracker.BROADCAST_LOCATION_EXTRA);
+                mCurrentLocation = intent.getParcelableExtra(Constants.tracker.BROADCAST_LOCATION_EXTRA);
 
 
                 if(mCurrentLocation!=null)
@@ -83,7 +84,7 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
         };
 
         IntentFilter locationFilter = new IntentFilter();
-        locationFilter.addAction(TrackingConstants.tracker.BROADCAST_LOCATION_ACTION);
+        locationFilter.addAction(Constants.tracker.BROADCAST_LOCATION_ACTION);
 
         LocalBroadcastManager.getInstance(getActivity())
                 .registerReceiver(mLocationReceiver, locationFilter);
@@ -115,14 +116,14 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
                 /*
                 if (isGPSEnabled()) {
 
-                    if (EasyPermissions.hasPermissions(getActivity(), TrackingConstants.permissions.TRACKING_PERMISSIONS))
+                    if (EasyPermissions.hasPermissions(getActivity(), Constants.permissions.TRACKING_PERMISSIONS))
                         ;
                     else
                         EasyPermissions.requestPermissions(
                                 getActivity(),
                                 getString(R.string.tracking_rationale),
-                                TrackingConstants.permissions.FOCUS_ON_MAP,
-                                TrackingConstants.permissions.TRACKING_PERMISSIONS);
+                                Constants.permissions.FOCUS_ON_MAP,
+                                Constants.permissions.TRACKING_PERMISSIONS);
                 }else{
                     buildAlertMessageNoGps();
                 }
@@ -137,7 +138,7 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
 
                 if (isGPSEnabled()) {
 
-                    if (EasyPermissions.hasPermissions(getActivity(), TrackingConstants.permissions.TRACKING_PERMISSIONS)) {
+                    if (EasyPermissions.hasPermissions(getActivity(), PermissionsConstants.TRACKING_PERMISSIONS)) {
                         if (!isTracking()) {
                             startTrackingOnClick();
                             Toast.makeText(getActivity(), getString(R.string.started_tracking), Toast.LENGTH_SHORT).show();
@@ -150,8 +151,8 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
                         EasyPermissions.requestPermissions(
                                 getActivity(),
                                 getString(R.string.tracking_rationale),
-                                TrackingConstants.permissions.TRACKING,
-                                TrackingConstants.permissions.TRACKING_PERMISSIONS);
+                                PermissionsConstants.TRACKING,
+                                PermissionsConstants.TRACKING_PERMISSIONS);
                     }
                 } else
                     buildAlertMessageNoGps();
@@ -167,7 +168,7 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
     public void onStart() {
         super.onStart();
 
-        Intent trackerService = new Intent(getActivity(), RouteRecorderService.class);
+        Intent trackerService = new Intent(getActivity(), TrackerService.class);
         trackerService.setFlags(Service.START_STICKY);
         getActivity().bindService(trackerService, mConnection, Context.BIND_AUTO_CREATE);
         isBound = true;
@@ -295,13 +296,13 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
      ***********************************************************************************************
      */
 
-    private RouteRecorderService mRouteRecorder;
+    private TrackerService mRouteRecorder;
 
     private ServiceConnection mConnection = new ServiceConnection() {
 
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-            RouteRecorderService.CustomBinder binder = (RouteRecorderService.CustomBinder) service;
+            TrackerService.CustomBinder binder = (TrackerService.CustomBinder) service;
             mRouteRecorder = binder.getService();
             isBound = true;
             isTracking = false;
@@ -357,7 +358,7 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
 
     private void startTrackingOnClick(){
 
-        if (EasyPermissions.hasPermissions(getActivity(), TrackingConstants.permissions.TRACKING_PERMISSIONS)) {
+        if (EasyPermissions.hasPermissions(getActivity(), PermissionsConstants.TRACKING_PERMISSIONS)) {
 
             if(isBound){
                 mRouteRecorder.startTracking();
@@ -372,8 +373,8 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
             EasyPermissions.requestPermissions(
                     getActivity(),
                     getString(R.string.tracking_rationale),
-                    TrackingConstants.permissions.TRACKING,
-                    TrackingConstants.permissions.TRACKING_PERMISSIONS);
+                    PermissionsConstants.TRACKING,
+                    PermissionsConstants.TRACKING_PERMISSIONS);
         }
     }
 
@@ -403,7 +404,7 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
 
     private void setupOSMDroidMap(){
 
-        if(EasyPermissions.hasPermissions(getActivity(), TrackingConstants.permissions.EXTERNAL_STORAGE_PERMISSIONS)) {
+        if(EasyPermissions.hasPermissions(getActivity(), PermissionsConstants.EXTERNAL_STORAGE_PERMISSIONS)) {
             osmMapView = (MapView) getActivity().findViewById(R.id.mapContainerLayout);
             osmMapView.setTileSource(TileSourceFactory.MAPNIK);
             osmMapView.setMultiTouchControls(true);
@@ -416,12 +417,12 @@ public class HomeFragment extends Fragment implements TrackingFragment, MapViewF
             EasyPermissions.requestPermissions(
                     getActivity(),
                     getString(R.string.export_rationale),
-                    TrackingConstants.permissions.DRAW_MAPS,
-                    TrackingConstants.permissions.EXTERNAL_STORAGE_PERMISSIONS);
+                    PermissionsConstants.DRAW_MAPS,
+                    PermissionsConstants.EXTERNAL_STORAGE_PERMISSIONS);
         }
     }
 
-    @AfterPermissionGranted(TrackingConstants.permissions.DRAW_MAPS)
+    @AfterPermissionGranted(PermissionsConstants.DRAW_MAPS)
     private void redrawOSMDroidMap(){
         Log.e("PERMISSIONS!", "@HomeFragment redraw the map");
     }

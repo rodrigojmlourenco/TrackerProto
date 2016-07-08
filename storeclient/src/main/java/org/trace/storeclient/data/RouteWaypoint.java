@@ -19,6 +19,7 @@
 
 package org.trace.storeclient.data;
 
+import android.location.Location;
 import android.os.Parcel;
 import android.os.Parcelable;
 
@@ -105,6 +106,16 @@ public class RouteWaypoint implements Parcelable{
 
     public void setAttributes(String attributes) {
         this.attributes = attributes;
+    }
+
+    public Location getAsLocation(){
+        Location location = new Location("");
+
+        location.setLatitude(latitude);
+        location.setLongitude(longitude);
+        location.setTime(timestamp);
+
+        return location;
     }
 
     @Override
