@@ -284,36 +284,40 @@ public class TraceAuthenticationManager {
             return;
         }
 
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
+        if(isNetworkConnected()) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
 
-                boolean success = false;
-                String authToken, error = "";
+                    boolean success = false;
+                    String authToken, error = "";
 
-                try {
+                    try {
 
-                    authToken = mHttpClient.federatedLogin(idToken);
+                        authToken = mHttpClient.federatedLogin(idToken);
 
-                    mAuthenticationToken = authToken;
-                    storeAuthenticationToken(authToken);
+                        mAuthenticationToken = authToken;
+                        storeAuthenticationToken(authToken);
 
-                    Log.d(TAG, "Successfully logged with grant google, token is {" + authToken + "}");
+                        Log.d(TAG, "Successfully logged with grant google, token is {" + authToken + "}");
 
-                    storeGoogleCredentials(account);
+                        storeGoogleCredentials(account);
 
-                    mCurrentGrantType = GrantType.google;
-                    success = true;
+                        mCurrentGrantType = GrantType.google;
+                        success = true;
 
-                } catch (UnableToPerformLogin | LoginFailedException | InvalidAuthCredentialsException e) {
-                    e.printStackTrace();
-                    error = e.getMessage();
+                    } catch (UnableToPerformLogin | LoginFailedException | InvalidAuthCredentialsException e) {
+                        e.printStackTrace();
+                        error = e.getMessage();
+                    }
+
+                    //Broadcast the results of the login operation
+                    mContext.sendBroadcast(getFailedLoginIntent(success, error));
                 }
-
-                //Broadcast the results of the login operation
-                mContext.sendBroadcast(getFailedLoginIntent(success, error));
-            }
-        }).start();
+            }).start();
+        }else{
+            mContext.sendBroadcast(getFailedLoginIntent(true, ""));
+        }
     }
 
 
@@ -412,10 +416,13 @@ public class TraceAuthenticationManager {
                     public void onResult(@NonNull CredentialRequestResult credentialRequestResult) {
 
                         if (credentialRequestResult.getStatus().isSuccess()) {
+                            onCredentialRetrievedLogin(credentialRequestResult.getCredential());
+                            /*
                             if (attemptLogin)
                                 onCredentialRetrievedLogin(credentialRequestResult.getCredential());
                             else
                                 mContext.sendBroadcast(getFailedLoginIntent());
+                            */
                         } else {
 
                             Status status = credentialRequestResult.getStatus();
