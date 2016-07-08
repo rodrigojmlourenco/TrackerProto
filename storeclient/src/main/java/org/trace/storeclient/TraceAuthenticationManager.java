@@ -532,6 +532,10 @@ public class TraceAuthenticationManager {
         );
     }
 
+    public Credential getCurrentCredential(){
+        return mCurrentCredential;
+    }
+
     /**
      * Removes the current credential from the smart lock.
      */

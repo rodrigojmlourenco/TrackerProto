@@ -23,8 +23,10 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import com.google.android.gms.auth.api.Auth;
+import com.google.android.gms.auth.api.credentials.Credential;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 
@@ -568,6 +570,9 @@ public class MainActivity extends AppCompatActivity
                 .build();
 
         mAuthManager = TraceAuthenticationManager.getAuthenticationManager(this, mGoogleApiClient);
+
+        Credential c = mAuthManager.getCurrentCredential();
+        Toast.makeText(this, "Welcome "+c.getName(), Toast.LENGTH_SHORT).show();
     }
 
     public String getAuthenticationToken(){ //TODO: migrar isto para uma interface
