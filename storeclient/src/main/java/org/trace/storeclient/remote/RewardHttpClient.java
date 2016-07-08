@@ -41,7 +41,7 @@ public class RewardHttpClient extends BaseHttpClient {
         String urlEndpoint = "/reward/rewards?"+data;
 
         try {
-            String response = performGetRequest(urlEndpoint, null, null);
+            String response = performGetRequest(urlEndpoint, null);
 
             Log.d(LOG_TAG, response);
 

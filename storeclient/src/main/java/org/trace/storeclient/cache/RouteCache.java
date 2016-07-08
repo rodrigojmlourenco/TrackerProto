@@ -276,7 +276,7 @@ public class RouteCache {
      *
      * <b>This method required network connectivity.</b>
      */
-    protected void loadMissingRoutes(final String authToken){
+    public void loadMissingRoutes(final String authToken){
 
         mAsyncWorkers.execute(new Runnable() {
             @Override
