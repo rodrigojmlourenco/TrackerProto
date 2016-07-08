@@ -34,6 +34,7 @@ import android.util.Log;
 
 import org.trace.tracker.exceptions.MissingLocationPermissionsException;
 import org.trace.tracker.modules.activity.ActivityConstants;
+import org.trace.tracker.permissions.PermissionsConstants;
 import org.trace.tracker.settings.ConfigurationProfile;
 import org.trace.tracker.settings.ConfigurationsManager;
 import org.trace.tracker.storage.PersistentTrackStorage;
@@ -50,9 +51,9 @@ import pub.devrel.easypermissions.EasyPermissions;
  * <b>Note: </b>To avoid incoherent RouteRecorderState's this service should first be started and then
  * bound.
  */
-public class RouteRecorderService extends Service implements RouteRecorder {
+public class TrackerService extends Service implements Tracker {
 
-    private static final String LOG_TAG = "RouteRecorder";
+    private static final String LOG_TAG = "Tracker";
     private static final boolean IS_TESTING = false; //TODO: DANGEROUS please remove before release
 
     private TrackingEngine mTracker;
@@ -108,12 +109,12 @@ public class RouteRecorderService extends Service implements RouteRecorder {
     }
 
     public class CustomBinder extends Binder {
-       public RouteRecorderService getService(){
-            return RouteRecorderService.this;
+       public TrackerService getService(){
+            return TrackerService.this;
         }
     }
 
-    /* Route Recorder Interface
+    /* Tracker Interface
      ***********************************************************************************************
      ***********************************************************************************************
      ***********************************************************************************************
@@ -146,7 +147,7 @@ public class RouteRecorderService extends Service implements RouteRecorder {
             throws MissingLocationPermissionsException {
 
         //Step 0 - Check for Location Permission, otherwise throw runtime exception
-        if(!EasyPermissions.hasPermissions(this, TrackingConstants.permissions.TRACKING_PERMISSIONS))
+        if(!EasyPermissions.hasPermissions(this, PermissionsConstants.TRACKING_PERMISSIONS))
             throw new MissingLocationPermissionsException();
 
         //Step 1 - Check if it is already tracking the user
@@ -195,8 +196,6 @@ public class RouteRecorderService extends Service implements RouteRecorder {
 
         return mCurrentSession;
     }
-
-
 
 
     @Override
@@ -321,12 +320,11 @@ public class RouteRecorderService extends Service implements RouteRecorder {
     @Override
     public Track getTracedTrack(String trackId) {
         return mTrackStorage.getTrack(trackId);
-        //return mTrackStorage.getTrack_DEPRECATED(trackId);
     }
 
     @Override
     public void deleteTracedTrack(String trackId) {
-        mTrackStorage.deleteTrackById(trackId);
+        mTrackStorage.deleteTrack(trackId);
     }
 
     /* State

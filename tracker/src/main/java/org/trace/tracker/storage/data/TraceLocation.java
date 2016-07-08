@@ -7,7 +7,6 @@ import android.os.Parcel;
 import com.google.android.gms.location.DetectedActivity;
 import com.google.gson.JsonObject;
 
-import org.trace.tracker.TrackingConstants;
 import org.trace.tracker.modules.activity.ActivityRecognitionModule;
 
 
@@ -101,53 +100,53 @@ public class TraceLocation extends Location{
 
     public JsonObject getSerializableLocationAsJson(){
         JsonObject location = getMainAttributesAsJson();
-        location.addProperty(TrackingConstants.location.ATTRIBUTES, getSecondaryAttributesAsJson().toString());
+        location.addProperty(Attributes.ATTRIBUTES, getSecondaryAttributesAsJson().toString());
         return location;
     }
 
     public JsonObject getMainAttributesAsJson(){
         JsonObject attributes = new JsonObject();
-        attributes.addProperty(TrackingConstants.location.LATITUDE, getLatitude());
-        attributes.addProperty(TrackingConstants.location.LONGITUDE, getLongitude());
-        attributes.addProperty(TrackingConstants.location.TIMESTAMP, getTime());
+        attributes.addProperty(Attributes.LATITUDE, getLatitude());
+        attributes.addProperty(Attributes.LONGITUDE, getLongitude());
+        attributes.addProperty(Attributes.TIMESTAMP, getTime());
         return  attributes;
     }
 
     public JsonObject getSecondaryAttributesAsJson(){
         JsonObject attributes = new JsonObject();
-        attributes.addProperty(TrackingConstants.location.attributes.ACCURACY, getAccuracy());
-        attributes.addProperty(TrackingConstants.location.attributes.SPEED, getSpeed());
-        attributes.addProperty(TrackingConstants.location.attributes.BEARING, getBearing());
-        attributes.addProperty(TrackingConstants.location.attributes.ALTITUDE, getAltitude());
-        attributes.addProperty(TrackingConstants.location.attributes.ELAPSED_NANOS, getElapsedRealtimeNanos());
-        attributes.addProperty(TrackingConstants.location.attributes.PROVIDER, getProvider());
-        attributes.addProperty(TrackingConstants.location.attributes.ACTIVITY, getActivityMode());
+        attributes.addProperty(SecondaryAttributes.ACCURACY, getAccuracy());
+        attributes.addProperty(SecondaryAttributes.SPEED, getSpeed());
+        attributes.addProperty(SecondaryAttributes.BEARING, getBearing());
+        attributes.addProperty(SecondaryAttributes.ALTITUDE, getAltitude());
+        attributes.addProperty(SecondaryAttributes.ELAPSED_NANOS, getElapsedRealtimeNanos());
+        attributes.addProperty(SecondaryAttributes.PROVIDER, getProvider());
+        attributes.addProperty(SecondaryAttributes.ACTIVITY, getActivityMode());
         return  attributes;
     }
 
     public void setSecondaryAttributes(JsonObject secondaryAttributes){
 
-        if (secondaryAttributes.has(TrackingConstants.location.attributes.ACCURACY))
-            setAccuracy(secondaryAttributes.get(TrackingConstants.location.attributes.ACCURACY).getAsFloat());
+        if (secondaryAttributes.has(SecondaryAttributes.ACCURACY))
+            setAccuracy(secondaryAttributes.get(SecondaryAttributes.ACCURACY).getAsFloat());
 
-        if (secondaryAttributes.has(TrackingConstants.location.attributes.SPEED))
-            setSpeed(secondaryAttributes.get(TrackingConstants.location.attributes.SPEED).getAsFloat());
+        if (secondaryAttributes.has(SecondaryAttributes.SPEED))
+            setSpeed(secondaryAttributes.get(SecondaryAttributes.SPEED).getAsFloat());
 
-        if (secondaryAttributes.has(TrackingConstants.location.attributes.BEARING))
-            setBearing(secondaryAttributes.get(TrackingConstants.location.attributes.BEARING).getAsFloat());
+        if (secondaryAttributes.has(SecondaryAttributes.BEARING))
+            setBearing(secondaryAttributes.get(SecondaryAttributes.BEARING).getAsFloat());
 
-        if (secondaryAttributes.has(TrackingConstants.location.attributes.ALTITUDE))
-            setAltitude(secondaryAttributes.get(TrackingConstants.location.attributes.ALTITUDE).getAsFloat());
+        if (secondaryAttributes.has(SecondaryAttributes.ALTITUDE))
+            setAltitude(secondaryAttributes.get(SecondaryAttributes.ALTITUDE).getAsFloat());
 
-        if (secondaryAttributes.has(TrackingConstants.location.attributes.ELAPSED_NANOS)
+        if (secondaryAttributes.has(SecondaryAttributes.ELAPSED_NANOS)
             && Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1)
-                setElapsedRealtimeNanos(secondaryAttributes.get(TrackingConstants.location.attributes.ELAPSED_NANOS).getAsLong());
+                setElapsedRealtimeNanos(secondaryAttributes.get(SecondaryAttributes.ELAPSED_NANOS).getAsLong());
 
-        if (secondaryAttributes.has(TrackingConstants.location.attributes.PROVIDER))
-            setProvider(secondaryAttributes.get(TrackingConstants.location.attributes.PROVIDER).getAsString());
+        if (secondaryAttributes.has(SecondaryAttributes.PROVIDER))
+            setProvider(secondaryAttributes.get(SecondaryAttributes.PROVIDER).getAsString());
 
-        if (secondaryAttributes.has(TrackingConstants.location.attributes.ACTIVITY))
-            activityMode = secondaryAttributes.get(TrackingConstants.location.attributes.ACTIVITY).getAsString();
+        if (secondaryAttributes.has(SecondaryAttributes.ACTIVITY))
+            activityMode = secondaryAttributes.get(SecondaryAttributes.ACTIVITY).getAsString();
     }
 
     /**
@@ -193,4 +192,28 @@ public class TraceLocation extends Location{
         dest.writeString(getProvider());
         dest.writeString(activityMode);
     }
+
+    /*
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+    public interface Attributes {
+        String  LATITUDE    = "latitude",
+                LONGITUDE   = "longitude",
+                TIMESTAMP   = "timestamp",
+                ATTRIBUTES  = "attributes";
+    }
+
+    public interface SecondaryAttributes {
+        String  ACTIVITY= "activity",
+                BEARING = "bearing",
+                ALTITUDE= "altitude",
+                SPEED   = "speed",
+                ACCURACY= "accuracy",
+                PROVIDER= "provider",
+                ELAPSED_NANOS = "elapsedNanos";
+    }
+
+
 }

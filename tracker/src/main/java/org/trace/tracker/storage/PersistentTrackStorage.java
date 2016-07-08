@@ -498,7 +498,7 @@ public class PersistentTrackStorage {
             String COLUMN_LATITUDE = "latitude";
             String COLUMN_LONGITUDE = "longitude";
             String COLUMN_TIMESTAMP = "timestamp";
-            String COLUMN_ATTRIBUTES = "attributes";
+            String COLUMN_ATTRIBUTES = "Attributes";
             */
 
             JsonObject jtrace = new JsonObject();
@@ -605,8 +605,8 @@ public class PersistentTrackStorage {
             location.setLongitude(c.getDouble(c.getColumnIndex(TraceEntry.COLUMN_NAME_LONGITUDE)));
             location.setTime(c.getLong(c.getColumnIndex(TraceEntry.COLUMN_NAME_TIMESTAMP)));
 
-            String attributes = c.getString(c.getColumnIndex(TraceEntry.COLUMN_NAME_ATTRIBUTES));
-            location.setSecondaryAttributes((JsonObject) parser.parse(attributes));
+            String Attributes = c.getString(c.getColumnIndex(TraceEntry.COLUMN_NAME_ATTRIBUTES));
+            location.setSecondaryAttributes((JsonObject) parser.parse(Attributes));
 
             track.addTracedLocation(location);
 

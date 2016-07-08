@@ -30,6 +30,7 @@ import java.util.List;
  * The TRACETrackerService is a Service that is responsible for managing the tracking efforts. In particular
  * this service is responsible for tracking the user's location and activity mode.
  */
+@Deprecated
 public class TRACETrackerService extends Service {
 
     private final String LOG_TAG = "TRACETrackerService";

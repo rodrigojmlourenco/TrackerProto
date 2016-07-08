@@ -20,6 +20,7 @@ import org.trace.tracker.storage.data.TraceLocation;
 
 import java.util.ArrayList;
 
+@Deprecated
 public class TRACETracker_DEPRECATED extends BroadcastReceiver implements CollectorManager {
 
     private static final String LOG_TAG = "TRACETracker";
