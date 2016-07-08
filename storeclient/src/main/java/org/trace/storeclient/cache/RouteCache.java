@@ -34,27 +34,44 @@ import org.trace.storeclient.data.RouteWaypoint;
 import org.trace.storeclient.exceptions.AuthTokenIsExpiredException;
 import org.trace.storeclient.exceptions.RemoteTraceException;
 import org.trace.storeclient.remote.RouteHttpClient;
-import org.trace.storeclient.storage.LocalRouteStorage;
+import org.trace.storeclient.cache.storage.RouteStorage;
 import org.trace.storeclient.utils.ConnectivityUtils;
 
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 
+/**
+ * Cache for storage and loading of routes.
+ * <br>
+ * This cache operates as an abstraction layer, masquerading all network operation. For performance,
+ * all stored and loaded routes are first obtained through the local cache, while in the background
+ * the network operations are performed.
+ * <br>
+ * This cache works in tandem with the CacheConnectivityMonitor to perform postponed
+ * connectivity-sensitive operations.
+ * <br>
+ * Finally, the cache was also designed to reduce memory consumption of the users' device. To do so,
+ * everytime an instance of the cache is requested, all route's traces older than a week are deleted.
+ * The route summaries and states, however, are never deleted.
+ */
 public class RouteCache {
 
     private static final String LOG_TAG = "RouteCache";
     private Context mContext;
     private RouteHttpClient mHttpClient;
-    private LocalRouteStorage mLocalStorage;
+    private RouteStorage mLocalStorage;
 
+    private ExecutorService mAsyncWorkers;
 
     private RouteCache(Context context){
         mContext = context;
         mHttpClient = new RouteHttpClient();
-        mLocalStorage = LocalRouteStorage.getStorageInstance(context);
+        mLocalStorage = RouteStorage.getStorageInstance(context);
+        mAsyncWorkers = Executors.newFixedThreadPool(4);
+
+        this.clearOldTraces();
     }
 
 
@@ -70,9 +87,13 @@ public class RouteCache {
         return CACHE;
     }
 
+    /* Storing Routes
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
     private boolean createLocalCopy(Route route){
         boolean success;
-
 
         success = mLocalStorage.storeCompleteRoute(route, true, false);
         mLocalStorage.dumpStorageLog();
@@ -80,6 +101,19 @@ public class RouteCache {
         return success;
     }
 
+    /**
+     * Saves a route, both in a local repository and in the TRACEStore server.
+     * <br>
+     * If there is no network connection, and for redundancy purposes, the route is always stored
+     * first in the local repository. Additionally, it is also marked as pending submission.
+     *
+     * @param authToken The authentication token, required by the TRACEStore server for security.
+     * @param route The route to be stored
+     *
+     * @return True if the route was successfully stored, false otherwise.
+     *
+     * @throws UnableToCreateRouteCopyException
+     */
     public boolean saveRoute(final String authToken, final Route route) throws UnableToCreateRouteCopyException {
 
         //Regardless of the scenario a local copy is always created
@@ -92,16 +126,22 @@ public class RouteCache {
 
         // Scenario 1 - The app has a network connection (Wifi?)
         if(ConnectivityUtils.isConnected(mContext)) {
-            //Handler postRoute = new Handler();
-            //postRoute.post(new PostRouteRunnable(authToken, route));
-            Thread t = new Thread(new PostRouteRunnable(authToken, route));
-            t.run();
+            mAsyncWorkers.execute(new PostRouteRunnable(authToken, route));
             return true;
         }
 
         return true;
     }
 
+    /**
+     * Because the user may not be connected at the time he requests a route to be saved, routes
+     * may be stored locally but not in the server. This method enables pending routes to be
+     * uploaded to the server.
+     * <br>
+     * Once a local route has been uploaded, it is removed from the local repository.
+     *
+     * @param authToken The authentication token, required by the TRACEStore server for security.
+     */
     protected void postPendingRoutes(String authToken){
 
         if(!mLocalStorage.hasPendingRoutes()){
@@ -112,18 +152,29 @@ public class RouteCache {
         final List<String> pendingRoutes = mLocalStorage.getLocalRoutesSessions();
 
         if(pendingRoutes.size() > 0){
-            ScheduledExecutorService worker = Executors.newSingleThreadScheduledExecutor();
-            worker.schedule(new PostPendingRoutesRunnable(authToken, pendingRoutes), 0, TimeUnit.NANOSECONDS);
-            //Handler postPendingRoutesHandler = new Handler();
-            //postPendingRoutesHandler.post(new PostPendingRoutesRunnable(authToken, pendingRoutes));
-            //Thread t = new Thread(new PostPendingRoutesRunnable(authToken, pendingRoutes));
-            //t.run();
+            mAsyncWorkers.execute(new PostPendingRoutesRunnable(authToken, pendingRoutes));
         }
     }
 
-    public List<RouteSummary> loadRoutes(){
-        //TODO: is there a chance that the user does not have a route? maybe he deleted the app
-        //      and then downloaded it again?
+
+    /* Loading Routes
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+
+    /**
+     * Fetches all the user's route summaries.
+     *
+     * @param authToken The authentication token, required by the TRACEStore server for security.
+     *
+     * @return The user's route summaries.
+     */
+    public List<RouteSummary> loadRoutes(String authToken){
+
+        if(ConnectivityUtils.isConnected(mContext)) //TODO: this should be avoided
+            this.loadMissingRoutes(authToken);
+
         return mLocalStorage.getAllRoutes();
     }
 
@@ -136,7 +187,7 @@ public class RouteCache {
      * @param authToken Required for communication with the server.
      * @param session String that uniquely identifies the route.
      *
-     * @return The route summary-
+     * @return The route summary identified by the session.
      *
      * @throws RouteNotFoundException when no Route is found, this should never occur however.
      */
@@ -172,6 +223,21 @@ public class RouteCache {
         return summary;
     }
 
+
+    /**
+     * Loads the route trace, i.e. the sequence of route waypoints.
+     *
+     * @param authToken The authentication token, required by the TRACEStore server for security.
+     * @param session The session that identifies the route.
+     *
+     * @return The route's trace
+     *
+     * @see RouteWaypoint
+     *
+     * @throws RouteNotFoundException If the user does not have the route.
+     * @throws RouteIsIncompleteException If the route is stored, but its points are not.
+     * @throws RouteNotParsedException If the route has not been map-matched yet by the server.
+     */
     public List<RouteWaypoint> loadRouteTrace(final String authToken, final String session)
             throws RouteNotFoundException, RouteIsIncompleteException, RouteNotParsedException {
 
@@ -183,7 +249,7 @@ public class RouteCache {
         }else {
 
             if(ConnectivityUtils.isConnected(mContext) && !mLocalStorage.isLocalRoute(session)){
-                Thread t = new Thread(new Runnable() {
+                mAsyncWorkers.execute(new Runnable() {
                     @Override
                     public void run() {
                         List<RouteWaypoint> trace;
@@ -197,17 +263,72 @@ public class RouteCache {
                         }
                     }
                 });
-
-                t.run();
             }
 
             throw new RouteIsIncompleteException(session);
         }
     }
 
+    /**
+     * Although slim, there is a chance that the server contains routes that the storage does not.
+     * This method queries the server for all the sessions stored in it, and for each missing one
+     * it requests the Route Summary.
+     *
+     * <b>This method required network connectivity.</b>
+     */
+    protected void loadMissingRoutes(final String authToken){
+
+        mAsyncWorkers.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+
+                    List<String> serverSessions = mHttpClient.queryExistingSessions(authToken);
+                    List<String> localSessions  = mLocalStorage.getRemoteRouteSessions();
+
+                    serverSessions.removeAll(localSessions);
+
+                    for(String missing : serverSessions) {
+                        Route aux = new Route(mHttpClient.downloadRouteSummary(authToken, missing));
+                        mLocalStorage.storeCompleteRoute(aux, false, false);
+                    }
+
+                    Log.i(LOG_TAG, "All missing route sessions loaded");
+                    mLocalStorage.dumpStorageLog();
+
+                } catch (RemoteTraceException e) {
+                    e.printStackTrace();
+                } catch (AuthTokenIsExpiredException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
+
+    /* Cache Memory Management
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+
+    /**
+     * Removes all routes' traces older than a week. The route summary, on the other hand, will
+     * remain on the local repository.
+     */
+    protected void clearOldTraces(){
+        mAsyncWorkers.execute(new Runnable() {
+            @Override
+            public void run() {
+                mLocalStorage.deleteOldRouteTraces();
+            }
+        });
+    }
 
 
-    /* Async Runnables
+
+
+
+    /* Async Runnable
      ***********************************************************************************************
      ***********************************************************************************************
      ***********************************************************************************************

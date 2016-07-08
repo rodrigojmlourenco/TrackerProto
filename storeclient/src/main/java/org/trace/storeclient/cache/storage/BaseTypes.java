@@ -17,26 +17,20 @@
  * along with TRACE.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.trace.storeclient.storage;
+package org.trace.storeclient.cache.storage;
 
 
-import android.content.Context;
+interface BaseTypes {
+    String TEXT_TYPE = " TEXT";
+    String IDENTIFIER_TYPE = " INTEGER PRIMARY KEY AUTOINCREMENT";
+    String DOUBLE_TYPE = " DOUBLE DEFAULT 0";
+    String DATE_TYPE = " LONG DEFAULT 0";
+    String TIMESTAMP_TYPE = " LONG NOT NULL DEFAULT 0";
+    String BOOLEAN_TYPE = " INTEGER DEFAULT 0";
+    String STRING_TYPE = " VARCHAR(255)";
+    String POINT_TYPE = " VARCHAR(128)";
+    String INT_TYPE = " INTEGER";
+    String ADDR_TYPE = " TEXT DEFAULT ''";
 
-public class LocalRouteStorage extends RouteStorage{
-
-    private LocalRouteStorage(Context context){
-        mDBHelper = new RouteStorageDBHelper(context, "LocalRouteStorage.db", 10);
-    }
-
-    private static LocalRouteStorage LOCAL_ROUTE_STORAGE = null;
-    public static LocalRouteStorage getStorageInstance(Context context){
-        synchronized (LocalRouteStorage.class){
-            if(LOCAL_ROUTE_STORAGE == null)
-                LOCAL_ROUTE_STORAGE = new LocalRouteStorage(context);
-        }
-
-        return LOCAL_ROUTE_STORAGE;
-    }
-
-
+    String SEPARATOR = ", ";
 }

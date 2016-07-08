@@ -29,8 +29,7 @@ import org.trace.storeclient.exceptions.UnableToSubmitTrackTokenExpiredException
 import org.trace.storeclient.remote.HttpClient;
 import org.trace.storeclient.remote.RewardHttpClient;
 import org.trace.storeclient.remote.RouteHttpClient;
-import org.trace.storeclient.storage.LocalRouteStorage;
-import org.trace.storeclient.storage.RemoteRouteStorage;
+import org.trace.storeclient.cache.storage.RouteStorage;
 import org.trace.storeclient.utils.FormFieldValidator;
 
 import java.math.BigInteger;
@@ -43,15 +42,13 @@ public class TRACEStore extends IntentService{
 
     private final HttpClient mHttpClient;
     private RouteCache mCache;
-    private RemoteRouteStorage mRemoteRouteStorage;
-    private LocalRouteStorage mLocalRouteStorage;
+    private RouteStorage mLocalRouteStorage;
 
     public TRACEStore() {
         super("TRACEStore");
         this.mHttpClient = new HttpClient(this);
         mCache = RouteCache.getCacheInstance(this);
-        mRemoteRouteStorage = RemoteRouteStorage.getLocalStorage(this);
-        mLocalRouteStorage = LocalRouteStorage.getStorageInstance(this);
+        mLocalRouteStorage = RouteStorage.getStorageInstance(this);
     }
 
 

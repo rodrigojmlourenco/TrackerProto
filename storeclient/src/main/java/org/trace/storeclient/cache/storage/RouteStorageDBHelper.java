@@ -17,7 +17,7 @@
  * along with TRACE.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.trace.storeclient.storage;
+package org.trace.storeclient.cache.storage;
 
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;

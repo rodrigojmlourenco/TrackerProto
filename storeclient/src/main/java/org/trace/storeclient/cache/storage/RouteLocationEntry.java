@@ -17,28 +17,29 @@
  * along with TRACE.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.trace.storeclient.storage;
+package org.trace.storeclient.cache.storage;
 
 import android.provider.BaseColumns;
 
 /**
- * Created by Rodrigo Lourenço on 07/07/2016.
+ * Created by Rodrigo Lourenço on 06/07/2016.
  */
-public interface RouteStateEntry extends BaseTypes, BaseColumns{
+interface RouteLocationEntry extends BaseColumns, BaseTypes {
+    String TABLE_NAME = "traces";
 
-    String TABLE_NAME = "State";
-
-    String COLUMN_ROUTE = " session ";
-    String COLUMN_IS_LOCAL = " isLocal ";
-    String COLUMN_IS_COMPLETE = " isComplete ";
+    String COLUMN_SESSION = "session";
+    String COLUMN_LATITUDE = "latitude";
+    String COLUMN_LONGITUDE = "longitude";
+    String COLUMN_TIMESTAMP = "timestamp";
 
     String SQL_CREATE_TABLE =
-            "CREATE TABLE " + TABLE_NAME + " ( " +
-                    _ID + IDENTIFIER_TYPE + SEPARATOR +
-                    COLUMN_ROUTE + TEXT_TYPE + SEPARATOR +
-                    COLUMN_IS_LOCAL + BOOLEAN_TYPE + SEPARATOR +
-                    COLUMN_IS_COMPLETE + BOOLEAN_TYPE + SEPARATOR +
-                    " FOREIGN KEY ( " + COLUMN_ROUTE + " ) " +
+            "CREATE TABLE " + TABLE_NAME + " (" +
+                    _ID + " " + IDENTIFIER_TYPE + SEPARATOR +
+                    COLUMN_SESSION + INT_TYPE + SEPARATOR +
+                    COLUMN_LATITUDE + DOUBLE_TYPE + SEPARATOR +
+                    COLUMN_LONGITUDE + DOUBLE_TYPE + SEPARATOR +
+                    COLUMN_TIMESTAMP + DATE_TYPE + SEPARATOR +
+                    " FOREIGN KEY ( " + COLUMN_SESSION + " ) " +
                     " REFERENCES " + RouteSummaryEntry.TABLE_NAME + " ( " + RouteSummaryEntry._ID + " ) " +
                     " ON DELETE CASCADE)";
 

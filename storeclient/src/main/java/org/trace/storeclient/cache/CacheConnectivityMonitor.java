@@ -35,9 +35,16 @@ import org.trace.storeclient.utils.ConnectivityUtils;
 import java.util.Set;
 
 /**
- * Created by Rodrigo Lourenço on 07/07/2016.
+ * Monitors network and connectivity changes, as to notify the RouteCache to perform
+ * connectivity-sensitive operations that may have been postponed.
+ * <br>
+ * In particular, it performs to connectivity sensitive operations: <i>i)</i> uploading of pending
+ * local-only routes, <i>ii)</i> fetching of missing routes from the server.
  */
 public class CacheConnectivityMonitor extends BroadcastReceiver{
+
+    private static final String LOG_TAG = "RouteCache";
+
     @Override
     public void onReceive(Context context, Intent intent) {
         Bundle extras = intent.getExtras();
@@ -58,14 +65,13 @@ public class CacheConnectivityMonitor extends BroadcastReceiver{
             try {
                 String authToken = mAuthManager.getAuthenticationToken();
                 cache.postPendingRoutes(authToken);
+                cache.loadMissingRoutes(authToken);
             } catch (UserIsNotLoggedException e) {
                 e.printStackTrace();
             }
 
-
-
         }else{
-            Log.w("t", "is no longer connected");
+            Log.w(LOG_TAG, "is no longer connected");
         }
     }
 }

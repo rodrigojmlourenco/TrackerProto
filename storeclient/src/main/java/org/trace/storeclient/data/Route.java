@@ -23,6 +23,7 @@ import android.os.Parcel;
 
 import com.google.gson.JsonArray;
 
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -41,6 +42,7 @@ public class Route extends RouteSummary{
         this.setAvgSpeed(summary.getAvgSpeed());
         this.setTopSpeed(summary.getTopSpeed());
         this.setModality(summary.getModality());
+        this.trace = new ArrayList<>();
     }
 
 

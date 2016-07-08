@@ -38,6 +38,9 @@ import java.net.URL;
 import java.util.Map;
 
 
+/**
+ * Base HttpClient for communication with the TRACEStore server.
+ */
 public class BaseHttpClient {
 
     protected final String LOG_TAG = "Remote";
@@ -63,7 +66,20 @@ public class BaseHttpClient {
         return operation;
     }
 
-    final public String performPostRequest(String urlEndpoint, JsonObject requestProperties, String data) throws UnableToRequestPostException, AuthTokenIsExpiredException {
+    /**
+     * Performs a post request
+     * @param urlEndpoint The url endpoint
+     * @param requestProperties The post request properties
+     * @param data The data being posted
+     *
+     * @return The server's response
+     *
+     * @throws UnableToRequestPostException If the server's HTTP response is any other than 200 - OK.
+     * @throws AuthTokenIsExpiredException If the authentication token has expired.
+     */
+    final public String performPostRequest(String urlEndpoint, JsonObject requestProperties, String data)
+            throws UnableToRequestPostException, AuthTokenIsExpiredException {
+
         URL url;
         HttpURLConnection connection = null;
         String dataUrl = BASE_URI+urlEndpoint;
@@ -130,7 +146,17 @@ public class BaseHttpClient {
 
     }
 
-    final public String performGetRequest(String urlEndpoint, JsonObject requestProperties, String data)
+    /**
+     * Performs a GET request
+     * @param urlEndpoint The url endpoint
+     * @param requestProperties The GET request properties
+     *
+     * @return The server's response
+     *
+     * @throws UnableToRequestPostException If the server's HTTP response is any other than 200 - OK.
+     * @throws AuthTokenIsExpiredException If the authentication token has expired.
+     */
+    final public String performGetRequest(String urlEndpoint, JsonObject requestProperties)
             throws UnableToRequestGetException, AuthTokenIsExpiredException {
 
         URL url;
@@ -150,12 +176,6 @@ public class BaseHttpClient {
 
             connection.setDoInput(true);
             connection.connect();
-
-            // Send request
-            //DataOutputStream wr = new DataOutputStream(connection.getOutputStream());
-            //if(data != null && !data.isEmpty()) wr.write(data.getBytes("UTF-8"));
-            //wr.flush();
-            //wr.close();
 
             // Get Response
             int responseCode = connection.getResponseCode();
@@ -196,6 +216,9 @@ public class BaseHttpClient {
 
     }
 
+    /**
+     * Request properties
+     */
     public interface http {
         String CONTENT_TYPE = "Content-Type";
         String CONTENT_LENGTH = "Content-Length";
