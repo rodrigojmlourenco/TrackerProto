@@ -110,7 +110,7 @@ public class TrackerService extends Service implements Tracker {
     }
 
     public class CustomBinder extends Binder {
-       public TrackerService getService(){
+        public TrackerService getService(){
             return TrackerService.this;
         }
     }
@@ -125,6 +125,7 @@ public class TrackerService extends Service implements Tracker {
     private RouteRecorderState mState = new RouteRecorderState();
 
     private final Object finishLock = new Object();
+    private final Object trackingLock = new Object();
 
     private SimpleDateFormat mSDF = new SimpleDateFormat("HH:mm:ss");
 
@@ -148,19 +149,22 @@ public class TrackerService extends Service implements Tracker {
             throws MissingLocationPermissionsException {
 
         //Step 0 - Check for Location Permission, otherwise throw runtime exception
-        if(!EasyPermissions.hasPermissions(this, PermissionsConstants.TRACKING_PERMISSIONS))
+        if (!EasyPermissions.hasPermissions(this, PermissionsConstants.TRACKING_PERMISSIONS))
             throw new MissingLocationPermissionsException();
 
         //Step 1 - Check if it is already tracking the user
-        if(mState.isTracking || mTracker.isTracking()){
-            Log.w(LOG_TAG, LOG_TAG+" was already active.");
-            return null;
+        synchronized (trackingLock){
+            if (mState.isTracking || mTracker.isTracking()) {
+                Log.w(LOG_TAG, LOG_TAG + " was already active.");
+                return null;
+            }else
+                mState.setTracking(true);
         }
 
         //Step 2.a - Set the base values
         long startTime = System.currentTimeMillis();
 
-        mState.setTracking(true);
+
         mState.setAutomaticTracking(isAutomatic);
         mState.setSilentStart(isSilent);
         mState.save();
@@ -206,6 +210,14 @@ public class TrackerService extends Service implements Tracker {
     @Override
     public Track stopTracking(boolean isManual) {
 
+        synchronized (trackingLock) {
+            if (!mState.isTracking()) {
+                Log.w(LOG_TAG, "No route was started.");
+                return null;
+            } else
+                mState.setTracking(false);
+        }
+
         synchronized (finishLock){
             if(mState.isFinishing()){
                 Log.w(LOG_TAG, "Already finishing this route");
@@ -213,13 +225,6 @@ public class TrackerService extends Service implements Tracker {
             }else
                 mState.setFinishing(true);
         }
-
-        //TODO: maybe lock this one two
-        if(!mState.isTracking()){
-            Log.w(LOG_TAG, "No route was started.");
-            return null;
-        }else
-            mState.setTracking(false);
 
         mState.save();
 
