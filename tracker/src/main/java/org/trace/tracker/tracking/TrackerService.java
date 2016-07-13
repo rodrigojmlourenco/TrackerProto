@@ -152,8 +152,7 @@ public class TrackerService extends Service implements Tracker {
             throw new MissingLocationPermissionsException();
 
         //Step 1 - Check if it is already tracking the user
-        if(mState.isTracking
-                || mTracker.isTracking()){
+        if(mState.isTracking || mTracker.isTracking()){
             Log.w(LOG_TAG, LOG_TAG+" was already active.");
             return null;
         }

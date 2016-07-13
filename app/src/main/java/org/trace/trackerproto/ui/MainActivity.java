@@ -572,7 +572,11 @@ public class MainActivity extends AppCompatActivity
         mAuthManager = TraceAuthenticationManager.getAuthenticationManager(this, mGoogleApiClient);
 
         Credential c = mAuthManager.getCurrentCredential();
-        Toast.makeText(this, "Welcome "+c.getName(), Toast.LENGTH_SHORT).show();
+        try {
+            Toast.makeText(this, "Welcome " + c.getName(), Toast.LENGTH_SHORT).show();
+        }catch (NullPointerException e){
+            ;
+        }
     }
 
     public String getAuthenticationToken(){ //TODO: migrar isto para uma interface
