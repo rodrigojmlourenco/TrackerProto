@@ -97,7 +97,6 @@ public class RouteStorage {
         stateValues.put(RouteStateEntry.COLUMN_IS_LOCAL, isLocal);
         stateValues.put(RouteStateEntry.COLUMN_IS_COMPLETE, isComplete);
 
-
         try {
             db.beginTransaction();
             db.insert(RouteSummaryEntry.TABLE_NAME, null, summaryValues);
@@ -323,7 +322,7 @@ public class RouteStorage {
         while (c.moveToNext()){
             sessions.add(c.getString(0));
         }
-
+        db.close();
         return sessions;
     }
 
@@ -347,6 +346,7 @@ public class RouteStorage {
             sessions.add(c.getString(0));
         }
 
+        db.close();
         return sessions;
     }
 
@@ -505,6 +505,9 @@ public class RouteStorage {
                 RouteStateEntry.TABLE_NAME,
                 RouteStateEntry.COLUMN_IS_LOCAL+"=1");
 
+
+        db.close();
+
         return locals > 0;
     }
 
@@ -528,8 +531,6 @@ public class RouteStorage {
                 RouteSummaryEntry.COLUMN_AVG_SPEED,
                 RouteSummaryEntry.COLUMN_TOP_SPEED
         };
-
-
 
         Cursor cursor = db.query(RouteSummaryEntry.TABLE_NAME, columns, "", null, "", "", "");
 
@@ -620,6 +621,8 @@ public class RouteStorage {
             Log.d(LOG_TAG, dump.toString());
         }
         Log.w(LOG_TAG, "[END] Information dumped");
+
+        db.close();
 
     }
 }
