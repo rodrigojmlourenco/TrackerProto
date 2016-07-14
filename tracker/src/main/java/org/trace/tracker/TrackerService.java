@@ -105,7 +105,7 @@ public class TrackerService extends Service implements Tracker {
     @Override
     public void onDestroy() {
         Log.e("TEST", "onDestroy");
-        //mState.reset();
+        mState.reset();
         super.onDestroy();
     }
 
@@ -133,6 +133,7 @@ public class TrackerService extends Service implements Tracker {
     public String startTracking()
             throws MissingLocationPermissionsException{
 
+        Log.i(LOG_TAG, "Started tracking");
         return startTracking(-1, false, false);
     }
 
@@ -157,8 +158,11 @@ public class TrackerService extends Service implements Tracker {
             if (mState.isTracking || mTracker.isTracking()) {
                 Log.w(LOG_TAG, LOG_TAG + " was already active.");
                 return null;
-            }else
+            }else {
                 mState.setTracking(true);
+                mState.save();
+            }
+
         }
 
         //Step 2.a - Set the base values
@@ -214,8 +218,10 @@ public class TrackerService extends Service implements Tracker {
             if (!mState.isTracking()) {
                 Log.w(LOG_TAG, "No route was started.");
                 return null;
-            } else
+            } else {
                 mState.setTracking(false);
+                mState.save();
+            }
         }
 
         synchronized (finishLock){
@@ -272,7 +278,8 @@ public class TrackerService extends Service implements Tracker {
         mTrackStorage.dumpTrackSummaryTable();
 
         synchronized (finishLock){
-            mState.isFinishing = false;
+            mState.setFinishing(false);
+            mState.save();
         }
 
         if(!wasDeleted)
@@ -394,19 +401,22 @@ public class TrackerService extends Service implements Tracker {
                     getApplicationContext().getSharedPreferences("STATE", Context.MODE_PRIVATE);
 
 
-            isTracking = sharedPreferences.getBoolean("isTracking", false);
-            isAutomaticTracking = sharedPreferences.getBoolean("isAutomaticTracking", false);
-            isSilentStart = sharedPreferences.getBoolean("isSilentStart", false);
+            isTracking = sharedPreferences.getBoolean("isTracking", isTracking);
+            isAutomaticTracking = sharedPreferences.getBoolean("isAutomaticTracking", isAutomaticTracking);
+            isSilentStart = sharedPreferences.getBoolean("isSilentStart", isSilentStart);
             isFinishing = sharedPreferences.getBoolean("isFinishing", isFinishing);
         }
 
         public void reset() {
-            isTracking = false;
-            isAutomaticTracking = false;
-            isSilentStart = false;
-            isFinishing = false;
+            SharedPreferences sharedPreferences = getApplicationContext().getSharedPreferences("STATE", Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = sharedPreferences.edit();
 
-            this.save();
+            editor.putBoolean("isTracking", false);
+            editor.putBoolean("isAutomaticTracking", false);
+            editor.putBoolean("isSilentStart", false);
+            editor.putBoolean("isFinishing", false);
+
+            editor.commit();
         }
     }
 
