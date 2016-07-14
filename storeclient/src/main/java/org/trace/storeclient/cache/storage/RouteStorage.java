@@ -114,7 +114,7 @@ public class RouteStorage {
             Log.e(LOG_TAG, e.getMessage());
         } finally {
             db.endTransaction();
-            db.close();
+            //db.close();
         }
 
         return success;
@@ -164,7 +164,7 @@ public class RouteStorage {
             e.printStackTrace();
         }finally {
             db.endTransaction();
-            db.close();
+            //db.close();
         }
 
         return success;
@@ -227,7 +227,7 @@ public class RouteStorage {
             Log.e(LOG_TAG, e.getMessage());
         } finally {
             db.endTransaction();
-            db.close();
+            //db.close();
         }
 
         return success;
@@ -262,7 +262,7 @@ public class RouteStorage {
             Log.e(LOG_TAG, e.getMessage());
         }finally {
             db.endTransaction();
-            db.close();
+            //db.close();
         }
 
         return wasDeleted;
@@ -293,7 +293,7 @@ public class RouteStorage {
             e.printStackTrace();
         }finally {
             db.endTransaction();
-            db.close();
+            //db.close();
         }
 
     }
@@ -322,7 +322,9 @@ public class RouteStorage {
         while (c.moveToNext()){
             sessions.add(c.getString(0));
         }
-        db.close();
+
+        c.close();
+        //db.close();
         return sessions;
     }
 
@@ -346,7 +348,8 @@ public class RouteStorage {
             sessions.add(c.getString(0));
         }
 
-        db.close();
+        c.close();
+        //db.close();
         return sessions;
     }
 
@@ -391,7 +394,8 @@ public class RouteStorage {
         summary.setAvgSpeed(cursor.getFloat(6));
         summary.setTopSpeed(cursor.getFloat(7));
 
-        db.close();
+        cursor.close();
+        //db.close();
 
         return summary;
     }
@@ -437,7 +441,8 @@ public class RouteStorage {
             trace.add(waypoint);
         }
 
-        db.close();
+        cursor.close();
+        //db.close();
 
         return trace;
     }
@@ -463,7 +468,8 @@ public class RouteStorage {
         cursor.moveToNext();
         isLocal = cursor.getInt(0) > 0;
 
-        db.close();
+        cursor.close();
+        //db.close();
 
         return isLocal;
     }
@@ -487,7 +493,9 @@ public class RouteStorage {
         Cursor cursor = db.query(RouteStateEntry.TABLE_NAME, columns, selectionClause, selectionArgs, "", "" ,"");
         cursor.moveToNext();
         isComplete = cursor.getInt(0) > 0;
-        db.close();
+
+        cursor.close();
+        //db.close();
 
         return isComplete;
     }
@@ -506,7 +514,7 @@ public class RouteStorage {
                 RouteStateEntry.COLUMN_IS_LOCAL+"=1");
 
 
-        db.close();
+        //db.close();
 
         return locals > 0;
     }
@@ -549,7 +557,8 @@ public class RouteStorage {
             summaries.add(summary);
         }
 
-        db.close();
+        cursor.close();
+        //db.close();
         return summaries;
     }
 
@@ -574,7 +583,8 @@ public class RouteStorage {
         while (cursor.moveToNext())
             oldSessions.add(cursor.getString(0));
 
-        db.close();
+        cursor.close();
+        //db.close();
         return oldSessions;
     }
 
@@ -622,7 +632,8 @@ public class RouteStorage {
         }
         Log.w(LOG_TAG, "[END] Information dumped");
 
-        db.close();
+        c.close();
+        //db.close();
 
     }
 }
