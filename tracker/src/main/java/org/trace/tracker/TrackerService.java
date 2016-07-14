@@ -295,7 +295,13 @@ public class TrackerService extends Service implements Tracker {
             return false;
         }
 
-        Track t = mTrackStorage.getTrack(session);
+        Track t;
+        try {
+             t = mTrackStorage.getTrack(session);
+        }catch(RuntimeException e){
+            Log.e(LOG_TAG, "Nothing to delete, same as if it was deleted.");
+            return true;
+        }
 
         if(t == null || t.getElapsedDistance() <= 15 || t.getTracedTrack().size() <= 5) {
             mTrackStorage.deleteTrack(session);
