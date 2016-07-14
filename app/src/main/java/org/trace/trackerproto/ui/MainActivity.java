@@ -36,7 +36,7 @@ import org.trace.storeclient.exceptions.UserIsNotLoggedException;
 import org.trace.tracker.Tracker;
 import org.trace.tracker.TrackerActivity;
 import org.trace.tracker.permissions.PermissionsConstants;
-import org.trace.tracker.tracking.TrackerService;
+import org.trace.tracker.TrackerService;
 import org.trace.trackerproto.R;
 import org.trace.trackerproto.ui.slidingmenu.adapter.NavDrawerListAdapter;
 import org.trace.trackerproto.ui.slidingmenu.model.NavDrawerItem;

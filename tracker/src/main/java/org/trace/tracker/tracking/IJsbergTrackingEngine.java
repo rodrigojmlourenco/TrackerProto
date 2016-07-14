@@ -81,7 +81,7 @@ public class IJsbergTrackingEngine extends BroadcastReceiver implements Tracking
         mIdleTimer = mExecutorService.schedule(new IdleElapsed(), 20, TimeUnit.MINUTES); //TODO: should not be hardcoded
     }
 
-    protected static IJsbergTrackingEngine getTracker(Context ctx){
+    public static IJsbergTrackingEngine getTracker(Context ctx){
 
         synchronized (IJsbergTrackingEngine.class) {
             if (TRACKER == null)

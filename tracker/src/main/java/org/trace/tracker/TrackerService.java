@@ -17,7 +17,7 @@
  * along with TRACE.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.trace.tracker.tracking;
+package org.trace.tracker;
 
 import android.app.Service;
 import android.content.BroadcastReceiver;
@@ -32,15 +32,15 @@ import android.support.annotation.Nullable;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
-import org.trace.tracker.*;
 import org.trace.tracker.exceptions.MissingLocationPermissionsException;
-import org.trace.tracker.tracking.modules.activity.ActivityConstants;
 import org.trace.tracker.permissions.PermissionsConstants;
 import org.trace.tracker.settings.ConfigurationProfile;
 import org.trace.tracker.settings.ConfigurationsManager;
 import org.trace.tracker.storage.PersistentTrackStorage;
 import org.trace.tracker.storage.data.Track;
 import org.trace.tracker.storage.data.TrackSummary;
+import org.trace.tracker.tracking.IJsbergTrackingEngine;
+import org.trace.tracker.tracking.modules.activity.ActivityConstants;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -105,7 +105,7 @@ public class TrackerService extends Service implements Tracker {
     @Override
     public void onDestroy() {
         Log.e("TEST", "onDestroy");
-        mState.reset();
+        //mState.reset();
         super.onDestroy();
     }
 

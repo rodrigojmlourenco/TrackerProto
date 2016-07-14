@@ -22,7 +22,7 @@
             android:exported="false" />
 
         <service
-            android:name=".tracking.TrackerService"
+            android:name=".TrackerService"
             android:exported="true"/>
     </application>
 

@@ -31,7 +31,7 @@ import org.trace.storeclient.TRACEStore;
 import org.trace.storeclient.TRACEStoreReceiver;
 import org.trace.tracker.Constants;
 import org.trace.tracker.permissions.PermissionsConstants;
-import org.trace.tracker.tracking.TrackerService;
+import org.trace.tracker.TrackerService;
 import org.trace.trackerproto.R;
 
 import java.util.concurrent.Executors;
