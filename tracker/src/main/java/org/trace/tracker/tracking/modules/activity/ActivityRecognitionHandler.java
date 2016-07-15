@@ -17,7 +17,7 @@ import java.util.ArrayList;
  */
 public class ActivityRecognitionHandler extends IntentService {
 
-    protected static final String TAG = "ActivityRecogHandler";
+    protected static final String TAG = "HARHandler";
 
     public ActivityRecognitionHandler() {
         super(TAG);

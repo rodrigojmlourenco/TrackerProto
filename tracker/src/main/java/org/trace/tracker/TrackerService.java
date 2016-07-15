@@ -40,7 +40,7 @@ import org.trace.tracker.storage.PersistentTrackStorage;
 import org.trace.tracker.storage.data.Track;
 import org.trace.tracker.storage.data.TrackSummary;
 import org.trace.tracker.tracking.IJsbergTrackingEngine;
-import org.trace.tracker.tracking.modules.activity.ActivityConstants;
+import org.trace.tracker.tracking.TrackingConstants;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -193,7 +193,7 @@ public class TrackerService extends Service implements Tracker {
 
         //Step 4 - Register the receiver, which are responsible for handling new locations and activities.
         IntentFilter trackingFilter = new IntentFilter();
-        trackingFilter.addAction(ActivityConstants.COLLECT_ACTION);
+        trackingFilter.addAction(TrackingConstants.ActivityRecognition.COLLECT_ACTION);
         trackingFilter.addAction(Constants.tracker.COLLECT_LOCATIONS_ACTION);
 
         LocalBroadcastManager.getInstance(this).registerReceiver((BroadcastReceiver) mTracker, trackingFilter);

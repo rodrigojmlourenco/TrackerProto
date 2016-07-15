@@ -272,7 +272,10 @@ public class IJsbergTrackingEngine extends BroadcastReceiver implements Tracking
     }
 
     public void startActivityUpdates(){
-        if(mActivityRecognitionModule ==null) init();
+
+        if(mActivityRecognitionModule ==null)
+            init();
+
         mActivityRecognitionModule.startTracking();
     }
 

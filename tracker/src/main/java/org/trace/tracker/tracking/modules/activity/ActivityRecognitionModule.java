@@ -1,7 +1,6 @@
 package org.trace.tracker.tracking.modules.activity;
 
 import android.app.PendingIntent;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.support.annotation.NonNull;
@@ -21,12 +20,12 @@ import java.util.Queue;
 
 public class ActivityRecognitionModule implements ModuleInterface, ResultCallback<Status> {
 
-    protected final static String LOG_TAG = "ActivityRecogModule";
+    protected final static String LOG_TAG = "HARModule";
 
     private Context mContext;
     private GoogleApiClient mGoogleApiClient;
-    private BroadcastReceiver mActivityReceiver;
-    private PendingIntent mActivityRecogIntent = null;
+    //private BroadcastReceiver mActivityReceiver;
+    //private PendingIntent mActivityRecogIntent = null;
 
     private boolean isTracking = false;
 
@@ -56,7 +55,7 @@ public class ActivityRecognitionModule implements ModuleInterface, ResultCallbac
         }
 
         Intent i = new Intent(mContext, ActivityRecognitionHandler.class);
-        mActivityRecogIntent = PendingIntent.getService(mContext, 0, i, PendingIntent.FLAG_UPDATE_CURRENT);
+        //mActivityRecogIntent = PendingIntent.getService(mContext, 0, i, PendingIntent.FLAG_UPDATE_CURRENT);
 
         ActivityRecognition.ActivityRecognitionApi
                 .requestActivityUpdates(
