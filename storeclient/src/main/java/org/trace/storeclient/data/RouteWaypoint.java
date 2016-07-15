@@ -44,7 +44,7 @@ public class RouteWaypoint implements Parcelable{
         try {
             this.attributes = jsonWaypoint.get("attributes").getAsString();
         }catch (UnsupportedOperationException e){
-            this.attributes = "";
+            this.attributes = "error";
         }
     }
 
