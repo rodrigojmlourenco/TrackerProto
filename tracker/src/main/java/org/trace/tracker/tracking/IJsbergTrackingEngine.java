@@ -434,7 +434,7 @@ public class IJsbergTrackingEngine extends BroadcastReceiver implements Tracking
 
         final Location location = mLastKnownLocation;
 
-
+        /*
         Handler handler = new Handler();
         handler.post(new Runnable() {
             @Override
@@ -466,6 +466,7 @@ public class IJsbergTrackingEngine extends BroadcastReceiver implements Tracking
                 }
             }
         });
+        */
     }
 
     @Override
