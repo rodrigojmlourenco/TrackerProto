@@ -424,7 +424,7 @@ public class RouteStorage {
         String selectionClause = RouteLocationEntry.COLUMN_SESSION + " = ?";
         String[] selectionArgs = new String[] { session };
 
-        Cursor cursor = db.query(RouteLocationEntry.TABLE_NAME, columns, selectionClause, selectionArgs, "", "", "");
+        Cursor cursor = db.query(RouteLocationEntry.TABLE_NAME, columns, selectionClause, selectionArgs, "", "", RouteLocationEntry.COLUMN_TIMESTAMP);
 
         if(cursor.getCount() <= 0)
             throw new RouteNotFoundException(session);
@@ -540,7 +540,8 @@ public class RouteStorage {
                 RouteSummaryEntry.COLUMN_TOP_SPEED
         };
 
-        Cursor cursor = db.query(RouteSummaryEntry.TABLE_NAME, columns, "", null, "", "", "");
+        Cursor cursor =
+                db.query(RouteSummaryEntry.TABLE_NAME, columns, "", null, "", "", RouteSummaryEntry.COLUMN_STARTED_AT + "DESC");
 
         while (cursor.moveToNext()) {
             RouteSummary summary = new RouteSummary();
