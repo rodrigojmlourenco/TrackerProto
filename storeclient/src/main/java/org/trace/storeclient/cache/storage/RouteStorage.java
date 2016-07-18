@@ -147,6 +147,7 @@ public class RouteStorage {
             aux.put(RouteLocationEntry.COLUMN_TIMESTAMP, location.getTimestamp());
             aux.put(RouteLocationEntry.COLUMN_LATITUDE, location.getLatitude());
             aux.put(RouteLocationEntry.COLUMN_LONGITUDE, location.getLongitude());
+            aux.put(RouteLocationEntry.COLUMN_ATTRIBUTES, location.getAttributes());
             locationValues.add(aux);
         }
 
@@ -418,7 +419,8 @@ public class RouteStorage {
         String[] columns = new String[]{
                 RouteLocationEntry.COLUMN_TIMESTAMP,
                 RouteLocationEntry.COLUMN_LATITUDE,
-                RouteLocationEntry.COLUMN_LONGITUDE
+                RouteLocationEntry.COLUMN_LONGITUDE,
+                RouteLocationEntry.COLUMN_ATTRIBUTES
         };
 
         String selectionClause = RouteLocationEntry.COLUMN_SESSION + " = ?";
@@ -436,7 +438,7 @@ public class RouteStorage {
             waypoint.setTimestamp(cursor.getLong(0));
             waypoint.setLatitude(cursor.getDouble(1));
             waypoint.setLongitude(cursor.getDouble(2));
-            waypoint.setAttributes("");
+            waypoint.setAttributes(cursor.getString(3));
 
             trace.add(waypoint);
         }

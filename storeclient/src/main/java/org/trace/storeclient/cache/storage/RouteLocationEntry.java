@@ -31,6 +31,7 @@ interface RouteLocationEntry extends BaseColumns, BaseTypes {
     String COLUMN_LATITUDE = "latitude";
     String COLUMN_LONGITUDE = "longitude";
     String COLUMN_TIMESTAMP = "timestamp";
+    String COLUMN_ATTRIBUTES = "attributes";
 
     String SQL_CREATE_TABLE =
             "CREATE TABLE " + TABLE_NAME + " (" +
@@ -39,6 +40,7 @@ interface RouteLocationEntry extends BaseColumns, BaseTypes {
                     COLUMN_LATITUDE + DOUBLE_TYPE + SEPARATOR +
                     COLUMN_LONGITUDE + DOUBLE_TYPE + SEPARATOR +
                     COLUMN_TIMESTAMP + DATE_TYPE + SEPARATOR +
+                    COLUMN_ATTRIBUTES + TEXT_TYPE + SEPARATOR +
                     " FOREIGN KEY ( " + COLUMN_SESSION + " ) " +
                     " REFERENCES " + RouteSummaryEntry.TABLE_NAME + " ( " + RouteSummaryEntry._ID + " ) " +
                     " ON DELETE CASCADE)";

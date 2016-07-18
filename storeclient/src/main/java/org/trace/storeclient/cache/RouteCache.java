@@ -142,7 +142,7 @@ public class RouteCache {
      *
      * @param authToken The authentication token, required by the TRACEStore server for security.
      */
-    protected void postPendingRoutes(String authToken){
+    public void postPendingRoutes(String authToken){
 
         if(!mLocalStorage.hasPendingRoutes()){
             Log.i(LOG_TAG, "No pending routes to upload");
