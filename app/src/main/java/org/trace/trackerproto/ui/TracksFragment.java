@@ -2,11 +2,15 @@ package org.trace.trackerproto.ui;
 
 import android.Manifest;
 import android.app.Fragment;
+import android.app.Service;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.net.ConnectivityManager;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -22,16 +26,15 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import org.trace.storeclient.cache.RouteCache;
-import org.trace.storeclient.cache.exceptions.RouteNotFoundException;
 import org.trace.storeclient.cache.exceptions.UnableToCreateRouteCopyException;
 import org.trace.storeclient.data.Route;
-import org.trace.storeclient.data.RouteSummary;
 import org.trace.storeclient.data.RouteWaypoint;
 import org.trace.tracker.Tracker;
-import org.trace.tracker.TrackerActivity;
+import org.trace.tracker.TrackerService;
 import org.trace.tracker.permissions.PermissionsConstants;
 import org.trace.tracker.storage.data.TraceLocation;
 import org.trace.tracker.storage.data.Track;
+import org.trace.tracker.storage.data.TrackSummary;
 import org.trace.trackerproto.ProtoConstants;
 import org.trace.trackerproto.R;
 
@@ -63,22 +66,22 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        /* Old Version Using PersistentTrackStorage
+        /* Old Version Using PersistentTrackStorage *
         mTrackStorage = new PersistentTrackStorage(getActivity());
 
         List<TrackSummary> simplifiedTracks = mTrackStorage.getTracksSessions();
         String[] tracks = new String[simplifiedTracks.size()];
-        */
+        *
         //new Version
-        /*
-        List<TrackSummary> simplifiedTracks = TRACETrackerService.Client.getAllStoredTracks(getActivity());
+
+        List<TrackSummary> simplifiedTracks = mTracker.getAllTracedTracks();
         String[] tracks = new String[simplifiedTracks.size()];
 
         for(int i=0; i < simplifiedTracks.size(); i++) //Remove the file prefix
             tracks[i] = simplifiedTracks.get(i).getTrackId();
 
 
-        */
+        /*
         //Version 2.0 - RouteCache
         mRouteCache = RouteCache.getCacheInstance(getActivity().getApplicationContext());
         List<RouteSummary> routeSummaries = mRouteCache.loadRoutes(null);
@@ -90,6 +93,7 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
         mAdapter = new TrackItemAdapter(getActivity(), tracks);
         ListView list = (ListView) getView().findViewById(R.id.trackListView);
         list.setAdapter(mAdapter);
+        */
 
         mConnectivityManager = (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
     }
@@ -134,7 +138,8 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
 
         private Context context;
         private ArrayList<String> values;
-        private HashMap<String, RouteSummary> tracks;
+        //private HashMap<String, RouteSummary> tracks;
+        private HashMap<String, TrackSummary> tracks;
 
         public TrackItemAdapter(Context context, String[] values) {
             super(context, R.layout.track_item, values);
@@ -148,13 +153,16 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
             for(i=0; i < values.length; i++){
                 //Track t = mTrackStorage.getTrack_DEPRECATED(values[i]);
                 //Track t = TRACETrackerService.Client.getStoredTrack(getActivity(), values[i]);
+                /*
                 try {
                     RouteSummary summary = mRouteCache.loadRoute(null, values[i]);
                     tracks.put(values[i], summary);
                 } catch (RouteNotFoundException e) {
                     e.printStackTrace();
                 }
-
+                */
+                Track t = mTracker.getTracedTrack(values[i]);
+                tracks.put(values[i], t);
             }
 
             setNotifyOnChange(true);
@@ -196,9 +204,11 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
             exportBtn = (ImageButton) rowView.findViewById(R.id.trackExportBtn);
 
             DecimalFormat df = new DecimalFormat("#.0");
-            final RouteSummary t = tracks.get(values.get(position));
+            //final RouteSummary t = tracks.get(values.get(position));
+            final TrackSummary t = tracks.get(values.get(position));
             try {
-                sessionView.setText(t.getSession());
+                //sessionView.setText(t.getSession());
+                sessionView.setText(t.getTrackId());
             }catch (NullPointerException e){
                 sessionView.setText("Unknown session");
             }
@@ -221,7 +231,8 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
                 public void onClick(View v) {
 
                     if (EasyPermissions.hasPermissions(getActivity(), perms)) {
-                        Toast.makeText(context, tracks.get(values.get(position)).getSession(), Toast.LENGTH_LONG).show();
+                        //Toast.makeText(context, tracks.get(values.get(position)).getSession(), Toast.LENGTH_LONG).show();
+                        Toast.makeText(context, tracks.get(values.get(position)).getTrackId(), Toast.LENGTH_LONG).show();
 
                         Intent maps = new Intent(context, MapActivity.class);
                         maps.putExtra(ProtoConstants.extras.TRACK_KEY_EXTRA, values.get(position));
@@ -300,8 +311,9 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
 
                     try {
                         cache.saveRoute(((MainActivity) getActivity()).getAuthenticationToken(), route);
-                        ((TrackerActivity)getActivity()).getTracker().deleteTracedTrack(t.getTrackId());
-                        remove(index);
+                        Log.e("TODO", "PFF descomentar linha de código 303@TracksFragment");
+                        //((TrackerActivity)getActivity()).getTracker().deleteTracedTrack(t.getTrackId());
+                        //remove(index);
 
                     } catch (UnableToCreateRouteCopyException e) {
                         e.printStackTrace();
@@ -351,5 +363,45 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
 
         final AlertDialog alert = builder.create();
         alert.show();
+    }
+
+    private Tracker mTracker;
+    private ServiceConnection mConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            TrackerService.CustomBinder binder = (TrackerService.CustomBinder) service;
+            mTracker = binder.getService();
+
+            List<TrackSummary> simplifiedTracks = mTracker.getAllTracedTracks();
+            String[] tracks = new String[simplifiedTracks.size()];
+
+            for(int i=0; i < simplifiedTracks.size(); i++) //Remove the file prefix
+                tracks[i] = simplifiedTracks.get(i).getTrackId();
+
+            mAdapter = new TrackItemAdapter(getActivity(), tracks);
+            ListView list = (ListView) getView().findViewById(R.id.trackListView);
+            list.setAdapter(mAdapter);
+            list.invalidate();
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            mTracker = null;
+        }
+    };
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        Intent trackerService = new Intent(getActivity(), TrackerService.class);
+        trackerService.setFlags(Service.START_STICKY);
+        getActivity().bindService(trackerService, mConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    @Override
+    public void onStop() {
+        getActivity().unbindService(mConnection);
+        super.onStop();
     }
 }

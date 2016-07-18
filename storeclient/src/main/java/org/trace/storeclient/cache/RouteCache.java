@@ -28,13 +28,13 @@ import org.trace.storeclient.cache.exceptions.RouteIsIncompleteException;
 import org.trace.storeclient.cache.exceptions.RouteNotFoundException;
 import org.trace.storeclient.cache.exceptions.RouteNotParsedException;
 import org.trace.storeclient.cache.exceptions.UnableToCreateRouteCopyException;
+import org.trace.storeclient.cache.storage.RouteStorage;
 import org.trace.storeclient.data.Route;
 import org.trace.storeclient.data.RouteSummary;
 import org.trace.storeclient.data.RouteWaypoint;
 import org.trace.storeclient.exceptions.AuthTokenIsExpiredException;
 import org.trace.storeclient.exceptions.RemoteTraceException;
 import org.trace.storeclient.remote.RouteHttpClient;
-import org.trace.storeclient.cache.storage.RouteStorage;
 import org.trace.storeclient.utils.ConnectivityUtils;
 
 import java.util.List;
@@ -121,7 +121,7 @@ public class RouteCache {
 
         if (!createdLocalCopy) {
             Log.w(LOG_TAG, "Failed to create a local copy of the route.");
-            throw new UnableToCreateRouteCopyException();
+            //throw new UnableToCreateRouteCopyException(); TODO descomentar
         }
 
         // Scenario 1 - The app has a network connection (Wifi?)
@@ -218,7 +218,6 @@ public class RouteCache {
 
             t.run();
         }
-
 
         return summary;
     }
@@ -335,6 +334,8 @@ public class RouteCache {
      ***********************************************************************************************
      */
 
+    private final Object mUploadLock = new Object();
+
     private class PostRouteRunnable implements Runnable {
 
         private final String authToken;
@@ -354,103 +355,101 @@ public class RouteCache {
             String session = "";
             boolean wasPosted = true;
 
-            // Step 2 - Then the route is uploaded to the TRACEStore server,
-            //          this will provide an UID for the route.
-            try {
-
-                RouteSummary aux = route;
-                aux.setSession(""); //TODO: find a nicer way to do this - the session must be empty for the server to accept it.
-                String data = aux.toString();
-
-                rs = mHttpClient.submitRouteSummary(authToken, data);
-                session = rs.getSession();
-
-                Log.d(LOG_TAG, "New session "+session);
-
-                //TODO: for redundancy store the newly obtained route summary
-                mLocalStorage.storeRouteSummary(rs, false, true);
-
-            } catch (RemoteTraceException | AuthTokenIsExpiredException e) {
-                e.printStackTrace();
-                wasPosted = false;
-            } finally {
-                if (!wasPosted) {
-                    Log.w(LOG_TAG, "Route was not posted");
-                    return;
-                }
-            }
-
-
-            //Step 3  - Upload the Route's trace (150 at each time)
-            //Step 2a - Split the trace into batches of up to MAX_SIZE points
-            int MAX_SIZE = 15;
-            int size = 1, excess;
-            JsonArray[] queue;
-            JsonArray jTrace = route.getTraceAsJsonArray();
-
-            if (jTrace.size() <= MAX_SIZE) {
-                queue = new JsonArray[size];
-                queue[0] = jTrace;
-            } else {
-
-                excess = jTrace.size() % MAX_SIZE;
-                size = (jTrace.size() / MAX_SIZE) + (excess == 0 ? 0 : 1);
-
-                queue = new JsonArray[size];
-
-                for (int i = 0, left = 0, right = MAX_SIZE; i < size; i++) {
-
-                    JsonArray batch = new JsonArray();
-
-                    for (int j = left; j < right && j < jTrace.size(); j++) {
-                        batch.add(jTrace.get(j));
-                    }
-
-                    left = right++;
-                    right += MAX_SIZE;
-                    queue[i] = batch;
-                }
-            }
-
-            //Step 2b - Upload each of the batches and analyze the response
-            // NOTE: Only if all batches are uploaded successfully with the track summary be stored.
-            for (JsonArray batch : queue) {
+            synchronized (mUploadLock) {
+                // Step 1 - The route is uploaded to the TRACEStore server,
+                //          this will provide an UID for the route.
                 try {
 
-                    boolean wasUploaded;
+                    RouteSummary aux = route;
+                    aux.setSession(""); //TODO: find a nicer way to do this - the session must be empty for the server to accept it.
+                    String data = aux.toString();
 
-                    do {
-                        wasUploaded = mHttpClient.uploadTraceBatch(authToken, session, batch);
-                    } while (!wasUploaded);
+                    rs = mHttpClient.submitRouteSummary(authToken, data);
+                    session = rs.getSession();
 
-                } catch (RemoteTraceException e) {
+                    mLocalStorage.storeRouteSummary(rs, false, true);
+
+                } catch (RemoteTraceException | AuthTokenIsExpiredException e) {
                     e.printStackTrace();
-                } catch (AuthTokenIsExpiredException e) {
+                    wasPosted = false;
+                } finally {
+                    if (!wasPosted) {
+                        Log.w(LOG_TAG, "Route was not posted");
+                        return;
+                    }
+                }
+
+
+                //Step 3  - Upload the Route's trace (150 at each time)
+                //Step 2a - Split the trace into batches of up to MAX_SIZE points
+                int MAX_SIZE = 15;
+                int size = 1, excess;
+                JsonArray[] queue;
+                JsonArray jTrace = route.getTraceAsJsonArray();
+
+                if (jTrace.size() <= MAX_SIZE) {
+                    queue = new JsonArray[size];
+                    queue[0] = jTrace;
+                } else {
+
+                    excess = jTrace.size() % MAX_SIZE;
+                    size = (jTrace.size() / MAX_SIZE) + (excess == 0 ? 0 : 1);
+
+                    queue = new JsonArray[size];
+
+                    for (int i = 0, left = 0, right = MAX_SIZE; i < size; i++) {
+
+                        JsonArray batch = new JsonArray();
+
+                        for (int j = left; j < right && j < jTrace.size(); j++) {
+                            batch.add(jTrace.get(j));
+                        }
+
+                        left = right++;
+                        right += MAX_SIZE;
+                        queue[i] = batch;
+                    }
+                }
+
+                //Step 2b - Upload each of the batches and analyze the response
+                // NOTE: Only if all batches are uploaded successfully with the track summary be stored.
+                for (JsonArray batch : queue) {
+                    try {
+
+                        boolean wasUploaded;
+
+                        do {
+                            wasUploaded = mHttpClient.uploadTraceBatch(authToken, session, batch);
+                        } while (!wasUploaded);
+
+                    } catch (RemoteTraceException e) {
+                        e.printStackTrace();
+                    } catch (AuthTokenIsExpiredException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                //Step 3 - Request the map-matched values and then store the remote route
+                try {
+                    RouteSummary aux = mHttpClient.downloadRouteSummary(authToken, session);
+                    List<RouteWaypoint> trace = mHttpClient.downloadRouteTrace(authToken, session);
+                    Log.d(LOG_TAG, aux.toString());
+
+                    mLocalStorage.updateRouteStateAndTrace(aux.getSession(), false, true, trace);
+                    mLocalStorage.dumpStorageLog();
+
+                } catch (RemoteTraceException | AuthTokenIsExpiredException e) {
                     e.printStackTrace();
                 }
+
+                //Step 4 - Delete the local copy of the route
+                // NOTA: Enquanto não remover a track do repositorio do tracker esta vai continuar a ser uploaded!
+                boolean wasDeleted;
+                do {
+                    wasDeleted = mLocalStorage.deleteRoute(trackId);
+                    mLocalStorage.dumpStorageLog();
+                } while (!wasDeleted);
             }
-
-            //Step 3 - Request the map-matched values and then store the remote route
-            try {
-                RouteSummary aux = mHttpClient.downloadRouteSummary(authToken, session);
-                List<RouteWaypoint> trace = mHttpClient.downloadRouteTrace(authToken, session);
-                Log.d(LOG_TAG, aux.toString());
-
-                mLocalStorage.updateRouteStateAndTrace(aux.getSession(), false, true, trace);
-                mLocalStorage.dumpStorageLog();
-
-            } catch (RemoteTraceException | AuthTokenIsExpiredException e) {
-                e.printStackTrace();
-            }
-
-            //Step 4 - Delete the local copy of the route
-            // NOTA: Enquanto não remover a track do repositorio do tracker esta vai continuar a ser uploaded!
-            boolean wasDeleted;
-            do{
-                wasDeleted = mLocalStorage.deleteRoute(trackId);
-                mLocalStorage.dumpStorageLog();
-            }while (!wasDeleted);
-
         }
     }
 
