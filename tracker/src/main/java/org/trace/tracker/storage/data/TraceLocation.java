@@ -8,8 +8,6 @@ import com.google.android.gms.location.DetectedActivity;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-import org.trace.tracker.tracking.modules.activity.ActivityRecognitionModule;
-
 
 public class TraceLocation extends Location{
 
@@ -120,7 +118,7 @@ public class TraceLocation extends Location{
 
         }
 
-        jsonActivity.addProperty("type", ActivityRecognitionModule.getActivityString(activity.getType()));
+        jsonActivity.addProperty("type", activityId);
         jsonActivity.addProperty("confidence", activity.getConfidence());
 
         this.activityMode = jsonActivity.toString();
@@ -175,8 +173,9 @@ public class TraceLocation extends Location{
         if (secondaryAttributes.has(SecondaryAttributes.PROVIDER))
             setProvider(secondaryAttributes.get(SecondaryAttributes.PROVIDER).getAsString());
 
-        if (secondaryAttributes.has(SecondaryAttributes.ACTIVITY))
-            activityMode = secondaryAttributes.get(SecondaryAttributes.ACTIVITY).getAsString();
+        if (secondaryAttributes.has(SecondaryAttributes.ACTIVITY)) {
+            activityMode = secondaryAttributes.get(SecondaryAttributes.ACTIVITY).toString();
+        }
     }
 
     /**
