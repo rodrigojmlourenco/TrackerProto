@@ -6,6 +6,7 @@ import android.os.Parcel;
 
 import com.google.android.gms.location.DetectedActivity;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import org.trace.tracker.tracking.modules.activity.ActivityRecognitionModule;
 
@@ -86,14 +87,41 @@ public class TraceLocation extends Location{
 
     public void setActivityMode(DetectedActivity activity){
 
+        int activityId;
         JsonObject jsonActivity = new JsonObject();
-        if(activity == null){
-            jsonActivity.addProperty("type", "unknown");
-            jsonActivity.addProperty("confidence", 100);
-        }else{
-            jsonActivity.addProperty("type", ActivityRecognitionModule.getActivityString(activity.getType()));
-            jsonActivity.addProperty("confidence", activity.getConfidence());
+        if(activity == null) {
+            jsonActivity.addProperty("type", -1);
+            jsonActivity.addProperty("confidence", 0);
+            return;
         }
+
+        switch (activity.getType()){
+            case DetectedActivity.UNKNOWN:
+                activityId = -1;
+                break;
+            case DetectedActivity.STILL:
+                activityId = 0;
+                break;
+            case DetectedActivity.ON_FOOT: //TODO: this can also be an instance of running?
+            case DetectedActivity.WALKING:
+                activityId = 1;
+                break;
+            case DetectedActivity.RUNNING:
+                activityId = 2;
+                break;
+            case DetectedActivity.ON_BICYCLE:
+                activityId = 3;
+                break;
+            case DetectedActivity.IN_VEHICLE:
+                activityId = 4;
+                break;
+            default /*Other*/:
+                activityId = 5;
+
+        }
+
+        jsonActivity.addProperty("type", ActivityRecognitionModule.getActivityString(activity.getType()));
+        jsonActivity.addProperty("confidence", activity.getConfidence());
 
         this.activityMode = jsonActivity.toString();
     }
@@ -113,6 +141,8 @@ public class TraceLocation extends Location{
     }
 
     public JsonObject getSecondaryAttributesAsJson(){
+        JsonParser parser = new JsonParser();
+
         JsonObject attributes = new JsonObject();
         attributes.addProperty(SecondaryAttributes.ACCURACY, getAccuracy());
         attributes.addProperty(SecondaryAttributes.SPEED, getSpeed());
@@ -120,7 +150,7 @@ public class TraceLocation extends Location{
         attributes.addProperty(SecondaryAttributes.ALTITUDE, getAltitude());
         attributes.addProperty(SecondaryAttributes.ELAPSED_NANOS, getElapsedRealtimeNanos());
         attributes.addProperty(SecondaryAttributes.PROVIDER, getProvider());
-        attributes.addProperty(SecondaryAttributes.ACTIVITY, getActivityMode());
+        attributes.add(SecondaryAttributes.ACTIVITY, parser.parse(getActivityMode()));
         return  attributes;
     }
 
