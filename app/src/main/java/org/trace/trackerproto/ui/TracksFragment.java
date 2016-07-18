@@ -30,6 +30,7 @@ import org.trace.storeclient.cache.exceptions.UnableToCreateRouteCopyException;
 import org.trace.storeclient.data.Route;
 import org.trace.storeclient.data.RouteWaypoint;
 import org.trace.tracker.Tracker;
+import org.trace.tracker.TrackerActivity;
 import org.trace.tracker.TrackerService;
 import org.trace.tracker.permissions.PermissionsConstants;
 import org.trace.tracker.storage.data.TraceLocation;
@@ -311,9 +312,8 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
 
                     try {
                         cache.saveRoute(((MainActivity) getActivity()).getAuthenticationToken(), route);
-                        Log.e("TODO", "PFF descomentar linha de código 303@TracksFragment");
-                        //((TrackerActivity)getActivity()).getTracker().deleteTracedTrack(t.getTrackId());
-                        //remove(index);
+                        ((TrackerActivity)getActivity()).getTracker().deleteTracedTrack(t.getTrackId());
+                        remove(index);
 
                     } catch (UnableToCreateRouteCopyException e) {
                         e.printStackTrace();

@@ -121,7 +121,7 @@ public class RouteCache {
 
         if (!createdLocalCopy) {
             Log.w(LOG_TAG, "Failed to create a local copy of the route.");
-            //throw new UnableToCreateRouteCopyException(); TODO descomentar
+            throw new UnableToCreateRouteCopyException();
         }
 
         // Scenario 1 - The app has a network connection (Wifi?)
