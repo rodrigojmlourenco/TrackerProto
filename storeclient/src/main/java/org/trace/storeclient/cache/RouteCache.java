@@ -318,8 +318,9 @@ public class RouteCache {
 
                     if(VERBOSE) mStorage.dumpStorageLog();
 
-                    LocalBroadcastManager.getInstance(mContext)
-                            .sendBroadcast(new Intent(Broadcast.ROUTES_AVAILABLE_BROADCAST));
+                    if(serverSessions.size() > 0)
+                        LocalBroadcastManager.getInstance(mContext)
+                                .sendBroadcast(new Intent(Broadcast.ROUTES_AVAILABLE_BROADCAST));
 
                 } catch (RemoteTraceException e) {
                     e.printStackTrace();
