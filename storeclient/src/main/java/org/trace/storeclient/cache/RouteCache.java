@@ -20,6 +20,8 @@
 package org.trace.storeclient.cache;
 
 import android.content.Context;
+import android.content.Intent;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import com.google.gson.JsonArray;
@@ -273,6 +275,10 @@ public class RouteCache {
                             trace = mHttpClient.downloadRouteTrace(authToken, session);
                             mStorage.updateRouteStateAndTrace(session, false, true, trace);
                             if(VERBOSE) mStorage.dumpStorageLog();
+
+                            LocalBroadcastManager.getInstance(mContext)
+                                    .sendBroadcast(new Intent(Broadcast.TRACE_AVAILABLE_BROADCAST));
+
                         } catch (RemoteTraceException | AuthTokenIsExpiredException e) {
                             e.printStackTrace();
                         }
@@ -309,7 +315,11 @@ public class RouteCache {
                     }
 
                     Log.i(LOG_TAG, "All missing route sessions loaded");
+
                     if(VERBOSE) mStorage.dumpStorageLog();
+
+                    LocalBroadcastManager.getInstance(mContext)
+                            .sendBroadcast(new Intent(Broadcast.ROUTES_AVAILABLE_BROADCAST));
 
                 } catch (RemoteTraceException e) {
                     e.printStackTrace();
@@ -516,6 +526,16 @@ public class RouteCache {
                 isPostingPendingRoutes = false;
             }
         }
+    }
+
+    /* Broadcasts
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+    public interface Broadcast {
+        String TRACE_AVAILABLE_BROADCAST = "org.trace.storeclient.cache.broadcast.TRACE_AVAILABLE";
+        String ROUTES_AVAILABLE_BROADCAST = "org.trace.storeclient.cache.broadcast.ROUTES_AVAILABLE";
     }
 
     /* Testing - Please remove before release
