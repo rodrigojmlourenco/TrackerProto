@@ -30,7 +30,6 @@ import org.trace.storeclient.cache.exceptions.UnableToCreateRouteCopyException;
 import org.trace.storeclient.data.Route;
 import org.trace.storeclient.data.RouteWaypoint;
 import org.trace.tracker.Tracker;
-import org.trace.tracker.TrackerActivity;
 import org.trace.tracker.TrackerService;
 import org.trace.tracker.permissions.PermissionsConstants;
 import org.trace.tracker.storage.data.TraceLocation;
@@ -312,8 +311,8 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
 
                     try {
                         cache.saveRoute(((MainActivity) getActivity()).getAuthenticationToken(), route);
-                        ((TrackerActivity)getActivity()).getTracker().deleteTracedTrack(t.getTrackId());
-                        remove(index);
+                        //((TrackerActivity)getActivity()).getTracker().deleteTracedTrack(t.getTrackId());
+                        //remove(index);
 
                     } catch (UnableToCreateRouteCopyException e) {
                         e.printStackTrace();
@@ -372,6 +371,11 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
         public void onServiceConnected(ComponentName name, IBinder service) {
             TrackerService.CustomBinder binder = (TrackerService.CustomBinder) service;
             mTracker = binder.getService();
+
+            if(mRouteCache == null) mRouteCache = RouteCache.getCacheInstance(getActivity().getApplicationContext());
+            mRouteCache.loadMissingRoutes(((MainActivity) getActivity()).getAuthenticationToken());
+            mRouteCache.dumpInfo();
+
 
             List<TrackSummary> simplifiedTracks = mTracker.getAllTracedTracks();
             String[] tracks = new String[simplifiedTracks.size()];

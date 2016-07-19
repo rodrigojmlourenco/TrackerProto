@@ -209,6 +209,7 @@ public class RouteStorage {
             aux.put(RouteLocationEntry.COLUMN_TIMESTAMP, location.getTimestamp());
             aux.put(RouteLocationEntry.COLUMN_LATITUDE, location.getLatitude());
             aux.put(RouteLocationEntry.COLUMN_LONGITUDE, location.getLongitude());
+            aux.put(RouteLocationEntry.COLUMN_ATTRIBUTES, location.getAttributes());
             locationValues.add(aux);
         }
 
@@ -221,14 +222,15 @@ public class RouteStorage {
             for (ContentValues value : locationValues) {
                 db.insert(RouteLocationEntry.TABLE_NAME, null, value);
             }
-            db.setTransactionSuccessful();
+
             success = true;
+            db.setTransactionSuccessful();
+
         }catch (Exception e){
             e.printStackTrace();
             Log.e(LOG_TAG, e.getMessage());
         } finally {
             db.endTransaction();
-            //db.close();
         }
 
         return success;
@@ -515,9 +517,6 @@ public class RouteStorage {
                 RouteStateEntry.TABLE_NAME,
                 RouteStateEntry.COLUMN_IS_LOCAL+"=1");
 
-
-        //db.close();
-
         return locals > 0;
     }
 
@@ -631,11 +630,20 @@ public class RouteStorage {
             dump.addProperty("isLocal", c.getInt(4) > 0 );
             dump.addProperty("isComplete", c.getInt(5) > 0);
 
-            Log.d(LOG_TAG, dump.toString());
+            Log.i(LOG_TAG, dump.toString());
         }
-        Log.w(LOG_TAG, "[END] Information dumped");
+
 
         c.close();
+
+        long locals = DatabaseUtils.queryNumEntries(
+                db,
+                RouteStateEntry.TABLE_NAME,
+                RouteStateEntry.COLUMN_IS_LOCAL+"=1");
+
+        Log.i(LOG_TAG, "There are "+locals+" pending routes");
+
+        Log.w(LOG_TAG, "[END] Information dumped");
         //db.close();
 
     }

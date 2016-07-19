@@ -58,23 +58,28 @@ import java.util.concurrent.Executors;
  */
 public class RouteCache {
 
+    public static final boolean VERBOSE = true;
     private static final String LOG_TAG = "RouteCache";
-    private Context mContext;
-    private RouteHttpClient mHttpClient;
-    private RouteStorage mLocalStorage;
 
+    private Context mContext;
+    private RouteStorage mStorage;
+    private RouteHttpClient mHttpClient;
     private ExecutorService mAsyncWorkers;
 
     private RouteCache(Context context){
         mContext = context;
         mHttpClient = new RouteHttpClient();
-        mLocalStorage = RouteStorage.getStorageInstance(context);
+        mStorage = RouteStorage.getStorageInstance(context);
         mAsyncWorkers = Executors.newFixedThreadPool(4);
 
         this.clearOldTraces();
     }
 
-
+    /* Singleton
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
     private static RouteCache CACHE = null;
 
     public static RouteCache getCacheInstance(Context context){
@@ -95,8 +100,9 @@ public class RouteCache {
     private boolean createLocalCopy(Route route){
         boolean success;
 
-        success = mLocalStorage.storeCompleteRoute(route, true, false);
-        mLocalStorage.dumpStorageLog();
+        success = mStorage.storeCompleteRoute(route, true, false);
+
+        if(VERBOSE) mStorage.dumpStorageLog();
 
         return success;
     }
@@ -117,17 +123,17 @@ public class RouteCache {
     public boolean saveRoute(final String authToken, final Route route) throws UnableToCreateRouteCopyException {
 
         //Regardless of the scenario a local copy is always created
-        boolean createdLocalCopy = createLocalCopy(route);
+        boolean hasCreatedLocalCopy = createLocalCopy(route);
 
-        if (!createdLocalCopy) {
+        if (!hasCreatedLocalCopy) {
             Log.w(LOG_TAG, "Failed to create a local copy of the route.");
             throw new UnableToCreateRouteCopyException();
         }
 
-        // Scenario 1 - The app has a network connection (Wifi?)
+
         if(ConnectivityUtils.isConnected(mContext)) {
-            mAsyncWorkers.execute(new PostRouteRunnable(authToken, route));
-            return true;
+            //mAsyncWorkers.execute(new PostRouteRunnable(authToken, route));
+            postPendingRoutes(authToken);
         }
 
         return true;
@@ -144,18 +150,27 @@ public class RouteCache {
      */
     public void postPendingRoutes(String authToken){
 
-        if(!mLocalStorage.hasPendingRoutes()){
+        synchronized (mPostPendingLock){
+            if(isPostingPendingRoutes)
+                return;
+            else
+                isPostingPendingRoutes = true;
+        }
+
+        if(!mStorage.hasPendingRoutes()){
             Log.i(LOG_TAG, "No pending routes to upload");
             return;
         }
 
-        final List<String> pendingRoutes = mLocalStorage.getLocalRoutesSessions();
+        final List<String> pendingRoutes = mStorage.getLocalRoutesSessions();
 
         if(pendingRoutes.size() > 0){
             mAsyncWorkers.execute(new PostPendingRoutesRunnable(authToken, pendingRoutes));
         }
     }
 
+    private boolean isPostingPendingRoutes;
+    private final Object mPostPendingLock = new Object();
 
     /* Loading Routes
      ***********************************************************************************************
@@ -175,7 +190,7 @@ public class RouteCache {
         if(ConnectivityUtils.isConnected(mContext) && authToken!=null) //TODO: this should be avoided
             this.loadMissingRoutes(authToken);
 
-        return mLocalStorage.getAllRoutes();
+        return mStorage.getAllRoutes();
     }
 
 
@@ -193,12 +208,12 @@ public class RouteCache {
      */
     public RouteSummary loadRoute(final String authToken, final String session) throws RouteNotFoundException {
 
-        RouteSummary summary = mLocalStorage.getRouteSummary(session);
+        RouteSummary summary = mStorage.getRouteSummary(session);
 
         //If the route is on the server, and its not complete on the device
         //then (if there is connectivity) the trace will be downloaded.
         if(ConnectivityUtils.isConnected(mContext) && authToken != null &&
-                !mLocalStorage.isLocalRoute(session) && !mLocalStorage.isCompleteRoute(session)){
+                !mStorage.isLocalRoute(session) && !mStorage.isCompleteRoute(session)){
 
             Thread t = new Thread(new Runnable() {
                 @Override
@@ -208,8 +223,8 @@ public class RouteCache {
 
                     try {
                         trace = mHttpClient.downloadRouteTrace(authToken, session);
-                        mLocalStorage.updateRouteStateAndTrace(session, false, true, trace);
-                        mLocalStorage.dumpStorageLog();
+                        mStorage.updateRouteStateAndTrace(session, false, true, trace);
+                        if(VERBOSE) mStorage.dumpStorageLog();
                     } catch (RemoteTraceException | AuthTokenIsExpiredException e) {
                         e.printStackTrace();
                     }
@@ -240,15 +255,15 @@ public class RouteCache {
     public List<RouteWaypoint> loadRouteTrace(final String authToken, final String session)
             throws RouteNotFoundException, RouteIsIncompleteException, RouteNotParsedException {
 
-        if(mLocalStorage.isLocalRoute(session))
+        if(mStorage.isLocalRoute(session))
             throw new RouteNotParsedException(session);
 
-        if (mLocalStorage.isCompleteRoute(session)){
-            return mLocalStorage.getRouteTrace(session);
+        if (mStorage.isCompleteRoute(session)){
+            return mStorage.getRouteTrace(session);
         }else {
 
             if(ConnectivityUtils.isConnected(mContext) && authToken != null
-                    && !mLocalStorage.isLocalRoute(session)){
+                    && !mStorage.isLocalRoute(session)){
                 mAsyncWorkers.execute(new Runnable() {
                     @Override
                     public void run() {
@@ -256,8 +271,8 @@ public class RouteCache {
 
                         try {
                             trace = mHttpClient.downloadRouteTrace(authToken, session);
-                            mLocalStorage.updateRouteStateAndTrace(session, false, true, trace);
-                            mLocalStorage.dumpStorageLog();
+                            mStorage.updateRouteStateAndTrace(session, false, true, trace);
+                            if(VERBOSE) mStorage.dumpStorageLog();
                         } catch (RemoteTraceException | AuthTokenIsExpiredException e) {
                             e.printStackTrace();
                         }
@@ -284,17 +299,17 @@ public class RouteCache {
                 try {
 
                     List<String> serverSessions = mHttpClient.queryExistingSessions(authToken);
-                    List<String> localSessions  = mLocalStorage.getRemoteRouteSessions();
+                    List<String> localSessions  = mStorage.getRemoteRouteSessions();
 
                     serverSessions.removeAll(localSessions);
 
                     for(String missing : serverSessions) {
                         Route aux = new Route(mHttpClient.downloadRouteSummary(authToken, missing));
-                        mLocalStorage.storeCompleteRoute(aux, false, false);
+                        mStorage.storeCompleteRoute(aux, false, false);
                     }
 
                     Log.i(LOG_TAG, "All missing route sessions loaded");
-                    mLocalStorage.dumpStorageLog();
+                    if(VERBOSE) mStorage.dumpStorageLog();
 
                 } catch (RemoteTraceException e) {
                     e.printStackTrace();
@@ -319,7 +334,7 @@ public class RouteCache {
         mAsyncWorkers.execute(new Runnable() {
             @Override
             public void run() {
-                mLocalStorage.deleteOldRouteTraces();
+                mStorage.deleteOldRouteTraces();
             }
         });
     }
@@ -338,12 +353,46 @@ public class RouteCache {
 
     private class PostRouteRunnable implements Runnable {
 
+        public static final int MAX_SIZE = 150;
+
         private final String authToken;
         private final Route route;
 
         public PostRouteRunnable(String authToken, Route route){
             this.authToken = authToken;
             this.route = route;
+        }
+
+        private JsonArray[] splitTraceIntoBatches(JsonArray trace){
+
+            JsonArray[] queue;
+            int size = 1, excess;
+
+            if (trace.size() <= MAX_SIZE) {
+                queue = new JsonArray[size];
+                queue[0] = trace;
+            } else {
+
+                excess = trace.size() % MAX_SIZE;
+                size = (trace.size() / MAX_SIZE) + (excess == 0 ? 0 : 1);
+
+                queue = new JsonArray[size];
+
+                for (int i = 0, left = 0, right = MAX_SIZE; i < size; i++) {
+
+                    JsonArray batch = new JsonArray();
+
+                    for (int j = left; j < right && j < trace.size(); j++) {
+                        batch.add(trace.get(j));
+                    }
+
+                    left = right++;
+                    right += MAX_SIZE;
+                    queue[i] = batch;
+                }
+            }
+
+            return queue;
         }
 
         @Override
@@ -356,6 +405,7 @@ public class RouteCache {
             boolean wasPosted = true;
 
             synchronized (mUploadLock) {
+
                 // Step 1 - The route is uploaded to the TRACEStore server,
                 //          this will provide an UID for the route.
                 try {
@@ -367,7 +417,7 @@ public class RouteCache {
                     rs = mHttpClient.submitRouteSummary(authToken, data);
                     session = rs.getSession();
 
-                    mLocalStorage.storeRouteSummary(rs, false, true);
+                    mStorage.storeRouteSummary(rs, false, true);
 
                 } catch (RemoteTraceException | AuthTokenIsExpiredException e) {
                     e.printStackTrace();
@@ -379,37 +429,9 @@ public class RouteCache {
                     }
                 }
 
-
-                //Step 3  - Upload the Route's trace (150 at each time)
+                //Step 2  - Upload the Route's trace (150 at each time)
                 //Step 2a - Split the trace into batches of up to MAX_SIZE points
-                int MAX_SIZE = 15;
-                int size = 1, excess;
-                JsonArray[] queue;
-                JsonArray jTrace = route.getTraceAsJsonArray();
-
-                if (jTrace.size() <= MAX_SIZE) {
-                    queue = new JsonArray[size];
-                    queue[0] = jTrace;
-                } else {
-
-                    excess = jTrace.size() % MAX_SIZE;
-                    size = (jTrace.size() / MAX_SIZE) + (excess == 0 ? 0 : 1);
-
-                    queue = new JsonArray[size];
-
-                    for (int i = 0, left = 0, right = MAX_SIZE; i < size; i++) {
-
-                        JsonArray batch = new JsonArray();
-
-                        for (int j = left; j < right && j < jTrace.size(); j++) {
-                            batch.add(jTrace.get(j));
-                        }
-
-                        left = right++;
-                        right += MAX_SIZE;
-                        queue[i] = batch;
-                    }
-                }
+                JsonArray[] queue = splitTraceIntoBatches(route.getTraceAsJsonArray());
 
                 //Step 2b - Upload each of the batches and analyze the response
                 // NOTE: Only if all batches are uploaded successfully with the track summary be stored.
@@ -435,19 +457,19 @@ public class RouteCache {
                     List<RouteWaypoint> trace = mHttpClient.downloadRouteTrace(authToken, session);
                     Log.d(LOG_TAG, aux.toString());
 
-                    mLocalStorage.updateRouteStateAndTrace(aux.getSession(), false, true, trace);
-                    mLocalStorage.dumpStorageLog();
+                    mStorage.updateRouteStateAndTrace(aux.getSession(), false, true, trace);
+
+                    if(VERBOSE) mStorage.dumpStorageLog();
 
                 } catch (RemoteTraceException | AuthTokenIsExpiredException e) {
                     e.printStackTrace();
                 }
 
                 //Step 4 - Delete the local copy of the route
-                // NOTA: Enquanto não remover a track do repositorio do tracker esta vai continuar a ser uploaded!
                 boolean wasDeleted;
                 do {
-                    wasDeleted = mLocalStorage.deleteRoute(trackId);
-                    mLocalStorage.dumpStorageLog();
+                    wasDeleted = mStorage.deleteRoute(trackId);
+                    if(VERBOSE) mStorage.dumpStorageLog();
                 } while (!wasDeleted);
             }
         }
@@ -472,8 +494,11 @@ public class RouteCache {
                 if(ConnectivityUtils.isConnected(mContext)) {
                     try {
 
-                        Route route = new Route(mLocalStorage.getRouteSummary(session));
-                        route.setTrace(mLocalStorage.getRouteTrace(session));
+                        // 1 - Load the local route
+                        Route route = new Route(mStorage.getRouteSummary(session));
+                        route.setTrace(mStorage.getRouteTrace(session));
+
+                        // 2 - Upload the local route
                         PostRouteRunnable post = new PostRouteRunnable(authToken, route);
                         post.run();
 
@@ -486,6 +511,21 @@ public class RouteCache {
                     break;
                 }
             }
+
+            synchronized (mPostPendingLock){
+                isPostingPendingRoutes = false;
+            }
         }
     }
+
+    /* Testing - Please remove before release
+     ***********************************************************************************************
+     ***********************************************************************************************
+     ***********************************************************************************************
+     */
+
+    public void dumpInfo(){
+        mStorage.dumpStorageLog();
+    }
+
 }
