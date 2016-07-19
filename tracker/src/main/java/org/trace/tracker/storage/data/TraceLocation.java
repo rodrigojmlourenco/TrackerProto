@@ -113,6 +113,9 @@ public class TraceLocation extends Location{
             case DetectedActivity.IN_VEHICLE:
                 activityId = 4;
                 break;
+            case DetectedActivity.TILTING: //TODO: for testing purposes -- please remove
+                activityId = 6;
+                break;
             default /*Other*/:
                 activityId = 5;
 

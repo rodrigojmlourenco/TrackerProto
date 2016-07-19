@@ -325,6 +325,10 @@ public class IJsbergTrackingEngine extends BroadcastReceiver implements Tracking
         synchronized (mActivityLock) {
             mCurrentActivity = aux;
         }
+
+        /*
+         * TODO: ON_FOOT may either be running or walking, so in that case it should take into account the previous
+         */
     }
 
     /* Timers
