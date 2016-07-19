@@ -10,6 +10,40 @@ import com.google.android.gms.location.DetectedActivity;
  * Returns a human readable String corresponding to a detected activity type.
  */
 public class ActivityConstants {
+    public static int getActivityIndex(DetectedActivity activity){
+
+        int activityId;
+
+        switch (activity.getType()){
+            case DetectedActivity.UNKNOWN:
+                activityId = -1;
+                break;
+            case DetectedActivity.STILL:
+                activityId = 0;
+                break;
+            case DetectedActivity.ON_FOOT: //TODO: this can also be an instance of running?
+            case DetectedActivity.WALKING:
+                activityId = 1;
+                break;
+            case DetectedActivity.RUNNING:
+                activityId = 2;
+                break;
+            case DetectedActivity.ON_BICYCLE:
+                activityId = 3;
+                break;
+            case DetectedActivity.IN_VEHICLE:
+                activityId = 4;
+                break;
+            case DetectedActivity.TILTING: //TODO: for testing purposes -- please remove
+                activityId = 6;
+                break;
+            default /*Other*/:
+                activityId = 5;
+        }
+
+        return activityId;
+    }
+
     public static String getActivityString(int detectedActivityType) {
 
         switch(detectedActivityType) {

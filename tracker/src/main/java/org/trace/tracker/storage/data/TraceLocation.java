@@ -8,6 +8,8 @@ import com.google.android.gms.location.DetectedActivity;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import org.trace.tracker.tracking.modules.activity.ActivityConstants;
+
 
 public class TraceLocation extends Location{
 
@@ -93,33 +95,7 @@ public class TraceLocation extends Location{
             return;
         }
 
-        switch (activity.getType()){
-            case DetectedActivity.UNKNOWN:
-                activityId = -1;
-                break;
-            case DetectedActivity.STILL:
-                activityId = 0;
-                break;
-            case DetectedActivity.ON_FOOT: //TODO: this can also be an instance of running?
-            case DetectedActivity.WALKING:
-                activityId = 1;
-                break;
-            case DetectedActivity.RUNNING:
-                activityId = 2;
-                break;
-            case DetectedActivity.ON_BICYCLE:
-                activityId = 3;
-                break;
-            case DetectedActivity.IN_VEHICLE:
-                activityId = 4;
-                break;
-            case DetectedActivity.TILTING: //TODO: for testing purposes -- please remove
-                activityId = 6;
-                break;
-            default /*Other*/:
-                activityId = 5;
-
-        }
+        activityId = ActivityConstants.getActivityIndex(activity);
 
         jsonActivity.addProperty("type", activityId);
         jsonActivity.addProperty("confidence", activity.getConfidence());

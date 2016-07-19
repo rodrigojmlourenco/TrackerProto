@@ -85,5 +85,9 @@ public interface TrackingEngine {
      */
     public void updateSettings();
 
-
+    /**
+     * Returns the most registered recognized activity.
+     * @return The most common activity.
+     */
+    public int getModeActivity();
 }

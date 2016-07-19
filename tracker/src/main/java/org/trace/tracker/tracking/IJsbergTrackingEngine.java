@@ -46,6 +46,7 @@ import org.trace.tracker.storage.data.TrackSummary;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.Executors;
@@ -235,10 +236,7 @@ public class IJsbergTrackingEngine extends BroadcastReceiver implements Tracking
                 resetIdleTimer();
                 mLastKnownLocation = location;
             }
-
         }
-
-
     }
 
     private boolean isAcceptableAccuracy(TraceLocation position){
@@ -262,8 +260,6 @@ public class IJsbergTrackingEngine extends BroadcastReceiver implements Tracking
 
     public void startLocationUpdates(){
         if(mLocationModule ==null) init();
-
-        //travelledDistance = 0;
         mLocationModule.startTracking();
     }
 
@@ -302,6 +298,8 @@ public class IJsbergTrackingEngine extends BroadcastReceiver implements Tracking
     private final Object mActivityLock = new Object();
     private DetectedActivity mCurrentActivity = null;
     private ActivityRecognitionModule mActivityRecognitionModule = null;
+    private ActivityState mActivityState = new ActivityState();
+
 
     public void stopActivityUpdates(){
         mActivityRecognitionModule.stopTracking();
@@ -322,13 +320,51 @@ public class IJsbergTrackingEngine extends BroadcastReceiver implements Tracking
             return;
         }
 
+        /*
+         * TODO: ON_FOOT may either be running or walking, so in that case it should take into account the previous
+         * TODO: compute the mode modality
+         */
+        mActivityState.updateState(aux);
+
+
         synchronized (mActivityLock) {
             mCurrentActivity = aux;
         }
+    }
 
-        /*
-         * TODO: ON_FOOT may either be running or walking, so in that case it should take into account the previous
-         */
+    public class ActivityState{
+
+        private boolean wasUpdated;
+        private int[] activitiesCounter = new int[7];
+
+        public ActivityState(){
+            Arrays.fill(activitiesCounter, 0);
+            wasUpdated = false;
+        }
+
+        public void updateState(DetectedActivity activity){
+            int index = ActivityConstants.getActivityIndex(activity);
+            activitiesCounter[index]++;
+            wasUpdated = true;
+        }
+
+        public int getModeActivity(){
+
+            if(!wasUpdated) return -1;
+
+            int largest = activitiesCounter[0];
+            int largestIndex = 0;
+
+            for(int i = 0; i < activitiesCounter.length; i++)
+            {
+                if(activitiesCounter[i] > largest) {
+                    largest = activitiesCounter[i];
+                    largestIndex = i;
+                }
+            }
+
+            return largestIndex;
+        }
     }
 
     /* Timers
@@ -435,42 +471,6 @@ public class IJsbergTrackingEngine extends BroadcastReceiver implements Tracking
     @Override
     public void stopTracking() {
         abortTracking();
-
-        final Location location = mLastKnownLocation;
-
-        /*
-        Handler handler = new Handler();
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-
-                List<Address> addresses = null;
-                Geocoder geocoder = new Geocoder(mContext, Locale.getDefault());
-
-                try {
-                    addresses = geocoder.getFromLocation(location.getLatitude(), location.getLongitude(), 1);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-                if (addresses != null && addresses.size() > 0) {
-                    Address address = addresses.get(0);
-                    ArrayList<String> addressFragments = new ArrayList<String>();
-
-                    // Fetch the address lines using getAddressLine,
-                    // join them, and send them to the thread.
-                    for (int i = 0; i < address.getMaxAddressLineIndex(); i++)
-                        addressFragments.add(address.getAddressLine(i));
-
-                    String sLocation = TextUtils.join(", ", addressFragments);
-                    Log.i(LOG_TAG, sLocation);
-
-                    mCurrentTrack.setSemanticToLocation(sLocation);
-                    mTrackStorage.updateTrackSummary(mCurrentTrack);
-                }
-            }
-        });
-        */
     }
 
     @Override
@@ -506,6 +506,13 @@ public class IJsbergTrackingEngine extends BroadcastReceiver implements Tracking
         if(mActivityRecognitionModule ==null) init();
         mActivityRecognitionModule.setInterval(profile.getActivityInterval());
         mActivityRecognitionModule.setMinimumConfidence(profile.getActivityMinimumConfidence());
+    }
+
+    @Override
+    public int getModeActivity() {
+
+
+        return mActivityState.getModeActivity();
     }
 
     @Override

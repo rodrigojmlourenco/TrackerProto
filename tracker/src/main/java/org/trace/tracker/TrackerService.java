@@ -250,7 +250,14 @@ public class TrackerService extends Service implements Tracker {
             mTrackStorage.updateTrackSummaryDistanceAndTime(mTracker.getCurrentTrack());
         }
 
-        //Step 4 - ???
+        //TODO: check if there are no chances of conflicts
+        int modeActivity = mTracker.getModeActivity();
+        if(modeActivity != -1){
+            mTracker.getCurrentTrack().setModality(modeActivity);
+            mTrackStorage.updateTrackSummary(mTracker.getCurrentTrack());
+        }
+
+        //Step ? - ???
         // Basically, the check if there is last position (why was it not added?), and if there is
         // then the position if added to the TrackSummary and also to the sqlite storage
         if(mTracker.getCurrentLocation() != null){ //TODO: assure that is is the last acquired position and not the FusedLocation one
@@ -271,6 +278,7 @@ public class TrackerService extends Service implements Tracker {
             mTracker.abortTracking();
         else
             mTracker.stopTracking();
+
 
         LocalBroadcastManager.getInstance(this).unregisterReceiver((BroadcastReceiver) mTracker);
 
