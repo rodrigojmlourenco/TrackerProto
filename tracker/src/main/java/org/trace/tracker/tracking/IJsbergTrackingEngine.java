@@ -58,7 +58,7 @@ public class IJsbergTrackingEngine extends BroadcastReceiver implements Tracking
 
     private static final String LOG_TAG = "IJsbergTrackingEngine";
     private static final boolean IS_TESTING = false; //TODO: carefull with this
-    private static final double DISTANCE_THRESHOLD = 0; //TODO: [TEST] make sure its 100 - 0 is just for testing
+    private static final double DISTANCE_THRESHOLD = 100;
 
     private static IJsbergTrackingEngine TRACKER = null;
     private final PersistentTrackStorage mTrackStorage;
