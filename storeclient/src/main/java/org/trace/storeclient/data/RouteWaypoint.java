@@ -42,8 +42,10 @@ public class RouteWaypoint implements Parcelable{
         this.longitude = jsonWaypoint.get("longitude").getAsDouble();
 
         try {
-            this.attributes = jsonWaypoint.get("attributes").getAsString();
+            JsonObject jAttribs = (JsonObject) jsonWaypoint.get("attributes");
+            this.attributes = jAttribs.toString();
         }catch (UnsupportedOperationException e){
+            e.printStackTrace();
             this.attributes = "error";
         }
     }
