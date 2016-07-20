@@ -58,6 +58,7 @@ public class IJsbergTrackingEngine extends BroadcastReceiver implements Tracking
 
     private static final String LOG_TAG = "IJsbergTrackingEngine";
     private static final boolean IS_TESTING = false; //TODO: carefull with this
+    private static final double DISTANCE_THRESHOLD = 0; //TODO: [TEST] make sure its 100 - 0 is just for testing
 
     private static IJsbergTrackingEngine TRACKER = null;
     private final PersistentTrackStorage mTrackStorage;
@@ -251,7 +252,7 @@ public class IJsbergTrackingEngine extends BroadcastReceiver implements Tracking
         }
 
         if (lastPosition != null)
-            return lastPosition.distanceTo(position) > 100 /* TODO: should not be hardcoded */
+            return lastPosition.distanceTo(position) > DISTANCE_THRESHOLD /* TODO: should not be hardcoded */
                     || position.isCorner(lastPosition.getBearing()); /*TODO: may cause infinite interesting points */
         else
             return false;
@@ -305,14 +306,22 @@ public class IJsbergTrackingEngine extends BroadcastReceiver implements Tracking
         mActivityRecognitionModule.stopTracking();
     }
 
+    /*
+     * TODO: ON_FOOT may either be running or walking, so in that case it should take into account the previous
+     * TODO: compute the mode modality
+     */
     private void onHandleDetectedActivity(ArrayList<DetectedActivity> detectedActivities){
         if(detectedActivities.isEmpty()) return;
 
         DetectedActivity aux = detectedActivities.get(0);
 
-        for(DetectedActivity activity : detectedActivities)
+        //NOTE: the detected activites are already ordered in terms of confidence so there is no need for this
+        //TODO: if UNKNOWN take the second value if barely acceptable (over 50%)
+        //TODO: if ON_FOOT take the second value (if WALKING or RUNNING)
+        /*for(DetectedActivity activity : detectedActivities)
             if (aux.getConfidence() > activity.getConfidence())
                 aux = activity;
+        */
 
         if(aux.getConfidence() < mActivityRecognitionModule.getMinimumConfidence()) {
             String activityName = ActivityRecognitionModule.getActivityString(aux.getType());
@@ -320,16 +329,11 @@ public class IJsbergTrackingEngine extends BroadcastReceiver implements Tracking
             return;
         }
 
-        /*
-         * TODO: ON_FOOT may either be running or walking, so in that case it should take into account the previous
-         * TODO: compute the mode modality
-         */
-        mActivityState.updateState(aux);
-
-
         synchronized (mActivityLock) {
             mCurrentActivity = aux;
         }
+
+        mActivityState.updateState(mCurrentActivity);
     }
 
     public class ActivityState{

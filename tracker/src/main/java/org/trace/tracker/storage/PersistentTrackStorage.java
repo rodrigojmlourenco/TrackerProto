@@ -164,6 +164,7 @@ public class PersistentTrackStorage {
         ContentValues values = new ContentValues();
         values.put(TrackSummaryEntry.COLUMN_STARTED_AT,  summary.getStart());
         values.put(TrackSummaryEntry.COLUMN_FINISHED_AT, summary.getStop());
+        values.put(TrackSummaryEntry.COLUMN_MODALITY, summary.getModality());
         values.put(TrackSummaryEntry.COLUMN_DISTANCE, summary.getElapsedDistance());
 
         if(summary.getFromLocation() != null){
