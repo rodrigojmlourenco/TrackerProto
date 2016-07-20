@@ -15,25 +15,18 @@ import com.google.android.gms.location.DetectedActivity;
 import org.trace.tracker.exceptions.GoogleApiClientDisconnectedException;
 import org.trace.tracker.tracking.modules.ModuleInterface;
 
-import java.util.LinkedList;
-import java.util.Queue;
-
 public class ActivityRecognitionModule implements ModuleInterface, ResultCallback<Status> {
 
     protected final static String LOG_TAG = "HARModule";
 
     private Context mContext;
     private GoogleApiClient mGoogleApiClient;
-    //private BroadcastReceiver mActivityReceiver;
-    //private PendingIntent mActivityRecogIntent = null;
 
     private boolean isTracking = false;
 
     //Tracking Parameters
     private long interval = 1000;
     private int minimumConfidence = 75;
-
-    private Queue<SimpleDetectedActivity> activities;
 
     public ActivityRecognitionModule(Context ctx, GoogleApiClient googleApiClient){
 
@@ -42,8 +35,6 @@ public class ActivityRecognitionModule implements ModuleInterface, ResultCallbac
 
         this.mContext = ctx;
         this.mGoogleApiClient = googleApiClient;
-
-        this.activities = new LinkedList<>();
     }
 
     @Override
@@ -53,9 +44,6 @@ public class ActivityRecognitionModule implements ModuleInterface, ResultCallbac
             Log.e(LOG_TAG, "ERROR, the google api client is not connected.");
             return;
         }
-
-        Intent i = new Intent(mContext, ActivityRecognitionHandler.class);
-        //mActivityRecogIntent = PendingIntent.getService(mContext, 0, i, PendingIntent.FLAG_UPDATE_CURRENT);
 
         ActivityRecognition.ActivityRecognitionApi
                 .requestActivityUpdates(
