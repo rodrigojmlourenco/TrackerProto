@@ -526,6 +526,11 @@ public class RouteCache {
             synchronized (mPostPendingLock){
                 isPostingPendingRoutes = false;
             }
+
+            if(pendingSessions.size() > 0)
+                LocalBroadcastManager.getInstance(mContext)
+                        .sendBroadcast(new Intent(Broadcast.ROUTES_UPLOADED_BROADCAST));
+
         }
     }
 
@@ -537,6 +542,7 @@ public class RouteCache {
     public interface Broadcast {
         String TRACE_AVAILABLE_BROADCAST = "org.trace.storeclient.cache.broadcast.TRACE_AVAILABLE";
         String ROUTES_AVAILABLE_BROADCAST = "org.trace.storeclient.cache.broadcast.ROUTES_AVAILABLE";
+        String ROUTES_UPLOADED_BROADCAST = "org.trace.storeclient.cache.broadcast.ROUTES_UPLOADED";
     }
 
     /* Testing - Please remove before release
