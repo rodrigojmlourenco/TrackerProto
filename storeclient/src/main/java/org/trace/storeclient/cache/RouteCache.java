@@ -40,6 +40,7 @@ import org.trace.storeclient.remote.RouteHttpClient;
 import org.trace.storeclient.utils.ConnectivityUtils;
 
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -125,6 +126,8 @@ public class RouteCache {
     public boolean saveRoute(final String authToken, final Route route) throws UnableToCreateRouteCopyException {
 
         //Regardless of the scenario a local copy is always created
+        Random r = new Random();
+        route.setSession("local_"+r.nextInt(1024));
         boolean hasCreatedLocalCopy = createLocalCopy(route);
 
         if (!hasCreatedLocalCopy) {
@@ -136,6 +139,8 @@ public class RouteCache {
         if(ConnectivityUtils.isConnected(mContext)) {
             //mAsyncWorkers.execute(new PostRouteRunnable(authToken, route));
             postPendingRoutes(authToken);
+        }else{
+            Log.w(LOG_TAG, "Not posting the route because of no connectivity!");
         }
 
         return true;
@@ -153,16 +158,24 @@ public class RouteCache {
     public void postPendingRoutes(String authToken){
 
         synchronized (mPostPendingLock){
-            if(isPostingPendingRoutes)
+            if(isPostingPendingRoutes) {
+                Log.w(LOG_TAG, "Already posting pending routes");
                 return;
-            else
+            }else {
                 isPostingPendingRoutes = true;
+            }
         }
 
         if(!mStorage.hasPendingRoutes()){
             Log.i(LOG_TAG, "No pending routes to upload");
+
+            synchronized (mPostPendingLock) {
+                isPostingPendingRoutes = false;
+            }
+
             return;
-        }
+        }else
+            Log.i(LOG_TAG, "There are pending routes to be uploaded");
 
         final List<String> pendingRoutes = mStorage.getLocalRoutesSessions();
 
