@@ -439,7 +439,7 @@ public class TrackerService extends Service implements Tracker {
                 return;
             }
 
-            stopTracking();
+            //stopTracking(); TODO: for testing purposes this functionality was disabled
             mTracker.stopIdleTimer();
         }
     };
