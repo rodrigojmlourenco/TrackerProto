@@ -245,33 +245,29 @@ public class TrackerService extends Service implements Tracker {
         }
 
         //Step 2 - Update the track summary sensing type in case of manual sensing.
-        if(isManual){
-            mTracker.getCurrentTrack().setSensingType(1);
-            mTrackStorage.updateTrackSummaryDistanceAndTime(mTracker.getCurrentTrack());
+        if(isManual && currentTrack != null){
+            //TODO: there is a chance of th current track being null. Why? Loss of state?
+            //mTracker.getCurrentTrack().setSensingType(1);
+            //mTrackStorage.updateTrackSummaryDistanceAndTime(mTracker.getCurrentTrack());
+            currentTrack.setSensingType(1);
+            mTrackStorage.updateTrackSummaryDistanceAndTime(currentTrack);
+
         }
 
         //TODO: check if there are no chances of conflicts
         int modeActivity = mTracker.getModeActivity();
         if(modeActivity != -1){
-            mTracker.getCurrentTrack().setModality(modeActivity);
-            mTrackStorage.updateTrackSummary(mTracker.getCurrentTrack());
+            //mTracker.getCurrentTrack().setModality(modeActivity);
+            //mTrackStorage.updateTrackSummary(mTracker.getCurrentTrack());
+            currentTrack.setModality(modeActivity);
+            mTrackStorage.updateTrackSummary(currentTrack);
         }
 
-        //Step ? - ???
-        // Basically, the check if there is last position (why was it not added?), and if there is
-        // then the position if added to the TrackSummary and also to the sqlite storage
-        if(mTracker.getCurrentLocation() != null){ //TODO: assure that is is the last acquired position and not the FusedLocation one
-            ;
-        }
 
-        //Step 5 there is a lot of UI and network effort which we deemed inappropriate for the module!
-
-        //Step 6 - The automatic tracking is re-enabled.
-
-        //Step 7 - Stop the timers
+        //Step 3 - Stop the timers
+        mTracker.stopIdleTimer();
 
 
-        //Step 3 - Stop location and activity updates and unregister the receiver
         boolean wasDeleted = deleteTrackIfIrrelevant(currentTrack.getTrackId());
 
         if(wasDeleted)
@@ -279,16 +275,12 @@ public class TrackerService extends Service implements Tracker {
         else
             mTracker.stopTracking();
 
-
-        LocalBroadcastManager.getInstance(this).unregisterReceiver((BroadcastReceiver) mTracker);
-
-        //TODO: remover (just for debugging)
-        mTrackStorage.dumpTrackSummaryTable();
-
         synchronized (finishLock){
             mState.setFinishing(false);
             mState.save();
         }
+
+        LocalBroadcastManager.getInstance(this).unregisterReceiver((BroadcastReceiver) mTracker);
 
         if(!wasDeleted)
             return mTrackStorage.getCompleteTrack(currentTrack);
