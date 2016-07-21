@@ -26,6 +26,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import org.trace.storeclient.cache.RouteCache;
+import org.trace.storeclient.cache.exceptions.RouteIsIncompleteException;
+import org.trace.storeclient.cache.exceptions.RouteNotFoundException;
+import org.trace.storeclient.cache.exceptions.RouteNotParsedException;
 import org.trace.storeclient.cache.exceptions.UnableToCreateRouteCopyException;
 import org.trace.storeclient.data.Route;
 import org.trace.storeclient.data.RouteWaypoint;
@@ -375,6 +378,16 @@ public class TracksFragment extends Fragment implements EasyPermissions.Permissi
             if(mRouteCache == null) mRouteCache = RouteCache.getCacheInstance(getActivity().getApplicationContext());
             mRouteCache.loadMissingRoutes(((MainActivity) getActivity()).getAuthenticationToken());
             mRouteCache.dumpInfo();
+
+            try {
+                mRouteCache.loadRouteTrace(((MainActivity) getActivity()).getAuthenticationToken(), "12a51a8621afb8b107b98f40fa12001e2786c3868740b5aa1639100b9988c5f7");
+            } catch (RouteNotFoundException e) {
+                e.printStackTrace();
+            } catch (RouteIsIncompleteException e) {
+                e.printStackTrace();
+            } catch (RouteNotParsedException e) {
+                e.printStackTrace();
+            }
 
 
             List<TrackSummary> simplifiedTracks = mTracker.getAllTracedTracks();

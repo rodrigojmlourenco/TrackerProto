@@ -105,7 +105,7 @@ public class TraceLocation extends Location{
 
     public JsonObject getSerializableLocationAsJson(){
         JsonObject location = getMainAttributesAsJson();
-        location.addProperty(Attributes.ATTRIBUTES, getSecondaryAttributesAsJson().toString());
+        location.add(Attributes.ATTRIBUTES, getSecondaryAttributesAsJson());
         return location;
     }
 
