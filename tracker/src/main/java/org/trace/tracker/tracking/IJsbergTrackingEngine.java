@@ -22,33 +22,27 @@ package org.trace.tracker.tracking;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.location.Address;
-import android.location.Geocoder;
 import android.location.Location;
-import android.os.Handler;
 import android.support.v4.content.LocalBroadcastManager;
-import android.text.TextUtils;
 import android.util.Log;
 
 import com.google.android.gms.location.DetectedActivity;
 import com.google.android.gms.location.LocationServices;
 
-import org.trace.tracker.*;
+import org.trace.tracker.Constants;
+import org.trace.tracker.TrackingEngine;
 import org.trace.tracker.google.GoogleClientManager;
-import org.trace.tracker.tracking.modules.activity.ActivityConstants;
-import org.trace.tracker.tracking.modules.activity.ActivityRecognitionModule;
-import org.trace.tracker.tracking.modules.location.FusedLocationModule;
 import org.trace.tracker.settings.ConfigurationProfile;
 import org.trace.tracker.settings.ConfigurationsManager;
 import org.trace.tracker.storage.PersistentTrackStorage;
 import org.trace.tracker.storage.data.TraceLocation;
 import org.trace.tracker.storage.data.TrackSummary;
+import org.trace.tracker.tracking.modules.activity.ActivityConstants;
+import org.trace.tracker.tracking.modules.activity.ActivityRecognitionModule;
+import org.trace.tracker.tracking.modules.location.FusedLocationModule;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -188,38 +182,6 @@ public class IJsbergTrackingEngine extends BroadcastReceiver implements Tracking
                 mTrackStorage.updateTrackSummary(mCurrentTrack);
                 mTrackStorage.storeLocation(location, mCurrentTrack.getTrackId());
 
-                //Get the semantic address of the start location
-                Handler handler = new Handler();
-                handler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        Geocoder geocoder = new Geocoder(mContext, Locale.getDefault());
-                        List<Address> addresses = null;
-                        try {
-                            addresses = geocoder.getFromLocation(location.getLatitude(), location.getLongitude(),1);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-
-                        if(addresses != null && addresses.size() > 0){
-                            Address address = addresses.get(0);
-                            ArrayList<String> addressFragments = new ArrayList<String>();
-
-                            // Fetch the address lines using getAddressLine,
-                            // join them, and send them to the thread.
-                            for(int i = 0; i < address.getMaxAddressLineIndex(); i++) {
-                                addressFragments.add(address.getAddressLine(i));
-                            }
-                            String sLocation = TextUtils.join(", ", addressFragments);
-                            Log.i(LOG_TAG,sLocation );
-
-                            mCurrentTrack.setSemanticFromLocation(sLocation);
-                            mTrackStorage.updateTrackSummary(mCurrentTrack);
-
-                        }
-                    }
-                });
-
                 resetIdleTimer();
                 mLastKnownLocation = location;
 
@@ -231,7 +193,7 @@ public class IJsbergTrackingEngine extends BroadcastReceiver implements Tracking
                 mCurrentTrack.setElapsedDistance(travelledDistance);
                 mCurrentTrack.setStoppedTimestamp(location.getTime());
 
-                mTrackStorage.updateTrackSummary(mCurrentTrack);
+                mTrackStorage.updateTrackSummary(mCurrentTrack); //TODO: there is a chance of occurring a BUG here
                 mTrackStorage.storeLocation(location, mCurrentTrack.getTrackId());
 
                 resetIdleTimer();

@@ -268,7 +268,14 @@ public class TrackerService extends Service implements Tracker {
         mTracker.stopIdleTimer();
 
 
-        boolean wasDeleted = deleteTrackIfIrrelevant(currentTrack.getTrackId());
+        boolean wasDeleted;
+
+        try {
+            wasDeleted = deleteTrackIfIrrelevant(currentTrack.getTrackId());
+        }catch(NullPointerException e){
+            Log.e(LOG_TAG, "Unexpected behaviour, the current track is non existent");
+            wasDeleted = true;
+        }
 
         if(wasDeleted)
             mTracker.abortTracking();
